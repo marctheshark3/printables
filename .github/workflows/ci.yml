@@ -1,0 +1,40 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Unit tests (no Docker, no Blender)
+        run: |
+          python3 -m unittest discover -s tests -v
+          python3 -m unittest discover -s skills/blender-printables/scripts/tests -v
+      - name: Scripts compile
+        run: |
+          python3 -m py_compile \
+            skills/openscad-printables/scripts/dfm_gate.py \
+            skills/blender-printables/scripts/pblend_cli.py \
+            skills/image-silhouette-print/scripts/trace_silhouette.py \
+            skills/image-silhouette-print/scripts/overlay_preview.py \
+            skills/image-silhouette-print/scripts/scad_from_poly.py
+      - name: Secret / hostname scan
+        run: |
+          # Scan published skills/tools only — not docs that mention the deny-list.
+          if grep -RInE 'spark-adb4|tailf9bab6|\.ts\.net|BEGIN (RSA|OPENSSH) PRIVATE|[[:space:]]gho_[A-Za-z0-9]+|[[:space:]]ghp_[A-Za-z0-9]+' \
+            --exclude-dir=.git skills examples tests install.sh ; then
+            echo "possible secret or private hostname — fail" >&2
+            exit 1
+          fi
+          echo "scan clean"

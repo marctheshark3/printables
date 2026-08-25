@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+# Export via pblend (falls back to direct blender if pblend missing)
+set -euo pipefail
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+WHICH="${1:-all}"
+
+resolve_pblend() {
+  if [[ -n "${PBLEND:-}" && -x "$PBLEND" ]]; then
+    echo "$PBLEND"; return
+  fi
+  if command -v pblend >/dev/null 2>&1; then
+    command -v pblend; return
+  fi
+  # skill-relative (pack or installed)
+  local here candidates
+  candidates=(
+    "$HOME/.hermes/profiles/tron/skills/creative/blender-printables/scripts/pblend"
+    "$HOME/.hermes/profiles/yori/skills/creative/blender-printables/scripts/pblend"
+    "$HOME/Documents/the-grid/printables-skill-pack/skills/blender-printables/scripts/pblend"
+  )
+  if [[ -f "$ROOT/scripts/pblend.path" ]]; then
+    candidates=("$(cat "$ROOT/scripts/pblend.path")" "${candidates[@]}")
+  fi
+  for c in "${candidates[@]}"; do
+    if [[ -x "$c" ]]; then echo "$c"; return; fi
+  done
+  return 1
+}
+
+if PB="$(resolve_pblend)"; then
+  exec "$PB" run --project "$ROOT" --which "$WHICH"
+fi
+
+echo "WARN: pblend not found; using blender directly" >&2
+BLENDER="${BLENDER:-blender}"
+exec "$BLENDER" -b -P "$ROOT/src/build.py" -- --which "$WHICH" --out "$ROOT/stl"

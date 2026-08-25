@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# pblend — headless Blender printables CLI
+set -euo pipefail
+ROOT="$(cd "$(dirname "$0")" && pwd)"
+exec python3 "$ROOT/pblend_cli.py" "$@"

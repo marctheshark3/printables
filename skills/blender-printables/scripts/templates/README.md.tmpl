@@ -1,0 +1,40 @@
+# {{NAME}}
+
+Blender printables project (`scaffold: blender-bpy`).
+
+## Layout
+
+| Path | Role |
+|------|------|
+| `docs/DESIGN.md` | Intent + mode keys for DFM gate |
+| `src/build.py` | Parametric headless bpy builder |
+| `stl/` | Binary STLs |
+| `renders/` | Preview PNGs |
+| `scripts/export.sh` | Thin wrapper → pblend |
+
+## Build
+
+```bash
+# from skill scripts (or PATH after install)
+pblend doctor
+pblend run --project "$(pwd)"
+pblend gate --project "$(pwd)"
+pblend preview --project "$(pwd)"
+pblend pack --project "$(pwd)" --version {{VERSION}}
+```
+
+Or:
+
+```bash
+./scripts/export.sh
+```
+
+## Print (P1S)
+
+- Orientation: feet-down (see DESIGN.md)
+- Material: PETG preferred; PLA fit-check
+- **HARD DFM fail = not done**
+
+## Version
+
+- **{{VERSION}}** — scaffold

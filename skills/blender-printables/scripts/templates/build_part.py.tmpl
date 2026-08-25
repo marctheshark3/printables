@@ -1,0 +1,113 @@
+#!/usr/bin/env python3
+"""
+{{NAME}} — parametric Blender printables part (smoke / starter).
+
+Usage (via pblend):
+  pblend run --project <dir>
+  blender -b -P src/build.py -- --which all
+
+Coordinates: mm, Z-up. Print feet-down.
+Solid soft puck by default (manifold). Edit params + add booleans carefully.
+"""
+from __future__ import annotations
+
+import argparse
+import math
+import os
+import sys
+from pathlib import Path
+
+import bmesh
+import bpy
+
+_lib = os.environ.get("PBLEND_LIB")
+if _lib and _lib not in sys.path:
+    sys.path.insert(0, _lib)
+
+from bpy_lib.mesh_ops import merge_by_distance, recalculate_normals_outside  # noqa: E402
+from bpy_lib.scene import (  # noqa: E402
+    clear_scene,
+    export_stl,
+    mesh_stats,
+    new_mesh_object,
+    set_active,
+    set_metric_mm,
+)
+
+VERSION = "{{VERSION}}"
+NAME = "{{NAME}}"
+
+# --- params (edit me) -------------------------------------------------------
+OUTER_X, OUTER_Y, OUTER_Z = 40.0, 30.0, 8.0
+CORNER_R = 4.0
+BEVEL_SEG = 4
+
+
+def parse_args():
+    argv = sys.argv
+    if "--" in argv:
+        argv = argv[argv.index("--") + 1 :]
+    else:
+        argv = []
+    p = argparse.ArgumentParser()
+    p.add_argument("--which", default="all", choices=["all", "part"])
+    p.add_argument("--out", default=None)
+    p.add_argument("--blend", action="store_true")
+    return p.parse_args(argv)
+
+
+def project_root() -> Path:
+    env = os.environ.get("PBLEND_PROJECT")
+    if env:
+        return Path(env)
+    return Path(__file__).resolve().parent.parent
+
+
+def soft_solid_box(name: str, sx: float, sy: float, sz: float, r: float) -> bpy.types.Object:
+    """Manifold soft rectangular solid, z from 0..sz. Prefer this over careless booleans."""
+    bm = bmesh.new()
+    bmesh.ops.create_cube(bm, size=1.0)
+    bmesh.ops.scale(bm, vec=(sx, sy, sz), verts=bm.verts)
+    bmesh.ops.translate(bm, vec=(0.0, 0.0, sz / 2.0), verts=bm.verts)
+    obj = new_mesh_object(name, bm)
+
+    rr = min(r, min(sx, sy, sz) / 2 - 0.05)
+    set_active(obj)
+    mod = obj.modifiers.new("Bevel", "BEVEL")
+    mod.width = rr * 0.85
+    mod.segments = BEVEL_SEG
+    mod.limit_method = "ANGLE"
+    mod.angle_limit = math.radians(40)
+    bpy.ops.object.modifier_apply(modifier=mod.name)
+
+    merge_by_distance(obj, 0.04)
+    recalculate_normals_outside(obj)
+    return obj
+
+
+def main():
+    args = parse_args()
+    root = project_root()
+    out_dir = Path(args.out) if args.out else root / "stl"
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    print("=" * 60)
+    print(f"{NAME} {VERSION}  outer={OUTER_X}x{OUTER_Y}x{OUTER_Z}")
+    print("=" * 60)
+
+    clear_scene()
+    set_metric_mm()
+    part = soft_solid_box(NAME, OUTER_X, OUTER_Y, OUTER_Z, CORNER_R)
+    mesh_stats(part)
+    export_stl(part, out_dir / f"{NAME}.stl")
+
+    if args.blend:
+        blend = root / "src" / f"{NAME}.blend"
+        bpy.ops.wm.save_as_mainfile(filepath=str(blend))
+        print(f"Saved {blend}")
+
+    print("DONE")
+
+
+if __name__ == "__main__":
+    main()

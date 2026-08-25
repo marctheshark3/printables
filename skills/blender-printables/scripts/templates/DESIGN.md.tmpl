@@ -1,0 +1,52 @@
+---
+product_class: {{PRODUCT_CLASS}}
+print_orientation: feet-down
+print_up_axis: Z
+use_flip: no
+soft_mode: yes
+stack_story: none
+clearance_mm: 0.4
+min_feature_mm: 1.6
+overhang_max_deg: 45
+material: PETG
+printer: Bambu Lab P1S
+scaffold: blender-bpy
+image_role: none
+version: {{VERSION}}
+tool: Blender 4.x headless bpy (pblend)
+---
+
+# {{NAME}} — design intent
+
+Blender printables part. **Do not invent mechanical dims** without from-spec / from-user / measured tags.
+
+## Intent card
+- **Product:** {{NAME}}
+- **Product class:** {{PRODUCT_CLASS}}
+- **Print orientation:** feet-down
+- **Use flip:** no
+- **Scaffold:** blender-bpy (`pblend` / `src/build.py`)
+- **Never-list:**
+  - CAD before this intent card
+  - knife features &lt; 1.6 mm
+  - shipping without `pblend gate` HARD=0
+  - raw STL on Discord (zip only)
+  - using host `python3` + `import bpy` (always `blender -b -P`)
+
+## Dimensions
+
+| Feature | Value (mm) | Source |
+|---------|------------|--------|
+| Outer envelope | 40 × 30 × 8 | assumed (smoke default — replace) |
+
+## Clearances
+- TBD — set before fit-critical features
+
+## Scaffold handoff
+Ready for CAD: yes — edit `src/build.py`, then:
+
+```bash
+pblend run --project .
+pblend gate --project .
+pblend pack --project . --version {{VERSION}}
+```
