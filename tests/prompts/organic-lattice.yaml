@@ -1,0 +1,23 @@
+id: organic-lattice
+prompt: |
+  I need an organic hex Voronoi lattice lid in Blender, not a dimensional
+  OpenSCAD box. Parameterized bpy, PRINT_SPEC backend blender, then pblend gate.
+expect:
+  primary: 3d-print-blender
+  skills:
+    - 3d-print-blender
+    - 3d-print-design-brief
+    - 3d-print-validate
+  bundle: 3d-print
+  outrank:
+    - 3d-print-openscad
+    - 3d-print-image-silhouette
+    - 3d-print-shop-fixture
+  skill_contains:
+    3d-print-blender:
+      - "cad.backend: blender"
+      - pblend gate
+run:
+  - kind: pblend_new
+    name: organic-lid
+    product_class: enclosure

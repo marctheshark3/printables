@@ -1,0 +1,39 @@
+id: two-piece-display
+prompt: |
+  Build a two-piece FDM desk enclosure for a small TFT / PyPortal board:
+  OpenSCAD base plus bezel, USB and STEMMA keepouts, one STL per body,
+  PRINT_SPEC product_class enclosure, then validate_project.
+expect:
+  primary: 3d-print-display-enclosure
+  skills:
+    - 3d-print-display-enclosure
+    - 3d-print-design-brief
+    - 3d-print-openscad
+    - 3d-print-validate
+  outrank:
+    - 3d-print-shop-fixture
+    - 3d-print-image-silhouette
+  skill_contains:
+    3d-print-display-enclosure:
+      - "product_class: enclosure"
+      - bezel
+      - validate_project.py
+run:
+  - kind: synthetic_assembly
+    sources:
+      src/case.scad: |
+        pcb_x = 88.3;
+        pcb_y = 64.3;
+        bezel_z = 2.4;
+    bodies:
+      - path: stl/base.stl
+        body: base
+        expected_shells: 1
+      - path: stl/bezel.stl
+        body: bezel
+        expected_shells: 1
+    product_class: enclosure
+    parameters:
+      - {name: pcb_x, parameter: pcb_x, value_mm: 88.3}
+      - {name: pcb_y, parameter: pcb_y, value_mm: 64.3}
+      - {name: bezel_z, parameter: bezel_z, value_mm: 2.4}

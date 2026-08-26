@@ -103,7 +103,8 @@ Short STL chords are tessellation, not wall thickness. They remain warning-only;
 ## Tests
 
 ```bash
-python3 -m pytest -q skills/3d-print-design-brief/tests skills/3d-print-validate/tests
+python3 -m pytest -q skills/3d-print-design-brief/tests skills/3d-print-validate/tests tests/test_prompt_scenarios.py
+python3 tests/prompt_harness.py
 python3 -m unittest discover -s skills/3d-print-blender/scripts/tests -v
 python3 -m py_compile \
   skills/3d-print-design-brief/scripts/*.py \
@@ -111,7 +112,7 @@ python3 -m py_compile \
   skills/3d-print-blender/scripts/pblend_cli.py
 ```
 
-Synthetic integration fixtures prove a valid binary STL passes and two disconnected watertight cubes declared as one body fail. Private real-world regressions are not published.
+`tests/prompts/` holds sample user prompts. CI ranks them onto skills, then runs the real spec/mesh tools (or asserts a buy-vs-print stop). No live model. Add a YAML there when you add a skill path.
 
 ## License
 

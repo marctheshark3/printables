@@ -1,0 +1,20 @@
+id: shop-fixture-buy
+prompt: |
+  Should I 3D print a storage cage and half-sheet pan rack under my Husky
+  sit/stand bench, or buy a bun pan and clips? Do not CAD a floor tower.
+expect:
+  primary: 3d-print-shop-fixture
+  skills:
+    - 3d-print-shop-fixture
+  outrank:
+    - 3d-print-openscad
+    - 3d-print-blender
+    - 3d-print-display-enclosure
+  skill_contains:
+    3d-print-shop-fixture:
+      - Buy the tray
+      - Never print the pan
+      - Do not CAD a floor tower
+run:
+  - kind: no_cad
+    reason: buy-vs-print stops before PRINT_SPEC when the answer is buy
