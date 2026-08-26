@@ -57,6 +57,10 @@ Print: chassis, wheels, heads, horns-adjacent brackets, fastener bosses, cable-p
 
 `examples/robot-kit-01-rover/` — numbered 01 two-wheel differential chassis, MCU on deck, LED head.
 
+`examples/robot-kit-01-rover-v2/` — same MCU/N20 family plus SG90 pan, HC-SR04 bracket, IMU pad.
+
+`examples/robot-kit-01-rover-kid/` — enclosed hull/lid of v2; visor head, capped toy wheels.
+
 ## Pitfalls
 
 1. Assumed MCU or servo pocket (HARD)

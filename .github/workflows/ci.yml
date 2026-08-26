@@ -33,10 +33,28 @@ jobs:
             examples/robot-kit-01-rover
           python3 skills/3d-print-validate/scripts/validate_assembly.py \
             examples/robot-kit-01-rover
+          python3 skills/3d-print-design-brief/scripts/validate_print_spec.py \
+            examples/robot-kit-01-rover-v2/docs/PRINT_SPEC.yaml
+          python3 skills/3d-print-validate/scripts/validate_project.py \
+            examples/robot-kit-01-rover-v2
+          python3 skills/3d-print-validate/scripts/validate_assembly.py \
+            examples/robot-kit-01-rover-v2
+          python3 skills/3d-print-design-brief/scripts/validate_print_spec.py \
+            examples/robot-kit-01-rover-kid/docs/PRINT_SPEC.yaml
+          python3 skills/3d-print-validate/scripts/validate_project.py \
+            examples/robot-kit-01-rover-kid
+          python3 skills/3d-print-validate/scripts/validate_assembly.py \
+            examples/robot-kit-01-rover-kid
       - name: Rover sim2real extra extra
         run: |
           python3 skills/3d-print-sim/scripts/roll_table_flat.py \
             examples/robot-kit-01-rover
+          python3 skills/3d-print-sim/scripts/roll_table_flat.py \
+            examples/robot-kit-01-rover-v2
+          python3 skills/3d-print-sim/scripts/roll_table_flat.py \
+            examples/robot-kit-01-rover-kid
+
+
       - name: Python compile
         run: |
           python3 -m py_compile \
