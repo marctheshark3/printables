@@ -23,5 +23,5 @@ expect:
 run:
   - kind: validate_spec
     path: examples/bracket-coupon/docs/PRINT_SPEC.yaml
-  - kind: project_with_cubes
+  - kind: export_openscad_project
     from: examples/bracket-coupon

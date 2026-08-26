@@ -1,19 +1,18 @@
 # Examples
 
-`bracket-coupon` is a generic 40×30×12 mm parametric scaffold. It demonstrates the authoritative `PRINT_SPEC.yaml` plus an OpenSCAD source file without publishing private geometry.
-
-Validate the contract:
+`bracket-coupon` is a generic 40×30×12 mm parametric brick. It demonstrates `PRINT_SPEC.yaml` plus OpenSCAD without publishing private geometry.
 
 ```bash
 python3 skills/3d-print-design-brief/scripts/validate_print_spec.py \
   examples/bracket-coupon/docs/PRINT_SPEC.yaml
-```
 
-After exporting the declared STL, validate the complete project:
+docker run --rm -v "$PWD/examples/bracket-coupon:/work" -w /work \
+  openscad/openscad:2021.01 \
+  openscad -o /work/stl/bracket-coupon.stl --export-format=binstl \
+  /work/src/bracket-coupon.scad
 
-```bash
 python3 skills/3d-print-validate/scripts/validate_project.py \
   examples/bracket-coupon
 ```
 
-The second command intentionally fails until `stl/bracket-coupon.stl` exists. Missing output is not a warning.
+CI sample prompts export this STL (and the other prompt STLs) as the `generated-stls` artifact.

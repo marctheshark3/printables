@@ -18,6 +18,6 @@ expect:
       - "cad.backend: blender"
       - pblend gate
 run:
-  - kind: pblend_new
+  - kind: export_blender_project
     name: organic-lid
     product_class: enclosure

@@ -2,9 +2,9 @@
 """Run sample agent prompts against skill routing and the real CAD/CAM tools."""
 from __future__ import annotations
 
+import os
 import re
 import shutil
-import struct
 import subprocess
 import sys
 import tempfile
@@ -16,6 +16,13 @@ ROOT = Path(__file__).resolve().parents[1]
 PROMPTS = ROOT / "tests" / "prompts"
 SKILLS = ROOT / "skills"
 BUNDLE = ROOT / "skill-bundles" / "3d-print.yaml"
+OPENSCAD_IMAGE = os.environ.get("OPENSCAD_IMAGE", "openscad/openscad:2021.01")
+STL_OUT = Path(os.environ.get("PRINTABLES_STL_OUT", str(ROOT / "artifacts" / "stls")))
+REQUIRE_CAD = os.environ.get("PRINTABLES_GENERATE_STLS") == "1" or os.environ.get("CI") == "true"
+
+
+class CadMissing(RuntimeError):
+    pass
 
 STOP = {
     "a", "an", "the", "for", "of", "to", "and", "or", "my", "i", "with", "from",
@@ -74,26 +81,84 @@ def rank_skills(prompt: str, catalog: dict[str, dict]) -> list[tuple[str, float]
     return ranked
 
 
-def write_cube(path: Path, size: float = 10.0) -> None:
-    p = [
-        (0, 0, 0), (size, 0, 0), (size, size, 0), (0, size, 0),
-        (0, 0, size), (size, 0, size), (size, size, size), (0, size, size),
-    ]
-    faces = [
-        (0, 2, 1), (0, 3, 2), (4, 5, 6), (4, 6, 7),
-        (0, 1, 5), (0, 5, 4), (1, 2, 6), (1, 6, 5),
-        (2, 3, 7), (2, 7, 6), (3, 0, 4), (3, 4, 7),
-    ]
-    path.parent.mkdir(parents=True, exist_ok=True)
-    data = bytearray(80)
-    data.extend(struct.pack("<I", len(faces)))
-    for a, b, c in faces:
-        data.extend(struct.pack("<12fH", 0, 0, 0, *p[a], *p[b], *p[c], 0))
-    path.write_bytes(data)
+def run_cmd(
+    argv: list[str], cwd: Path | None = None, env: dict | None = None
+) -> subprocess.CompletedProcess:
+    return subprocess.run(argv, cwd=cwd, text=True, capture_output=True, check=False, env=env)
 
 
-def run_cmd(argv: list[str], cwd: Path | None = None) -> subprocess.CompletedProcess:
-    return subprocess.run(argv, cwd=cwd, text=True, capture_output=True, check=False)
+def collect_stls(project: Path, scenario_id: str) -> list[str]:
+    dest = STL_OUT / scenario_id
+    dest.mkdir(parents=True, exist_ok=True)
+    names = []
+    for stl in sorted(project.glob("stl/*.stl")):
+        if stl.stat().st_size < 84:
+            raise AssertionError(f"empty or invalid STL: {stl}")
+        shutil.copy2(stl, dest / stl.name)
+        names.append(stl.name)
+    if not names:
+        raise AssertionError(f"no STLs produced under {project / 'stl'}")
+    return names
+
+
+def cad_or_raise(tool: str) -> None:
+    raise CadMissing(f"{tool} is required to generate STLs")
+
+
+_DOCKER: bool | None = None
+
+
+def have_docker() -> bool:
+    global _DOCKER
+    if _DOCKER is None:
+        _DOCKER = bool(shutil.which("docker") and run_cmd(["docker", "info"]).returncode == 0)
+    return _DOCKER
+
+
+def find_blender() -> str | None:
+    env = os.environ.get("BLENDER")
+    if env and Path(env).is_file():
+        return env
+    return shutil.which("blender")
+
+
+def export_openscad(project: Path, src_rel: str, stl_rel: str, defines: dict | None = None) -> None:
+    src = project / src_rel
+    out = project / stl_rel
+    if not src.is_file():
+        raise AssertionError(f"missing OpenSCAD source {src}")
+    out.parent.mkdir(parents=True, exist_ok=True)
+    define_args: list[str] = []
+    for key, value in (defines or {}).items():
+        if isinstance(value, str):
+            define_args.extend(["-D", f'{key}="{value}"'])
+        else:
+            define_args.extend(["-D", f"{key}={value}"])
+    if have_docker():
+        cmd = [
+            "docker", "run", "--rm",
+            "--user", f"{os.getuid()}:{os.getgid()}",
+            "-v", f"{project.resolve()}:/work",
+            "-w", "/work",
+            OPENSCAD_IMAGE,
+            "openscad", "-o", f"/work/{stl_rel}",
+            "--export-format=binstl",
+            *define_args,
+            f"/work/{src_rel}",
+        ]
+    elif shutil.which("openscad"):
+        cmd = [
+            "openscad", "-o", str(out), "--export-format=binstl",
+            *define_args, str(src),
+        ]
+    else:
+        cad_or_raise("docker OpenSCAD or openscad")
+        return
+    result = run_cmd(cmd)
+    if result.returncode or not out.is_file() or out.stat().st_size < 84:
+        raise AssertionError(
+            f"OpenSCAD export failed {src_rel} -> {stl_rel}\n{result.stdout}\n{result.stderr}"
+        )
 
 
 def validate_spec(path: Path, check_files: bool = False) -> None:
@@ -189,52 +254,77 @@ def spec_template(
     }
 
 
-def run_step(step: dict, catalog: dict[str, dict]) -> str:
+def skip_or_fail(exc: CadMissing) -> str:
+    if REQUIRE_CAD:
+        raise AssertionError(str(exc)) from exc
+    return f"SKIP ({exc})"
+
+
+def write_project_spec(project: Path, step: dict) -> None:
+    bodies = [{k: v for k, v in body.items() if k != "define"} for body in step["bodies"]]
+    spec = spec_template(
+        name=step.get("name", "prompt-assembly"),
+        product_class=step["product_class"],
+        backend=step.get("backend", "openscad"),
+        source_files=list(step["sources"]),
+        bodies=bodies,
+        parameters=step["parameters"],
+    )
+    (project / "docs" / "PRINT_SPEC.yaml").write_text(
+        yaml.safe_dump(spec, sort_keys=False), encoding="utf-8"
+    )
+
+
+def run_step(step: dict, catalog: dict[str, dict], scenario_id: str) -> str:
     kind = step["kind"]
     if kind == "validate_spec":
         validate_spec(ROOT / step["path"])
         return f"validate_spec {step['path']}"
 
-    if kind == "project_with_cubes":
+    if kind == "export_openscad_project":
         src = ROOT / step["from"]
-        with tempfile.TemporaryDirectory() as td:
-            dest = Path(td) / src.name
-            shutil.copytree(src, dest)
-            spec_path = dest / "docs" / "PRINT_SPEC.yaml"
-            data = yaml.safe_load(spec_path.read_text(encoding="utf-8"))
-            for body in data["geometry"]["stl_files"]:
-                write_cube(dest / body["path"])
-            validate_project(dest)
-        return f"project_with_cubes {step['from']}"
+        try:
+            with tempfile.TemporaryDirectory() as td:
+                dest = Path(td) / src.name
+                shutil.copytree(src, dest)
+                spec_path = dest / "docs" / "PRINT_SPEC.yaml"
+                validate_spec(spec_path)
+                data = yaml.safe_load(spec_path.read_text(encoding="utf-8"))
+                source = data["cad"]["source_files"][0]
+                for body in data["geometry"]["stl_files"]:
+                    export_openscad(dest, source, body["path"])
+                names = collect_stls(dest, scenario_id)
+                validate_project(dest)
+            return f"export_openscad_project {step['from']} stls={names}"
+        except CadMissing as exc:
+            return skip_or_fail(exc)
 
-    if kind == "synthetic_assembly":
-        with tempfile.TemporaryDirectory() as td:
-            project = Path(td) / "assembly"
-            (project / "docs").mkdir(parents=True)
-            (project / "src").mkdir()
-            (project / "stl").mkdir()
-            for rel, text in step["sources"].items():
-                path = project / rel
-                path.parent.mkdir(parents=True, exist_ok=True)
-                path.write_text(text, encoding="utf-8")
-            bodies = step["bodies"]
-            spec = spec_template(
-                name="prompt-assembly",
-                product_class=step["product_class"],
-                backend=step.get("backend", "openscad"),
-                source_files=list(step["sources"]),
-                bodies=bodies,
-                parameters=step["parameters"],
-            )
-            (project / "docs" / "PRINT_SPEC.yaml").write_text(
-                yaml.safe_dump(spec, sort_keys=False), encoding="utf-8"
-            )
-            for body in bodies:
-                write_cube(project / body["path"])
-            validate_project(project)
-        return "synthetic_assembly"
+    if kind == "export_openscad_assembly":
+        try:
+            with tempfile.TemporaryDirectory() as td:
+                project = Path(td) / "assembly"
+                (project / "docs").mkdir(parents=True)
+                (project / "src").mkdir()
+                (project / "stl").mkdir()
+                for rel, text in step["sources"].items():
+                    path = project / rel
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    path.write_text(text, encoding="utf-8")
+                write_project_spec(project, step)
+                validate_spec(project / "docs" / "PRINT_SPEC.yaml")
+                source = next(iter(step["sources"]))
+                for body in step["bodies"]:
+                    export_openscad(project, source, body["path"], body.get("define"))
+                names = collect_stls(project, scenario_id)
+                validate_project(project)
+            return f"export_openscad_assembly stls={names}"
+        except CadMissing as exc:
+            return skip_or_fail(exc)
 
-    if kind == "pblend_new":
+    if kind == "export_blender_project":
+        blender = find_blender()
+        if not blender:
+            return skip_or_fail(CadMissing("blender"))
         cli = ROOT / "skills/3d-print-blender/scripts/pblend_cli.py"
         with tempfile.TemporaryDirectory() as td:
             result = run_cmd(
@@ -246,22 +336,103 @@ def run_step(step: dict, catalog: dict[str, dict]) -> str:
             if result.returncode:
                 raise AssertionError(f"pblend new failed\n{result.stdout}\n{result.stderr}")
             project = Path(td) / step["name"]
-            spec_path = project / "docs" / "PRINT_SPEC.yaml"
-            validate_spec(spec_path)
-            data = yaml.safe_load(spec_path.read_text(encoding="utf-8"))
-            for body in data["geometry"]["stl_files"]:
-                write_cube(project / body["path"])
+            validate_spec(project / "docs" / "PRINT_SPEC.yaml")
+            exported = run_cmd(
+                [sys.executable, str(cli), "--blender", blender, "run", "--project", str(project)]
+            )
+            if exported.returncode:
+                raise AssertionError(
+                    f"pblend run failed\n{exported.stdout}\n{exported.stderr}"
+                )
+            names = collect_stls(project, scenario_id)
             validate_project(project)
-        return f"pblend_new {step['name']}"
+        return f"export_blender_project {step['name']} stls={names}"
+
+    if kind == "export_image_stencil":
+        try:
+            from PIL import Image, ImageDraw
+        except ImportError:
+            return skip_or_fail(CadMissing("Pillow"))
+        try:
+            with tempfile.TemporaryDirectory() as td:
+                project = Path(td) / step["name"]
+                source = project / "source"
+                trace = project / "trace" / step["name"]
+                (project / "docs").mkdir(parents=True)
+                (project / "src").mkdir()
+                (project / "stl").mkdir()
+                source.mkdir(parents=True)
+                icon = source / "icon.png"
+                img = Image.new("RGB", (400, 400), "white")
+                draw = ImageDraw.Draw(img)
+                draw.ellipse((80, 80, 320, 320), fill="black")
+                img.save(icon)
+                traced = run_cmd(
+                    [
+                        sys.executable,
+                        str(ROOT / "skills/3d-print-image-silhouette/scripts/trace_silhouette.py"),
+                        "--input", str(icon),
+                        "--out-dir", str(trace),
+                        "--plate", str(step["plate_mm"]),
+                        "--frame", str(step["frame_mm"]),
+                        "--min-feature-mm", "1.6",
+                        "--hole-policy", "filled",
+                    ]
+                )
+                if traced.returncode:
+                    raise AssertionError(f"trace failed\n{traced.stdout}\n{traced.stderr}")
+                overlay = run_cmd(
+                    [
+                        sys.executable,
+                        str(ROOT / "skills/3d-print-image-silhouette/scripts/overlay_preview.py"),
+                        "--poly", str(trace / "poly.json"),
+                        "--out", str(trace / "overlay.png"),
+                    ]
+                )
+                if overlay.returncode:
+                    raise AssertionError(f"overlay failed\n{overlay.stdout}\n{overlay.stderr}")
+                scad = project / "src" / f"{step['name']}.scad"
+                made = run_cmd(
+                    [
+                        sys.executable,
+                        str(ROOT / "skills/3d-print-image-silhouette/scripts/scad_from_poly.py"),
+                        "--poly", str(trace / "poly.json"),
+                        "--out", str(scad),
+                        "--name", step["name"],
+                        "--thickness", str(step["thickness_mm"]),
+                    ]
+                )
+                if made.returncode:
+                    raise AssertionError(f"scad_from_poly failed\n{made.stdout}\n{made.stderr}")
+                spec = spec_template(
+                    name=step["name"],
+                    product_class="silhouette",
+                    backend="openscad",
+                    source_files=[f"src/{step['name']}.scad"],
+                    bodies=[{
+                        "path": f"stl/{step['name']}.stl",
+                        "body": "stencil",
+                        "expected_shells": 1,
+                    }],
+                    parameters=[
+                        {"name": "plate", "parameter": "plate", "value_mm": step["plate_mm"]},
+                        {"name": "thickness", "parameter": "thickness", "value_mm": step["thickness_mm"]},
+                        {"name": "frame", "parameter": "frame", "value_mm": step["frame_mm"]},
+                    ],
+                )
+                (project / "docs" / "PRINT_SPEC.yaml").write_text(
+                    yaml.safe_dump(spec, sort_keys=False), encoding="utf-8"
+                )
+                validate_spec(project / "docs" / "PRINT_SPEC.yaml")
+                export_openscad(project, f"src/{step['name']}.scad", f"stl/{step['name']}.stl")
+                names = collect_stls(project, scenario_id)
+                validate_project(project)
+            return f"export_image_stencil stls={names}"
+        except CadMissing as exc:
+            return skip_or_fail(exc)
 
     if kind == "no_cad":
         return f"no_cad ({step.get('reason', 'policy stop')})"
-
-    if kind == "scripts_exist":
-        missing = [p for p in step["paths"] if not (ROOT / p).is_file()]
-        if missing:
-            raise AssertionError(f"missing scripts: {missing}")
-        return f"scripts_exist {len(step['paths'])}"
 
     raise AssertionError(f"unknown step kind: {kind}")
 
@@ -322,8 +493,8 @@ def run_scenario(scenario: dict, catalog: dict[str, dict] | None = None) -> str:
         "  ROUTE " + " > ".join(f"{name}={score:.1f}" for name, score in ranked[:5]),
     ]
     for step in scenario.get("run", []):
-        label = run_step(step, catalog)
-        lines.append(f"  RUN {label} PASS")
+        label = run_step(step, catalog, scenario["id"])
+        lines.append(f"  RUN {label}")
     return "\n".join(lines)
 
 

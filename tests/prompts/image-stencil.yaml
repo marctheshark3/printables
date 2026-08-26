@@ -19,8 +19,8 @@ expect:
       - overlay_preview.py
       - validate_project.py
 run:
-  - kind: scripts_exist
-    paths:
-      - skills/3d-print-image-silhouette/scripts/trace_silhouette.py
-      - skills/3d-print-image-silhouette/scripts/overlay_preview.py
-      - skills/3d-print-image-silhouette/scripts/scad_from_poly.py
+  - kind: export_image_stencil
+    name: tree-stencil
+    plate_mm: 80
+    frame_mm: 10
+    thickness_mm: 2.0

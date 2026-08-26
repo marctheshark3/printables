@@ -112,7 +112,7 @@ python3 -m py_compile \
   skills/3d-print-blender/scripts/pblend_cli.py
 ```
 
-`tests/prompts/` holds sample user prompts. CI ranks them onto skills, then runs the real spec/mesh tools (or asserts a buy-vs-print stop). No live model. Add a YAML there when you add a skill path.
+`tests/prompts/` holds sample user prompts. CI ranks them onto skills, then the `generate-stls` job exports real STLs with OpenSCAD/Blender and uploads them as the `generated-stls` artifact. Shop-fixture prompts stop at buy-vs-print. No live model.
 
 ## License
 
