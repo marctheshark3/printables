@@ -1,121 +1,116 @@
 # Printables
 
-Hermes manufacturing loop for **FDM parts**: text (+ optional photo) → locked intent → CAD backend → **fail-closed DFM gates** → zip STL for a Bambu Lab P1S-class bed.
+Deterministic Hermes skills for FDM part design:
 
-This is the open-source skill pack we actually run. It is not a slicer, not a CAD GUI, and not a dump of household STLs.
-
-```
-intent (DESIGN.md)  →  OpenSCAD or Blender  →  dfm_gate.py  →  print notes + zip
+```text
+PRINT_SPEC.yaml → obvious CAD backend → STL → fail-closed validation
 ```
 
-## What you get
+The contract is intentionally dull. Every critical dimension has a CAD parameter, value, tolerance, and source. Every printable body has one declared STL and expected shell count. HARD failures block delivery.
 
-| Skill | Role | Maturity |
-|-------|------|----------|
-| `printables-part-brief` | Lock product class, orientation, fit provenance, never-list **before CAD** | Solid |
-| `openscad-printables` | Parametric OpenSCAD + Docker `openscad/openscad:2021.01` export + scaffolds | Solid (default CAD) |
-| `printables-dfm-gate` | Machine gates: topology, bed, overhang mass, open-under, fit/wet metadata | Solid (fail closed) |
-| `blender-printables` | Headless `pblend` CLI for hex/Voronoi **lids**, not ported bases | Useful / sharp edges |
-| `printables-display-enclosures` | Two-piece TFT/PyPortal desk shells (bezel face-on-bed) | Useful |
-| `image-silhouette-print` | Icon → overlay QA → silhouette STL (stencils, ornaments) | Useful |
-| `print-vs-buy-shop-fixtures` | Buy the pan/rack; print clips. Never print cages | Solid (policy) |
-| `vibecad-printables` | Alternate CAD step via VibeCAD/FreeCAD | Alpha |
+## Skill names
 
-Honest scorecard: [STATUS.md](STATUS.md).
+All tools use the same prefix, followed by one obvious job:
 
-**Not in this repo:** household part libraries, private hub previews, printer queues, filament inventory, VibeCAD AppImages, or any credentials.
+- `3d-print-design-brief` — define and validate the manufacturing contract
+- `3d-print-openscad` — dimensional mechanical CAD; default backend
+- `3d-print-blender` — organic or lattice CAD; exception backend
+- `3d-print-validate` — contract and STL validation
+- `3d-print-display-enclosure` — small two-piece display enclosures
+- `3d-print-image-silhouette` — image-derived stencils and silhouettes
+- `3d-print-shop-fixture` — decide whether a shop fixture should be printed or bought
 
-## Requirements
+The `/3d-print` bundle loads the brief, OpenSCAD backend, and validator. Blender is loaded only when the contract names Blender or hybrid.
 
-- Linux (this pack is used on aarch64 and x86_64)
-- Python 3.11+ (stdlib; numpy optional)
-- Docker, for OpenSCAD export: `openscad/openscad:2021.01`
-- Optional: Blender ≥ 4.0 on `PATH` or `$BLENDER` for `pblend`
-- Optional: [Hermes Agent](https://hermes-agent.nousresearch.com/docs) if you want the skills auto-loaded
+VibeCAD is not shipped. Its current Linux ARM/headless path and boolean behavior do not meet this pack's reliability contract.
 
-## Install (Hermes)
+## Hard contract
+
+Each project owns `docs/PRINT_SPEC.yaml` with:
+
+- `cad.parametric: true`
+- backend chosen from `openscad`, `blender`, or `hybrid`
+- millimetres and Z-up
+- explicit X/Y/Z printer build volume
+- named CAD parameter for each critical dimension
+- nominal value, tolerance, and provenance for each dimension
+- one STL per independently printed body
+- expected watertight shell count per STL
+- overlapping exported solids forbidden
+- minimum wall and feature sizes
+- clearance stated per side
+- fit evidence and coupon policy
+- print orientation, bed face, support policy, and overhang limit
+- service material and drainage requirements
+
+## Install
+
+Requirements: Linux for CAD backends; Python 3.11+; PyYAML; Docker for pinned OpenSCAD; Blender 4.x only for the Blender backend.
 
 ```bash
 git clone https://github.com/marctheshark3/printables.git
 cd printables
-./install.sh                  # every existing ~/.hermes/profiles/<name>
+python3 -m pip install PyYAML pytest
+./install.sh
 ./install.sh --dry-run
 HERMES_PROFILES=default ./install.sh
 ```
 
-`install.sh` is **additive**. It does not `--delete` profile copies. We burned ourselves once shipping a stale pack over a newer `dfm_gate.py`.
+Installation is additive and never deletes profile-local files. Start a new Hermes session after installation.
 
-After install, start a **new** Hermes session and use:
+## Use
 
+```text
+/3d-print bracket for this sensor
 ```
-/printables bracket for this sensor  [optional image]
-/printables-blender hex lid for a pi zero
-```
 
-You can also copy `skills/*` into any agent skill tree that understands `SKILL.md`.
-
-## Use without Hermes
+Without Hermes:
 
 ```bash
-# New OpenSCAD project (writes DESIGN.md + scaffold)
-THE_GRID="$HOME/print-projects" ./skills/openscad-printables/scripts/new_part.sh my-bracket bracket
+python3 skills/3d-print-design-brief/scripts/validate_print_spec.py \
+  examples/bracket-coupon/docs/PRINT_SPEC.yaml
 
-# Export (needs Docker)
-docker run --rm -v "$HOME/print-projects/my-bracket:/work" -w /work \
-  openscad/openscad:2021.01 \
-  openscad -o /work/stl/my-bracket.stl --export-format=binstl /work/src/my-bracket.scad
-
-# Gate — HARD fail means do not ship
-python3 skills/openscad-printables/scripts/dfm_gate.py \
-  --project "$HOME/print-projects/my-bracket" \
-  --stl "$HOME/print-projects/my-bracket/stl/my-bracket.stl" \
-  --mode-file "$HOME/print-projects/my-bracket/docs/DESIGN.md"
-
-# Blender path
-./skills/blender-printables/scripts/pblend doctor
-./skills/blender-printables/scripts/pblend new my-lid --class enclosure --root "$HOME/print-projects"
+python3 skills/3d-print-validate/scripts/validate_project.py \
+  /path/to/exported-project
 ```
 
-## Design laws that actually saved prints
+For Blender:
 
-1. **No CAD before `docs/DESIGN.md`.** Product class + print orientation + fit provenance first.
-2. **Bottom-vent equipment is `equipment-open-frame`.** Empty under the seating deck. TOP-FIRST. No pin forest / waffle.
-3. **Photos are not calipers.** Tag dims `measured` | `from-user` | `fit-tested` | `assumed`. Assumed precision fits cannot ship.
-4. **OpenSCAD owns dimensional bases.** Blender owns organic/hex **lids**. Hybrid for full cases.
-5. **A readable STL is not a printable one.** `dfm_gate.py` exit non-zero = not done.
-6. **Buy stock, print intelligence.** Half-sheet pans and racks are cheaper than printed furniture.
-7. **DFM PASS ≠ product.** Soft rounded meshes trip chord-length “thin” checks; stills still have to look like a tray, not a soap dish.
-
-Defaults: P1S bed 256 mm, PETG preferred, min feature ≥ 1.6 mm, overhangs ≤ 45°, fit clearance ~0.5–1.0 mm/side.
-
-## Layout
-
+```bash
+skills/3d-print-blender/scripts/pblend new organic-lid --class enclosure
+skills/3d-print-blender/scripts/pblend run --project "$HOME/print-projects/organic-lid"
+skills/3d-print-blender/scripts/pblend gate --project "$HOME/print-projects/organic-lid"
 ```
-printables/
-  install.sh
-  STATUS.md
-  skill-bundles/           # /printables and /printables-blender
-  skills/
-    printables-part-brief/
-    openscad-printables/   # scaffolds + shared dfm_gate.py
-    printables-dfm-gate/   # procedure only; script lives with OpenSCAD
-    blender-printables/    # pblend + bpy_lib
-    printables-display-enclosures/
-    print-vs-buy-shop-fixtures/
-    image-silhouette-print/
-    vibecad-printables/
-  examples/bracket-coupon/ # tiny DESIGN.md + SCAD, no household dims
-  tests/                   # no Docker / no Blender required
-```
+
+## Validation
+
+`validate_project.py` fails closed on:
+
+- incomplete or contradictory contract
+- missing source or STL
+- absolute or parent-traversal project paths
+- non-parametric backend declaration
+- open, non-manifold, inconsistently oriented, duplicate, or degenerate topology
+- wrong connected-shell count
+- non-positive volume
+- build-volume overflow
+- unacceptable fit or wet-service evidence
+- class-specific overhang and open-under failures
+
+Short STL chords are tessellation, not wall thickness. They remain warning-only; minimum walls come from CAD parameters and slicer verification.
 
 ## Tests
 
 ```bash
-python3 -m unittest discover -s tests -v
-python3 -m unittest discover -s skills/blender-printables/scripts/tests -v
+python3 -m pytest -q skills/3d-print-validate/tests
+python3 -m unittest discover -s skills/3d-print-blender/scripts/tests -v
+python3 -m py_compile \
+  skills/3d-print-design-brief/scripts/*.py \
+  skills/3d-print-validate/scripts/*.py \
+  skills/3d-print-blender/scripts/pblend_cli.py
 ```
 
-CI runs those. It does **not** export gold household fixtures. Those stay in a private working tree.
+Synthetic integration fixtures prove a valid binary STL passes and two disconnected watertight cubes declared as one body fail. Private real-world regressions are not published.
 
 ## License
 

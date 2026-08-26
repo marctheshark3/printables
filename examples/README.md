@@ -1,12 +1,19 @@
 # Examples
 
-`bracket-coupon` is a fake 40×30×12 mm envelope plus the stock `part_scaffold.scad`. It exists so the public repo can show the DESIGN.md ↔ SCAD pair without shipping household geometry.
+`bracket-coupon` is a generic 40×30×12 mm parametric scaffold. It demonstrates the authoritative `PRINT_SPEC.yaml` plus an OpenSCAD source file without publishing private geometry.
+
+Validate the contract:
 
 ```bash
-python3 skills/openscad-printables/scripts/dfm_gate.py \
-  --project examples/bracket-coupon \
-  --stl /path/to/exported.stl \
-  --mode-file examples/bracket-coupon/docs/DESIGN.md
+python3 skills/3d-print-design-brief/scripts/validate_print_spec.py \
+  examples/bracket-coupon/docs/PRINT_SPEC.yaml
 ```
 
-Export still needs Docker OpenSCAD; CI does not run that path.
+After exporting the declared STL, validate the complete project:
+
+```bash
+python3 skills/3d-print-validate/scripts/validate_project.py \
+  examples/bracket-coupon
+```
+
+The second command intentionally fails until `stl/bracket-coupon.stl` exists. Missing output is not a warning.
