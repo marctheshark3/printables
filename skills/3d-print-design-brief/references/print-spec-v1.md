@@ -1,16 +1,18 @@
-# Printable Part Contract v1
+# CAD/CAM contract v1
 
-`docs/PRINT_SPEC.yaml` is the machine-readable source of truth for every FDM project. CAD backends consume it; STL validation enforces it. Narrative Markdown may explain decisions but must not override this file.
+`docs/PRINT_SPEC.yaml` is the only machine-readable source of truth. CAD backends consume it. Mesh validation proves exported bodies. Narrative Markdown may explain decisions but is never parsed.
+
+An assembly is multiple independently manufactured bodies: one `geometry.stl_files[]` entry each. Bodies may mate after manufacture; they must not occupy the same exported solid.
 
 ## Required invariants
 
 - millimetres, Z-up
 - parametric source: `cad.parametric: true`
-- no overlapping printable solids: `geometry.overlapping_solids_allowed: false`
-- one STL per independently printed body
+- overlapping exported solids forbidden (`geometry.overlapping_solids_allowed: false` and mesh occupancy checks)
+- one STL per independently manufactured body
 - every STL declares its expected closed shell count
-- every critical dimension declares value, tolerance, and provenance
-- fit clearance is **per side**, never ambiguous total clearance
+- every critical dimension declares value, tolerance, provenance, and a CAD parameter
+- fit clearance is **per side**
 - assumed critical fits cannot ship
 - every STL must be closed, consistently oriented, manifold, and non-self-intersecting
 
@@ -22,7 +24,7 @@
 | organic skin, lattice, sculpted surface | `blender` |
 | separate declared dimensional and organic bodies | `hybrid` |
 
-If more than one row seems plausible, choose `openscad`. Do not choose a backend because it is novel.
+If more than one row seems plausible, choose `openscad`.
 
 ## Tolerance vocabulary
 
@@ -33,19 +35,18 @@ If more than one row seems plausible, choose `openscad`. Do not choose a backend
 - `fit.coupon` is a project-relative path when it names a file; that file must exist
 - `service.drainage`: dry may use `none`, `not-applicable`, or `unspecified`; wet requires `open-continuous`, `through-drain`, `drainable`, or `slots`
 
+Fit, drainage, and material policy are enforced only by the spec validator. The mesh tool does not re-encode those rules.
+
 ## Proof boundary
 
-The contract describes intent. It does not prove geometry. The validator must independently verify:
+The contract describes intent. It does not prove geometry. After export, `validate_project.py` independently verifies:
 
-1. file exists and parses
-2. triangle count is sane
-3. closed manifold topology
-4. consistent face orientation
-5. shell count equals the spec
-6. no duplicate or degenerate faces
-7. bounding box fits the printer
-8. positive volume
-9. overhang policy
-10. backend-specific solid validity before STL export
+1. spec is complete and files exist
+2. each CAD parameter is declared in source
+3. each STL parses, is watertight, and has positive signed volume
+4. shell count matches the spec
+5. exported shells do not occupy the same space
+6. bounding box fits strictly inside the machine envelope
+7. overhang and class-specific DFM heuristics
 
 A preview is not proof. An STL that opens is not proof. `HARD=0` is necessary; visual inspection and fit evidence are still required.

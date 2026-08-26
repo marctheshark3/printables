@@ -20,7 +20,7 @@ jobs:
       - name: Install test dependencies
         run: python3 -m pip install PyYAML pytest
       - name: Contract and STL tests
-        run: python3 -m pytest -q skills/3d-print-validate/tests
+        run: python3 -m pytest -q skills/3d-print-design-brief/tests skills/3d-print-validate/tests
       - name: Blender CLI tests
         run: python3 -m unittest discover -s skills/3d-print-blender/scripts/tests -v
       - name: Example contract

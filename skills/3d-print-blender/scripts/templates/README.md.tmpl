@@ -1,21 +1,21 @@
 # {{NAME}}
 
-Blender printables project (`scaffold: blender-bpy`).
+Blender CAD project. Machine contract: `docs/PRINT_SPEC.yaml`.
 
 ## Layout
 
 | Path | Role |
 |------|------|
-| `docs/DESIGN.md` | Intent + mode keys for DFM gate |
+| `docs/PRINT_SPEC.yaml` | Named parameters, bodies, CAM limits |
+| `docs/DESIGN.md` | Optional narrative |
 | `src/build.py` | Parametric headless bpy builder |
-| `stl/` | Binary STLs |
+| `stl/` | One binary STL per independently manufactured body |
 | `renders/` | Preview PNGs |
 | `scripts/export.sh` | Thin wrapper → pblend |
 
 ## Build
 
 ```bash
-# from skill scripts (or PATH after install)
 pblend doctor
 pblend run --project "$(pwd)"
 pblend gate --project "$(pwd)"
@@ -23,17 +23,9 @@ pblend preview --project "$(pwd)"
 pblend pack --project "$(pwd)" --version {{VERSION}}
 ```
 
-Or:
+## Manufacture
 
-```bash
-./scripts/export.sh
-```
-
-## Print (P1S)
-
-- Orientation: feet-down (see DESIGN.md)
-- Material: PETG preferred; PLA fit-check
-- **HARD DFM fail = not done**
+Orientation, bed face, and material come from PRINT_SPEC.yaml. HARD fail from `pblend gate` means not done.
 
 ## Version
 

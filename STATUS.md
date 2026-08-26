@@ -4,7 +4,8 @@ Last reviewed 2026-08-25.
 
 ## Supported path
 
-- `docs/PRINT_SPEC.yaml` is the machine source of truth.
+- `docs/PRINT_SPEC.yaml` is the only machine source of truth. DESIGN.md is never parsed.
+- An assembly is multiple independently manufactured bodies in `geometry.stl_files`.
 - OpenSCAD is the default for dimensional mechanical parts.
 - Blender is allowed only for organic or lattice bodies.
 - Hybrid means separate declared bodies owned by separate backends—not two kernels editing one body.
