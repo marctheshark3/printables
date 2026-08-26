@@ -14,6 +14,7 @@ stemma_h = 9;
 post_d = 6.5;
 post_hole_d = 3.4;
 post_inset = 6;
+fit_clearance = 0.4;  // per side, bezel stop vs base cavity
 which = "base";
 $fn = 28;
 
@@ -57,16 +58,18 @@ module base() {
 
 module bezel() {
     stop = 1.2;
+    stop_x = pcb_x - 2 * fit_clearance;
+    stop_y = pcb_y - 2 * fit_clearance;
     difference() {
         union() {
             linear_extrude(height = bezel_z)
                 rounded_rect(outer_x, outer_y, 3);
-            translate([wall, wall, bezel_z])
+            translate([wall + fit_clearance, wall + fit_clearance, bezel_z])
                 linear_extrude(height = stop)
                     difference() {
-                        square([pcb_x, pcb_y]);
+                        square([stop_x, stop_y]);
                         translate([1.2, 1.2])
-                            square([pcb_x - 2.4, pcb_y - 2.4]);
+                            square([stop_x - 2.4, stop_y - 2.4]);
                     }
         }
         translate([wall + window_inset, wall + window_inset, -1])
