@@ -80,6 +80,22 @@ def export_stl(
     # deselect all, select target
     bpy.ops.object.select_all(action="DESELECT")
     set_active(obj)
+    _stl_export(path)
+    print(f"Wrote {path} ({path.stat().st_size} bytes)")
+    return path
+
+
+def _stl_export(path: Path) -> None:
+    # Blender 4.2+ moved this to wm.stl_export; 4.0/4.1 still use export_mesh.stl.
+    if hasattr(bpy.ops.wm, "stl_export"):
+        bpy.ops.wm.stl_export(
+            filepath=str(path),
+            export_selected_objects=True,
+            global_scale=1.0,
+            apply_modifiers=True,
+            ascii_format=False,
+        )
+        return
     bpy.ops.export_mesh.stl(
         filepath=str(path),
         use_selection=True,
@@ -87,20 +103,12 @@ def export_stl(
         use_mesh_modifiers=True,
         ascii=False,
     )
-    print(f"Wrote {path} ({path.stat().st_size} bytes)")
-    return path
 
 
 def export_selected_stl(path: Path | str) -> Path:
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    bpy.ops.export_mesh.stl(
-        filepath=str(path),
-        use_selection=True,
-        global_scale=1.0,
-        use_mesh_modifiers=True,
-        ascii=False,
-    )
+    _stl_export(path)
     print(f"Wrote {path} ({path.stat().st_size} bytes)")
     return path
 

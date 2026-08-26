@@ -1,6 +1,6 @@
 # Examples
 
-`bracket-coupon` is a generic 40×30×12 mm parametric brick. It demonstrates `PRINT_SPEC.yaml` plus OpenSCAD without publishing private geometry.
+`bracket-coupon` is a printable L-bracket coupon (40×30 mm L, 12 mm thick) with M3-class holes. It demonstrates `PRINT_SPEC.yaml` plus OpenSCAD without publishing private geometry.
 
 ```bash
 python3 skills/3d-print-design-brief/scripts/validate_print_spec.py \

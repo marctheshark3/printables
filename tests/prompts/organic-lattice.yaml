@@ -21,3 +21,8 @@ run:
   - kind: export_blender_project
     name: organic-lid
     product_class: enclosure
+    build_script: tests/prompts/fixtures/hex_lattice_lid.py
+    spec_values:
+      OUTER_X: 80.0
+      OUTER_Y: 60.0
+      OUTER_Z: 3.2

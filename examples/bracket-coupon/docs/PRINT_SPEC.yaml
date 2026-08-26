@@ -51,6 +51,16 @@ dimensions:
     value_mm: 12.0
     tolerance_mm: 0.2
     source: assumed
+  - name: flange
+    parameter: flange
+    value_mm: 12.0
+    tolerance_mm: 0.2
+    source: assumed
+  - name: hole_d
+    parameter: hole_d
+    value_mm: 4.2
+    tolerance_mm: 0.1
+    source: datasheet
 
 print:
   orientation: base-on-bed
