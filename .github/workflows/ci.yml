@@ -21,8 +21,6 @@ jobs:
         run: python3 -m pip install PyYAML pytest
       - name: Contract and STL tests
         run: python3 -m pytest -q skills/3d-print-design-brief/tests skills/3d-print-validate/tests tests/test_prompt_scenarios.py
-      - name: Sample skill prompts
-        run: python3 tests/prompt_harness.py
       - name: Blender CLI tests
         run: python3 -m unittest discover -s skills/3d-print-blender/scripts/tests -v
       - name: Example contract
@@ -46,3 +44,31 @@ jobs:
             exit 1
           fi
           echo "scan clean"
+
+  generate-stls:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install CAD/CAM tools
+        run: |
+          python3 -m pip install PyYAML Pillow
+          sudo apt-get update
+          sudo apt-get install -y blender
+          docker pull openscad/openscad:2021.01
+          blender --version
+      - name: Generate STLs from sample prompts
+        env:
+          CI: "true"
+          PRINTABLES_GENERATE_STLS: "1"
+          PRINTABLES_STL_OUT: artifacts/stls
+        run: python3 tests/prompt_harness.py
+      - name: Upload generated STLs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-stls
+          path: artifacts/stls/
+          if-no-files-found: error

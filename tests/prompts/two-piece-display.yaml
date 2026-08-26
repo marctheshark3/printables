@@ -19,19 +19,45 @@ expect:
       - bezel
       - validate_project.py
 run:
-  - kind: synthetic_assembly
+  - kind: export_openscad_assembly
     sources:
       src/case.scad: |
         pcb_x = 88.3;
         pcb_y = 64.3;
         bezel_z = 2.4;
+        wall = 2.4;
+        floor_t = 2.4;
+        wall_h = 10;
+        window_inset = 6;
+        which = "base";
+
+        module base() {
+          difference() {
+            cube([pcb_x + 2 * wall, pcb_y + 2 * wall, floor_t + wall_h]);
+            translate([wall, wall, floor_t])
+              cube([pcb_x, pcb_y, wall_h + 1]);
+          }
+        }
+
+        module bezel() {
+          difference() {
+            cube([pcb_x + 2 * wall, pcb_y + 2 * wall, bezel_z]);
+            translate([wall + window_inset, wall + window_inset, -1])
+              cube([pcb_x - 2 * window_inset, pcb_y - 2 * window_inset, bezel_z + 2]);
+          }
+        }
+
+        if (which == "base") base();
+        else bezel();
     bodies:
       - path: stl/base.stl
         body: base
         expected_shells: 1
+        define: {which: base}
       - path: stl/bezel.stl
         body: bezel
         expected_shells: 1
+        define: {which: bezel}
     product_class: enclosure
     parameters:
       - {name: pcb_x, parameter: pcb_x, value_mm: 88.3}
