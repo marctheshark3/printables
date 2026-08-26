@@ -63,6 +63,35 @@ class TestForwardArgs(unittest.TestCase):
         self.assertTrue(ns.forward)
 
 
+class TestFindValidator(unittest.TestCase):
+    def test_print_validator_env(self):
+        with tempfile.NamedTemporaryFile() as handle:
+            with mock.patch.dict(os.environ, {"PRINT_VALIDATOR": handle.name}, clear=False):
+                self.assertEqual(pb.find_project_validator(), Path(handle.name))
+
+    def test_dfm_gate_alias(self):
+        with tempfile.NamedTemporaryFile() as handle:
+            with mock.patch.dict(os.environ, {"DFM_GATE": handle.name}, clear=False):
+                os.environ.pop("PRINT_VALIDATOR", None)
+                self.assertEqual(pb.find_project_validator(), Path(handle.name))
+
+    def test_profile_glob_without_hardcoded_tron(self):
+        with tempfile.TemporaryDirectory() as td:
+            home = Path(td)
+            candidate = (
+                home / ".hermes/profiles/alice/skills/creative/"
+                "3d-print-validate/scripts/validate_project.py"
+            )
+            candidate.parent.mkdir(parents=True)
+            candidate.write_text("# validator\n", encoding="utf-8")
+            with mock.patch.object(pb, "SKILL_ROOT", home / "missing-skill"):
+                with mock.patch.object(Path, "home", return_value=home):
+                    with mock.patch.dict(os.environ, {}, clear=False):
+                        os.environ.pop("PRINT_VALIDATOR", None)
+                        os.environ.pop("DFM_GATE", None)
+                        self.assertEqual(pb.find_project_validator(), candidate)
+
+
 class TestPrintableStls(unittest.TestCase):
     def test_skips_assembly(self):
         with tempfile.TemporaryDirectory() as td:

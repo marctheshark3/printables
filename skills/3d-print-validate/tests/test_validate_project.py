@@ -11,10 +11,10 @@ ROOT = Path(__file__).resolve().parents[1]
 VALIDATOR = ROOT / "scripts" / "validate_project.py"
 
 
-def cube_triangles(x0=0.0):
+def cube_triangles(x0=0.0, size=10.0):
     p = [
-        (x0 + 0, 0, 0), (x0 + 10, 0, 0), (x0 + 10, 10, 0), (x0 + 0, 10, 0),
-        (x0 + 0, 0, 10), (x0 + 10, 0, 10), (x0 + 10, 10, 10), (x0 + 0, 10, 10),
+        (x0 + 0, 0, 0), (x0 + size, 0, 0), (x0 + size, size, 0), (x0 + 0, size, 0),
+        (x0 + 0, 0, size), (x0 + size, 0, size), (x0 + size, size, size), (x0 + 0, size, size),
     ]
     faces = [
         (0, 2, 1), (0, 3, 2),
@@ -35,11 +35,20 @@ def write_binary_stl(path: Path, triangles):
     path.write_bytes(data)
 
 
-def make_project(tmp_path: Path, triangles):
-    (tmp_path / "docs").mkdir()
-    (tmp_path / "src").mkdir()
-    (tmp_path / "stl").mkdir()
-    (tmp_path / "src/part.scad").write_text("cube_size_mm = 10;\ncube([cube_size_mm, cube_size_mm, cube_size_mm]);\n")
+def make_project(
+    tmp_path: Path,
+    triangles,
+    *,
+    expected_shells: int = 1,
+    source: str | None = None,
+    spec_update=None,
+):
+    (tmp_path / "docs").mkdir(exist_ok=True)
+    (tmp_path / "src").mkdir(exist_ok=True)
+    (tmp_path / "stl").mkdir(exist_ok=True)
+    (tmp_path / "src/part.scad").write_text(
+        source or "cube_size_mm = 10;\ncube([cube_size_mm, cube_size_mm, cube_size_mm]);\n"
+    )
     write_binary_stl(tmp_path / "stl/part.stl", triangles)
     spec = {
         "schema_version": 1,
@@ -52,7 +61,7 @@ def make_project(tmp_path: Path, triangles):
         "geometry": {
             "min_wall_mm": 1.6, "min_feature_mm": 1.6,
             "overlapping_solids_allowed": False,
-            "stl_files": [{"path": "stl/part.stl", "body": "part", "expected_shells": 1}],
+            "stl_files": [{"path": "stl/part.stl", "body": "part", "expected_shells": expected_shells}],
         },
         "fit": {"required": False, "clearance_per_side_mm": 0.0, "evidence": "none"},
         "dimensions": [{
@@ -65,6 +74,8 @@ def make_project(tmp_path: Path, triangles):
         },
         "service": {"environment": "dry", "drainage": "not-applicable"},
     }
+    if spec_update:
+        spec_update(spec)
     (tmp_path / "docs/PRINT_SPEC.yaml").write_text(yaml.safe_dump(spec, sort_keys=False))
 
 
@@ -87,3 +98,79 @@ def test_two_shells_declared_as_one_fail(tmp_path):
     result = run(tmp_path)
     assert result.returncode == 1
     assert "expected 1, found 2" in result.stdout
+
+
+def test_separated_shells_pass_when_declared(tmp_path):
+    make_project(tmp_path, cube_triangles() + cube_triangles(20.0), expected_shells=2)
+    result = run(tmp_path)
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_overlapping_shells_fail_even_when_count_matches(tmp_path):
+    make_project(tmp_path, cube_triangles() + cube_triangles(5.0), expected_shells=2)
+    result = run(tmp_path)
+    assert result.returncode == 1
+    assert "G-overlap" in result.stdout
+
+
+def test_inverted_volume_fails(tmp_path):
+    inverted = [(a, c, b) for a, b, c in cube_triangles()]
+    make_project(tmp_path, inverted)
+    result = run(tmp_path)
+    assert result.returncode == 1
+    assert "G-volume" in result.stdout
+
+
+def test_exact_build_envelope_fails(tmp_path):
+    make_project(tmp_path, cube_triangles(size=256))
+    result = run(tmp_path)
+    assert result.returncode == 1
+    assert "G-build-volume" in result.stdout
+
+
+def test_datasheet_required_fit_passes(tmp_path):
+    (tmp_path / "fit").mkdir()
+    (tmp_path / "fit/coupon.stl").write_bytes(b"coupon")
+
+    def update(spec):
+        spec["fit"] = {
+            "required": True,
+            "clearance_per_side_mm": 0.4,
+            "evidence": "datasheet",
+            "coupon": "fit/coupon.stl",
+        }
+
+    make_project(tmp_path, cube_triangles(), spec_update=update)
+    result = run(tmp_path)
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_wet_slots_drainage_passes(tmp_path):
+    def update(spec):
+        spec["service"] = {"environment": "wet", "drainage": "slots"}
+        spec["manufacturing"]["material"] = "PETG"
+
+    make_project(tmp_path, cube_triangles(), spec_update=update)
+    result = run(tmp_path)
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_parameter_substring_is_not_a_declaration(tmp_path):
+    make_project(
+        tmp_path,
+        cube_triangles(),
+        source="outer_width = 10;\n// width = 1;\n",
+        spec_update=lambda spec: spec["dimensions"].__setitem__(
+            0,
+            {
+                "name": "width",
+                "parameter": "width",
+                "value_mm": 10,
+                "tolerance_mm": 0.1,
+                "source": "measured",
+            },
+        ),
+    )
+    result = run(tmp_path)
+    assert result.returncode == 1
+    assert "CAD parameter not found" in result.stdout

@@ -26,11 +26,11 @@ Class skill for **board + screen** cases (lab COP, desk shell). CAD backend defa
 
 ## Hard sequence
 
-1. **part-brief** → DESIGN.md (`product_class: enclosure`, soft_mode, fit tags)
+1. **3d-print-design-brief** → `docs/PRINT_SPEC.yaml` (`product_class: enclosure`) with one STL entry each for **base** and **bezel**
 2. **vision_analyze** board **front + back** → I/O edge map
 3. Dims table: PCB outer from datasheet; I/O from connector standards or calipers
 4. OpenSCAD two-piece: **base** + **bezel** (separate STLs)
-5. Docker export each → `dfm_gate` each (`--thin-fail-frac 0.35` if soft rounded)
+5. Docker export each → `3d-print-validate/scripts/validate_project.py`
 6. Separate stills → vision — **yikes = rewrite form, not tweak knobs**
 7. Package the deliverables as a zip
 
@@ -86,4 +86,4 @@ A validated two-piece display-enclosure fixture should remain in downstream regr
 
 ## Done when
 
-Gated base+bezel + honest stills + zip + DESIGN keepout table.
+Gated base+bezel + honest stills + zip + PRINT_SPEC keepout table.

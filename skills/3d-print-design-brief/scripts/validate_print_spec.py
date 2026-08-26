@@ -19,9 +19,25 @@ PRODUCT_CLASSES = {
     "wet-fixture", "pip-hinge", "silhouette", "other",
 }
 FIT_EVIDENCE = {"measured", "from-user", "datasheet", "fit-tested", "assumed", "none"}
+REQUIRED_FIT_EVIDENCE = {"measured", "from-user", "datasheet", "fit-tested"}
 DIMENSION_SOURCES = {"measured", "from-user", "datasheet", "fit-tested", "assumed"}
 SUPPORT_POLICIES = {"none", "build-plate-only", "required"}
 SERVICE_ENVIRONMENTS = {"dry", "wet"}
+DRAINAGE = {
+    "none",
+    "not-applicable",
+    "unspecified",
+    "open-continuous",
+    "through-drain",
+    "drainable",
+    "slots",
+}
+POSITIVE_DRAINAGE = {
+    "open-continuous",
+    "through-drain",
+    "drainable",
+    "slots",
+}
 
 
 def nested(data: dict[str, Any], path: str) -> Any:
@@ -94,6 +110,8 @@ def validate(data: Any, project: Path | None = None, check_files: bool = False) 
         errors.append(f"print.supports must be one of {sorted(SUPPORT_POLICIES)}")
     if nested(data, "service.environment") not in SERVICE_ENVIRONMENTS:
         errors.append(f"service.environment must be one of {sorted(SERVICE_ENVIRONMENTS)}")
+    if nested(data, "service.drainage") not in DRAINAGE:
+        errors.append(f"service.drainage must be one of {sorted(DRAINAGE)}")
 
     for path in (
         "manufacturing.nozzle_mm", "manufacturing.layer_height_mm",
@@ -142,14 +160,20 @@ def validate(data: Any, project: Path | None = None, check_files: bool = False) 
     evidence = nested(data, "fit.evidence")
     if evidence not in FIT_EVIDENCE:
         errors.append(f"fit.evidence must be one of {sorted(FIT_EVIDENCE)}")
+    coupon = data.get("fit", {}).get("coupon")
     if nested(data, "fit.required") is True:
-        if evidence in {"assumed", "none"}:
+        if evidence not in REQUIRED_FIT_EVIDENCE:
             errors.append("required fit needs measured, from-user, datasheet, or fit-tested evidence")
-        coupon = data.get("fit", {}).get("coupon")
         if evidence != "fit-tested" and not coupon:
             errors.append("required fit needs fit.coupon unless evidence is fit-tested")
     elif nested(data, "fit.required") is not False:
         errors.append("fit.required must be true or false")
+    if isinstance(coupon, str) and coupon:
+        looks_like_path = "/" in coupon or Path(coupon).suffix.lower() in {
+            ".stl", ".scad", ".py", ".yaml", ".yml", ".md",
+        }
+        if looks_like_path and not safe_relative_path(coupon):
+            errors.append("fit.coupon must be a project-relative path without '..'")
 
     dimensions = data.get("dimensions")
     if not isinstance(dimensions, list) or not dimensions:
@@ -181,7 +205,7 @@ def validate(data: Any, project: Path | None = None, check_files: bool = False) 
                 errors.append(f"{label}.source must be one of {sorted(DIMENSION_SOURCES)}")
 
     if nested(data, "service.environment") == "wet":
-        if nested(data, "service.drainage") in {"none", "not-applicable", "unspecified"}:
+        if nested(data, "service.drainage") not in POSITIVE_DRAINAGE:
             errors.append("wet service requires positive drainage")
         if str(nested(data, "manufacturing.material")).upper() == "PLA":
             errors.append("wet service cannot use PLA")
@@ -196,6 +220,9 @@ def validate(data: Any, project: Path | None = None, check_files: bool = False) 
                     rel = item.get("path")
                     if isinstance(rel, str):
                         paths.append(rel)
+        if isinstance(coupon, str) and coupon and safe_relative_path(coupon):
+            if "/" in coupon or Path(coupon).suffix:
+                paths.append(coupon)
         for rel in paths:
             if not safe_relative_path(rel):
                 continue

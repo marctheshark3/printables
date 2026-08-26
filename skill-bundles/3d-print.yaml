@@ -3,6 +3,7 @@ description: Validated FDM contract, obvious CAD backend, gated STL.
 skills:
   - 3d-print-design-brief
   - 3d-print-openscad
+  - 3d-print-blender
   - 3d-print-validate
 instruction: |
   Build an FDM part through one fail-closed sequence.
@@ -11,7 +12,6 @@ instruction: |
   2. Select the backend from geometry need:
      - dimensional mechanical geometry -> 3d-print-openscad
      - organic or lattice geometry -> 3d-print-blender
-     - VibeCAD only when the user explicitly requests it; it is not a default backend
   3. Use named millimetre parameters. Every critical dimension has value, tolerance,
      provenance, and a CAD identifier. Clearance is always per side.
   4. Export one STL per independently printed body. Construction solids must be unioned

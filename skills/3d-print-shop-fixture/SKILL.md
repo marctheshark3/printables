@@ -51,4 +51,4 @@ Crank **moves the top**. Do not screw hangers into moving steel, the drawer pack
 
 ## Handoff
 
-Clips: `3d-print-design-brief` → DESIGN.md `product_class: bracket`, `expected_components` = clip count → `3d-print-openscad`. Buy: stop. No DESIGN.md required.
+Clips: `3d-print-design-brief` → PRINT_SPEC.yaml `part.product_class: bracket`, one STL entry per clip (`expected_shells: 1`) → `3d-print-openscad`. Buy: stop. No PRINT_SPEC.yaml required.

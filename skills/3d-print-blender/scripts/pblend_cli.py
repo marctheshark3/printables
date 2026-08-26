@@ -59,13 +59,21 @@ def find_project_validator() -> Optional[Path]:
     env = os.environ.get("PRINT_VALIDATOR")
     if env and Path(env).is_file():
         return Path(env)
-    candidates = [
-        SKILL_ROOT.parent / "3d-print-validate" / "scripts" / "validate_project.py",
-        Path.home() / ".hermes" / "profiles" / "tron" / "skills" / "creative" / "3d-print-validate" / "scripts" / "validate_project.py",
-    ]
-    for candidate in candidates:
-        if candidate.is_file():
-            return candidate
+    legacy = os.environ.get("DFM_GATE")
+    if legacy and Path(legacy).is_file():
+        print("WARN: DFM_GATE is deprecated; set PRINT_VALIDATOR instead")
+        return Path(legacy)
+    pack_local = SKILL_ROOT.parent / "3d-print-validate" / "scripts" / "validate_project.py"
+    if pack_local.is_file():
+        return pack_local
+    profiles = Path.home() / ".hermes" / "profiles"
+    if profiles.is_dir():
+        matches = sorted(
+            profiles.glob("*/skills/creative/3d-print-validate/scripts/validate_project.py")
+        )
+        for candidate in matches:
+            if candidate.is_file():
+                return candidate
     return None
 
 

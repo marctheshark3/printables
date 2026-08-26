@@ -20,7 +20,7 @@ All tools use the same prefix, followed by one obvious job:
 - `3d-print-image-silhouette` — image-derived stencils and silhouettes
 - `3d-print-shop-fixture` — decide whether a shop fixture should be printed or bought
 
-The `/3d-print` bundle loads the brief, OpenSCAD backend, and validator. Blender is loaded only when the contract names Blender or hybrid.
+The `/3d-print` bundle loads the brief, OpenSCAD, Blender, and validator. Use OpenSCAD for dimensional work and Blender only for organic or lattice bodies.
 
 VibeCAD is not shipped. Its current Linux ARM/headless path and boolean behavior do not meet this pack's reliability contract.
 

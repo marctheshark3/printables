@@ -29,7 +29,9 @@ If more than one row seems plausible, choose `openscad`. Do not choose a backend
 - `clearance_per_side_mm`: gap on each mating side
 - `tolerance_mm`: allowed dimensional error around a nominal value
 - `source`: `measured`, `from-user`, `datasheet`, `fit-tested`, or `assumed`
-- `fit.required: true` requires at least one non-assumed source and a named fit coupon or direct measurement
+- `fit.required: true` requires `measured`, `from-user`, `datasheet`, or `fit-tested` evidence and a named fit coupon unless evidence is `fit-tested`
+- `fit.coupon` is a project-relative path when it names a file; that file must exist
+- `service.drainage`: dry may use `none`, `not-applicable`, or `unspecified`; wet requires `open-continuous`, `through-drain`, `drainable`, or `slots`
 
 ## Proof boundary
 

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import importlib.util
+import re
 import subprocess
 import sys
 import tempfile
@@ -44,16 +45,36 @@ def mode_text(data: dict, expected_shells: int) -> str:
     return f"---\n{body}\n---\n"
 
 
+_BLOCK_COMMENT = re.compile(r"/\*.*?\*/", re.S)
+_LINE_COMMENT = re.compile(r"//.*?$", re.M)
+_HASH_COMMENT = re.compile(r"#.*?$", re.M)
+
+
+def _source_text(path: Path) -> str:
+    text = path.read_text(encoding="utf-8", errors="replace")
+    text = _BLOCK_COMMENT.sub(" ", text)
+    text = _LINE_COMMENT.sub(" ", text)
+    if path.suffix == ".py":
+        text = _HASH_COMMENT.sub(" ", text)
+    return text
+
+
+def parameter_declared(parameter: str, text: str) -> bool:
+    if not parameter.isidentifier():
+        return False
+    return re.search(rf"(?<![A-Za-z0-9_]){re.escape(parameter)}\s*=", text) is not None
+
+
 def parameters_in_sources(data: dict, project: Path) -> list[str]:
     errors: list[str] = []
     text = "\n".join(
-        (project / rel).read_text(encoding="utf-8", errors="replace")
+        _source_text(project / rel)
         for rel in data["cad"]["source_files"]
         if (project / rel).is_file()
     )
     for dim in data["dimensions"]:
         parameter = dim["parameter"]
-        if parameter not in text:
+        if not parameter_declared(parameter, text):
             errors.append(f"CAD parameter not found in declared source files: {parameter}")
     return errors
 

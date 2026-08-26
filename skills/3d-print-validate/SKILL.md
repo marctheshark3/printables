@@ -44,7 +44,8 @@ Never convert a HARD check into a warning to make a file pass.
 - consistent face orientation
 - no duplicate or excessive degenerate faces
 - edge-connected shell count equals `expected_shells`
-- bounding box fits the printer
+- overlapping exported solids are rejected
+- bounding box fits strictly inside the printer envelope
 - fit and wet-service evidence are acceptable
 - overhang and class-specific rules pass
 

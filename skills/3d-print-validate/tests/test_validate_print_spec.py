@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import importlib.util
-from copy import deepcopy
 from pathlib import Path
 
 import yaml
@@ -87,3 +86,38 @@ def test_check_files_is_fail_closed(tmp_path):
     data = valid_spec()
     errors = module.validate(data, project=tmp_path, check_files=True)
     assert any("declared file does not exist" in error for error in errors)
+
+
+def test_wet_slots_drainage_passes():
+    data = valid_spec()
+    data["service"]["environment"] = "wet"
+    data["service"]["drainage"] = "slots"
+    data["manufacturing"]["material"] = "PETG"
+    assert module.validate(data) == []
+
+
+def test_wet_unknown_drainage_fails():
+    data = valid_spec()
+    data["service"]["environment"] = "wet"
+    data["service"]["drainage"] = "mystery"
+    data["manufacturing"]["material"] = "PETG"
+    errors = module.validate(data)
+    assert any("service.drainage must be one of" in error for error in errors)
+    assert "wet service requires positive drainage" in errors
+
+
+def test_datasheet_required_fit_passes_contract():
+    data = valid_spec()
+    data["fit"]["evidence"] = "datasheet"
+    data["fit"]["coupon"] = "fit/example-bracket-fit-coupon.stl"
+    assert module.validate(data) == []
+
+
+def test_missing_coupon_file_fails(tmp_path):
+    data = valid_spec()
+    (tmp_path / "src").mkdir()
+    (tmp_path / "stl").mkdir()
+    (tmp_path / "src/example-bracket.scad").write_text("device_width_mm = 40;\n")
+    (tmp_path / "stl/example-bracket.stl").write_bytes(b"solid")
+    errors = module.validate(data, project=tmp_path, check_files=True)
+    assert any("fit/example-bracket-fit-coupon.stl" in error for error in errors)

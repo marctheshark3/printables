@@ -33,13 +33,14 @@ Sibling to `3d-print-openscad` — not a merge. Hand off STL to `3d-print-valida
 ## Hard sequence
 
 ```
-1. Lock plate envelope + hole_policy in docs/DESIGN.md
+1. Lock plate envelope + hole_policy in docs/PRINT_SPEC.yaml
+   (product_class: silhouette; parameters plate_mm, frame_mm, thickness_mm, min_feature_mm)
 2. Source icon (gen under prompt contract OR user PNG)
 3. scripts/trace_silhouette.py → binary + polygon (mm) + SVG audit
 4. scripts/overlay_preview.py → plate frame + silhouette PNG
 5. HUMAN/agent QA gate — accept overlay BEFORE extrude
 6. scripts/scad_from_poly.py → OpenSCAD wrapper + Docker STL
-7. 3d-print-validate on STL
+7. 3d-print-validate/scripts/validate_project.py
 8. Zip + print notes; optional compare pack vs CAD path
 ```
 
@@ -53,7 +54,7 @@ When generating:
 - **No** gradients, outlines-only, shading, text, watermark
 - **No internal holes** unless hole_policy allows (default filled)
 - Single subject, centered, margin ~8–12%
-- View locked: side-profile | top-down | front (state in DESIGN.md)
+- View locked: side-profile | top-down | front (state in PRINT_SPEC.yaml purpose)
 - Toddler-icon bold shapes; avoid hair-thin features
 - IP: generate or user art only — never trace trademark characters
 
@@ -113,7 +114,7 @@ Pure Python 3 + Pillow (no numpy required).
 
 ```text
 <project>/
-  docs/DESIGN.md          # envelope + hole_policy + source
+  docs/PRINT_SPEC.yaml    # envelope + hole_policy + source
   source/                 # raw gen or user images
   trace/<shape>/          # binary, poly.json, svg, overlay.png
   src/*.scad
@@ -138,12 +139,12 @@ When dogfooding against CAD sculpt: same plate envelope, side-by-side overlay + 
 
 ## Verification checklist
 
-- [ ] DESIGN.md: plate, frame, thickness, hole_policy, view  
-- [ ] Source image under prompt contract or user PNG  
-- [ ] poly.json exists; single outer ring if filled  
-- [ ] overlay.png reviewed and accepted  
-- [ ] STL exported; dfm_gate PASS (or documented override)  
-- [ ] components=1 for filled toddler stencils  
+- [ ] PRINT_SPEC.yaml: plate, frame, thickness, hole_policy, view
+- [ ] Source image under prompt contract or user PNG
+- [ ] poly.json exists; single outer ring if filled
+- [ ] overlay.png reviewed and accepted
+- [ ] `validate_project.py` HARD=0
+- [ ] expected_shells=1 for filled toddler stencils
 - [ ] Deliverable is a zip, not a loose STL
 
 ## Done when

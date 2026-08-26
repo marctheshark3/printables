@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""dfm_gate.py — hard manufacturing checks for printables STLs.
+"""Fail-closed STL manufacturing checks for printables.
 
 Pure stdlib + optional numpy. No trimesh required.
 
 Usage:
-  dfm_gate.py --project DIR --stl path.stl [--mode-file docs/DESIGN.md]
-  dfm_gate.py --stl path.stl --product-class equipment-open-frame --print-orientation TOP-FIRST
+  validate_stl.py --project DIR --stl path.stl --build-x-mm 256 --build-y-mm 256 --build-z-mm 256
+  validate_stl.py --stl path.stl --product-class equipment-open-frame --print-orientation TOP-FIRST
 
 Exit 0 = no HARD fails. Exit 1 = HARD fail(s).
 """
@@ -17,14 +17,24 @@ import re
 import struct
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Tuple
+
+ACCEPTED_FIT = ("measured", "fit-tested", "fit_tested", "from-user", "datasheet")
+POSITIVE_DRAINAGE = (
+    "open-continuous",
+    "open_continuous",
+    "through-drain",
+    "through_drain",
+    "drainable",
+    "slots",
+)
 
 
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Printables DFM mesh/mode gates")
     p.add_argument("--project", type=Path, default=None, help="Project root")
     p.add_argument("--stl", type=Path, required=True, help="Binary STL path")
-    p.add_argument("--mode-file", type=Path, default=None, help="DESIGN.md path")
+    p.add_argument("--mode-file", type=Path, default=None, help="Mode metadata (PRINT_SPEC-derived or DESIGN.md)")
     p.add_argument("--product-class", default=None)
     p.add_argument("--print-orientation", default=None)
     p.add_argument("--print-up-axis", default=None, choices=["X", "Y", "Z", "x", "y", "z"])
@@ -197,7 +207,7 @@ def bbox_and_volume(tris) -> Tuple[List[float], List[float], float]:
             - y1 * (x2 * z3 - x3 * z2)
             + z1 * (x2 * y3 - x3 * y2)
         ) / 6.0
-    return mn, mx, abs(vol)
+    return mn, mx, vol
 
 
 def topology_metrics(tris, weld_tolerance: float) -> Dict[str, int]:
@@ -255,8 +265,20 @@ def topology_metrics(tris, weld_tolerance: float) -> Dict[str, int]:
         for use in uses[1:]:
             union(first, use[0])
 
-    components = len({find(i) for i in active_triangles}) if active_triangles else 0
+    component_ids: Dict[int, int] = {}
+    next_cid = 0
+    tri_cid: Dict[int, int] = {}
+    for i in active_triangles:
+        root = find(i)
+        if root not in component_ids:
+            component_ids[root] = next_cid
+            next_cid += 1
+        tri_cid[i] = component_ids[root]
+    components = next_cid
     duplicate_faces = sum(count - 1 for count in face_uses.values() if count > 1)
+    overlapping_shells = (
+        count_overlapping_shell_pairs(tris, tri_cid, components) if components >= 2 else 0
+    )
     return {
         "vertices": len(vertex_ids),
         "edges": len(edge_uses),
@@ -266,7 +288,178 @@ def topology_metrics(tris, weld_tolerance: float) -> Dict[str, int]:
         "degenerate_faces": degenerate,
         "duplicate_faces": duplicate_faces,
         "components": components,
+        "overlapping_shells": overlapping_shells,
     }
+
+
+def _sub(a, b):
+    return (a[0] - b[0], a[1] - b[1], a[2] - b[2])
+
+
+def _dot(a, b):
+    return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
+
+
+def _cross(a, b):
+    return (
+        a[1] * b[2] - a[2] * b[1],
+        a[2] * b[0] - a[0] * b[2],
+        a[0] * b[1] - a[1] * b[0],
+    )
+
+
+def _points_aabb(pts: Sequence) -> Tuple[float, float, float, float, float, float]:
+    xs, ys, zs = zip(*pts)
+    return (min(xs), min(ys), min(zs), max(xs), max(ys), max(zs))
+
+
+def _aabb_overlap(a, b, eps: float = 1e-7) -> bool:
+    return (
+        a[3] > b[0] + eps and b[3] > a[0] + eps
+        and a[4] > b[1] + eps and b[4] > a[1] + eps
+        and a[5] > b[2] + eps and b[5] > a[2] + eps
+    )
+
+
+def _aabb_strictly_inside(inner, outer, eps: float = 1e-7) -> bool:
+    return (
+        inner[0] >= outer[0] + eps and inner[3] <= outer[3] - eps
+        and inner[1] >= outer[1] + eps and inner[4] <= outer[4] - eps
+        and inner[2] >= outer[2] + eps and inner[5] <= outer[5] - eps
+    )
+
+
+def _project2(p, drop: int):
+    if drop == 0:
+        return (p[1], p[2])
+    if drop == 1:
+        return (p[0], p[2])
+    return (p[0], p[1])
+
+
+def _orient2(a, b, c) -> float:
+    return (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])
+
+
+def _point_in_tri2(p, a, b, c, eps: float = 1e-9) -> bool:
+    o1, o2, o3 = _orient2(a, b, p), _orient2(b, c, p), _orient2(c, a, p)
+    has_neg = o1 < -eps or o2 < -eps or o3 < -eps
+    has_pos = o1 > eps or o2 > eps or o3 > eps
+    return not (has_neg and has_pos)
+
+
+def _seg_intersect2(p, q, r, s, eps: float = 1e-9) -> bool:
+    o1, o2 = _orient2(p, q, r), _orient2(p, q, s)
+    o3, o4 = _orient2(r, s, p), _orient2(r, s, q)
+    if (o1 > eps and o2 > eps) or (o1 < -eps and o2 < -eps):
+        return False
+    if (o3 > eps and o4 > eps) or (o3 < -eps and o4 < -eps):
+        return False
+    return True
+
+
+def _coplanar_tri_intersect(normal, t1, t2) -> bool:
+    drop = 0
+    if abs(normal[1]) > abs(normal[drop]):
+        drop = 1
+    if abs(normal[2]) > abs(normal[drop]):
+        drop = 2
+    a = [_project2(p, drop) for p in t1]
+    b = [_project2(p, drop) for p in t2]
+    for p in a:
+        if _point_in_tri2(p, b[0], b[1], b[2]):
+            return True
+    for p in b:
+        if _point_in_tri2(p, a[0], a[1], a[2]):
+            return True
+    edges_a = ((a[0], a[1]), (a[1], a[2]), (a[2], a[0]))
+    edges_b = ((b[0], b[1]), (b[1], b[2]), (b[2], b[0]))
+    return any(_seg_intersect2(p, q, r, s) for p, q in edges_a for r, s in edges_b)
+
+
+def _plane_isect_interval(verts, dists, axis):
+    points = []
+    for i in range(3):
+        j = (i + 1) % 3
+        di, dj = dists[i], dists[j]
+        if di == 0.0:
+            points.append(_dot(verts[i], axis))
+        if di * dj < 0.0:
+            t = di / (di - dj)
+            p = (
+                verts[i][0] + t * (verts[j][0] - verts[i][0]),
+                verts[i][1] + t * (verts[j][1] - verts[i][1]),
+                verts[i][2] + t * (verts[j][2] - verts[i][2]),
+            )
+            points.append(_dot(p, axis))
+    if len(points) < 2:
+        return None
+    return (min(points), max(points))
+
+
+def triangles_intersect(t1, t2, eps: float = 1e-8) -> bool:
+    v0, v1, v2 = t1
+    u0, u1, u2 = t2
+    n1 = _cross(_sub(v1, v0), _sub(v2, v0))
+    n2 = _cross(_sub(u1, u0), _sub(u2, u0))
+    if _dot(n1, n1) < eps * eps or _dot(n2, n2) < eps * eps:
+        return False
+    d1 = -_dot(n1, v0)
+    du = [_dot(n1, u0) + d1, _dot(n1, u1) + d1, _dot(n1, u2) + d1]
+    du = [0.0 if abs(x) < eps else x for x in du]
+    if du[0] * du[1] > 0 and du[0] * du[2] > 0:
+        return False
+    d2 = -_dot(n2, u0)
+    dv = [_dot(n2, v0) + d2, _dot(n2, v1) + d2, _dot(n2, v2) + d2]
+    dv = [0.0 if abs(x) < eps else x for x in dv]
+    if dv[0] * dv[1] > 0 and dv[0] * dv[2] > 0:
+        return False
+    if all(x == 0.0 for x in du) or all(x == 0.0 for x in dv):
+        return _coplanar_tri_intersect(n1, t1, t2)
+    axis = _cross(n1, n2)
+    if _dot(axis, axis) < eps * eps:
+        return _coplanar_tri_intersect(n1, t1, t2)
+    a = _plane_isect_interval(t1, dv, axis)
+    b = _plane_isect_interval(t2, du, axis)
+    if a is None or b is None:
+        return False
+    return not (a[1] < b[0] - eps or b[1] < a[0] - eps)
+
+
+def count_overlapping_shell_pairs(tris, tri_cid: Dict[int, int], n_components: int) -> int:
+    """Count shell pairs that occupy the same space.
+
+    Crossing surfaces always fail. Overlapping AABBs also fail unless one shell
+    sits strictly inside the other without surface contact (a cavity).
+    """
+    groups: List[List[int]] = [[] for _ in range(n_components)]
+    for idx, cid in tri_cid.items():
+        groups[cid].append(idx)
+    aabbs = [_points_aabb([p for i in group for p in tris[i]]) for group in groups]
+    pairs = 0
+    for i in range(n_components):
+        for j in range(i + 1, n_components):
+            if not _aabb_overlap(aabbs[i], aabbs[j]):
+                continue
+            hit = False
+            for ia in groups[i]:
+                if hit:
+                    break
+                ta = tris[ia]
+                aa = _points_aabb(ta)
+                for ib in groups[j]:
+                    tb = tris[ib]
+                    if not _aabb_overlap(aa, _points_aabb(tb)):
+                        continue
+                    if triangles_intersect(ta, tb):
+                        hit = True
+                        break
+            contained = _aabb_strictly_inside(aabbs[i], aabbs[j]) or _aabb_strictly_inside(
+                aabbs[j], aabbs[i]
+            )
+            if hit or not contained:
+                pairs += 1
+    return pairs
 
 
 def resolve_print_up(orientation: Optional[str], axis: Optional[str]) -> Tuple[float, float, float]:
@@ -339,15 +532,14 @@ def main() -> int:
     info.append(f"expected_components={expected_components}")
 
     if fit_required in ("yes", "true", "required"):
-        accepted_fit = ("measured", "fit-tested", "fit_tested", "from-user")
-        if critical_fit_status not in accepted_fit:
+        if critical_fit_status not in ACCEPTED_FIT:
             hard_fail(
                 "G-fit: fit_required=yes but critical_fit_status is not measured, "
-                "from-user, or fit-tested"
+                "from-user, datasheet, or fit-tested"
             )
     if service_environment in ("wet", "wet-service", "water"):
         info.append(f"wet_service drainage={drainage} material={material}")
-        if drainage not in ("open-continuous", "open_continuous", "through-drain", "drainable"):
+        if drainage not in POSITIVE_DRAINAGE:
             hard_fail("G-wet: wet-service part must declare positive drainage")
         if material in ("pla", "unspecified"):
             hard_fail("G-wet: long-term wet part requires a declared wet-service material, not PLA")
@@ -396,16 +588,24 @@ def main() -> int:
                 f"G-components: expected {expected_components}, found {topo['components']} "
                 "edge-connected shells"
             )
+        if topo["overlapping_shells"]:
+            hard_fail(
+                f"G-overlap: {topo['overlapping_shells']} shell pair(s) occupy the same space; "
+                "overlapping exported solids are forbidden"
+            )
     except Exception as e:
         hard_fail(f"G-topology: audit failed: {e}")
 
-    mn, mx, vol = bbox_and_volume(tris)
+    mn, mx, signed_vol = bbox_and_volume(tris)
     dx, dy, dz = mx[0] - mn[0], mx[1] - mn[1], mx[2] - mn[2]
-    cm3 = vol / 1000.0
+    cm3 = signed_vol / 1000.0
     info.append(f"mesh tris={ntri} bbox={dx:.2f}x{dy:.2f}x{dz:.2f} mm vol={cm3:.2f} cm³")
+    if signed_vol <= 0:
+        hard_fail(f"G-volume: signed volume {cm3:.4f} cm³ is not positive")
 
     # Build-volume check in model XYZ. PRINT_SPEC locks Z-up.
-    if dx > args.build_x_mm or dy > args.build_y_mm or dz > args.build_z_mm:
+    # Exact envelope fails: skirts/brims/wipe need margin inside the stated box.
+    if dx >= args.build_x_mm or dy >= args.build_y_mm or dz >= args.build_z_mm:
         hard_fail(
             f"G-build-volume: {dx:.1f}×{dy:.1f}×{dz:.1f} mm exceeds "
             f"{args.build_x_mm:.1f}×{args.build_y_mm:.1f}×{args.build_z_mm:.1f} mm"
@@ -597,7 +797,7 @@ def main() -> int:
 
 
 def _report(hard: List[str], warn: List[str], info: List[str], as_json: bool) -> None:
-    print("=== dfm_gate ===")
+    print("=== validate_stl ===")
     for line in info:
         print(f"  INFO  {line}")
     for line in warn:

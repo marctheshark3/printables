@@ -45,6 +45,8 @@ scripts/pblend preview --project "$PROJECT"
 scripts/pblend gate --project "$PROJECT"
 ```
 
+`pblend gate` resolves `3d-print-validate/scripts/validate_project.py`. Override with `PRINT_VALIDATOR`. `DFM_GATE` is accepted as a deprecated alias.
+
 6. Inspect separate print-orientation stills. A malformed still blocks delivery even if mesh checks pass.
 7. Run the backend-neutral `3d-print-validate` contract and STL checks.
 

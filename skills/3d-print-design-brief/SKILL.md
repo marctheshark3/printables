@@ -19,7 +19,7 @@ Create `docs/PRINT_SPEC.yaml` before CAD. This file is the sole machine-readable
 
 - Any new or redesigned FDM part
 - A part derived from a photo, sketch, existing STL, or measured object
-- Before selecting OpenSCAD, Blender, or VibeCAD
+- Before selecting OpenSCAD or Blender
 
 Do not write CAD in this skill.
 

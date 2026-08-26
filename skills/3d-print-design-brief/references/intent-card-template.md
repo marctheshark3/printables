@@ -1,6 +1,6 @@
 # Intent card template → `docs/DESIGN.md`
 
-Copy and fill. Keep machine keys so `dfm_gate.py` can parse them.
+Copy and fill. Narrative only; `docs/PRINT_SPEC.yaml` is the machine contract.
 
 ```markdown
 ---

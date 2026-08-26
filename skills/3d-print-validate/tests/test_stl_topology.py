@@ -5,7 +5,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts" / "validate_stl.py"
-spec = importlib.util.spec_from_file_location("dfm_gate", SCRIPT)
+spec = importlib.util.spec_from_file_location("validate_stl", SCRIPT)
 assert spec and spec.loader
 module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
@@ -53,3 +53,31 @@ def test_inconsistent_orientation_is_detected():
     faces[0] = (a, c, b)
     result = module.topology_metrics(faces, 1e-6)
     assert result["orientation_edges"] == 3
+
+
+def cube(x0=0.0, size=10.0):
+    p = [
+        (x0 + 0, 0, 0), (x0 + size, 0, 0), (x0 + size, size, 0), (x0 + 0, size, 0),
+        (x0 + 0, 0, size), (x0 + size, 0, size), (x0 + size, size, size), (x0 + 0, size, size),
+    ]
+    faces = [
+        (0, 2, 1), (0, 3, 2),
+        (4, 5, 6), (4, 6, 7),
+        (0, 1, 5), (0, 5, 4),
+        (1, 2, 6), (1, 6, 5),
+        (2, 3, 7), (2, 7, 6),
+        (3, 0, 4), (3, 4, 7),
+    ]
+    return [(p[a], p[b], p[c]) for a, b, c in faces]
+
+
+def test_overlapping_cubes_are_flagged():
+    result = module.topology_metrics(cube() + cube(5.0), 1e-6)
+    assert result["components"] == 2
+    assert result["overlapping_shells"] >= 1
+
+
+def test_separated_cubes_are_not_overlapping():
+    result = module.topology_metrics(cube() + cube(20.0), 1e-6)
+    assert result["components"] == 2
+    assert result["overlapping_shells"] == 0
