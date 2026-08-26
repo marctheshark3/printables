@@ -86,8 +86,9 @@ def export_stl(
 
 
 def _stl_export(path: Path) -> None:
-    # Blender 4.2+ moved this to wm.stl_export; 4.0/4.1 still use export_mesh.stl.
-    if hasattr(bpy.ops.wm, "stl_export"):
+    # 4.2+ uses wm.stl_export. Ubuntu's 4.0 package still exposes the name
+    # but calling it raises AttributeError — fall back to export_mesh.stl.
+    try:
         bpy.ops.wm.stl_export(
             filepath=str(path),
             export_selected_objects=True,
@@ -96,13 +97,14 @@ def _stl_export(path: Path) -> None:
             ascii_format=False,
         )
         return
-    bpy.ops.export_mesh.stl(
-        filepath=str(path),
-        use_selection=True,
-        global_scale=1.0,
-        use_mesh_modifiers=True,
-        ascii=False,
-    )
+    except Exception:
+        bpy.ops.export_mesh.stl(
+            filepath=str(path),
+            use_selection=True,
+            global_scale=1.0,
+            use_mesh_modifiers=True,
+            ascii=False,
+        )
 
 
 def export_selected_stl(path: Path | str) -> Path:
