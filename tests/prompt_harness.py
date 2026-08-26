@@ -292,7 +292,7 @@ def run_step(step: dict, catalog: dict[str, dict], scenario_id: str) -> str:
                 data = yaml.safe_load(spec_path.read_text(encoding="utf-8"))
                 source = data["cad"]["source_files"][0]
                 for body in data["geometry"]["stl_files"]:
-                    export_openscad(dest, source, body["path"])
+                    export_openscad(dest, source, body["path"], {"which": body["body"]})
                 names = collect_stls(dest, scenario_id)
                 validate_project(dest)
             return f"export_openscad_project {step['from']} stls={names}"
@@ -309,6 +309,8 @@ def run_step(step: dict, catalog: dict[str, dict], scenario_id: str) -> str:
                 for rel, text in step["sources"].items():
                     path = project / rel
                     path.parent.mkdir(parents=True, exist_ok=True)
+                    if isinstance(text, str) and text.startswith("@"):
+                        text = (ROOT / text[1:]).read_text(encoding="utf-8")
                     path.write_text(text, encoding="utf-8")
                 write_project_spec(project, step)
                 validate_spec(project / "docs" / "PRINT_SPEC.yaml")
@@ -336,14 +338,25 @@ def run_step(step: dict, catalog: dict[str, dict], scenario_id: str) -> str:
             if result.returncode:
                 raise AssertionError(f"pblend new failed\n{result.stdout}\n{result.stderr}")
             project = Path(td) / step["name"]
+            if step.get("build_script"):
+                shutil.copyfile(ROOT / step["build_script"], project / "src" / "build.py")
+            if step.get("spec_values"):
+                spec_path = project / "docs" / "PRINT_SPEC.yaml"
+                data = yaml.safe_load(spec_path.read_text(encoding="utf-8"))
+                for dim in data["dimensions"]:
+                    key = dim.get("parameter")
+                    if key in step["spec_values"]:
+                        dim["value_mm"] = float(step["spec_values"][key])
+                spec_path.write_text(yaml.safe_dump(data, sort_keys=False), encoding="utf-8")
             validate_spec(project / "docs" / "PRINT_SPEC.yaml")
             exported = run_cmd(
                 [sys.executable, str(cli), "--blender", blender, "run", "--project", str(project)]
             )
-            if exported.returncode:
-                raise AssertionError(
-                    f"pblend run failed\n{exported.stdout}\n{exported.stderr}"
-                )
+            log = (exported.stdout or "") + (exported.stderr or "")
+            if exported.returncode or "Traceback" in log:
+                raise AssertionError(f"pblend run failed\n{log}")
+            if not list((project / "stl").glob("*.stl")):
+                raise AssertionError(f"pblend run produced no STL\n{log}")
             names = collect_stls(project, scenario_id)
             validate_project(project)
         return f"export_blender_project {step['name']} stls={names}"
@@ -363,9 +376,13 @@ def run_step(step: dict, catalog: dict[str, dict], scenario_id: str) -> str:
                 (project / "stl").mkdir()
                 source.mkdir(parents=True)
                 icon = source / "icon.png"
-                img = Image.new("RGB", (400, 400), "white")
+                img = Image.new("RGB", (512, 512), "white")
                 draw = ImageDraw.Draw(img)
-                draw.ellipse((80, 80, 320, 320), fill="black")
+                # toddler-icon pine tree, ~12% margin
+                draw.polygon([(256, 48), (96, 210), (416, 210)], fill="black")
+                draw.polygon([(256, 120), (110, 300), (402, 300)], fill="black")
+                draw.polygon([(256, 200), (128, 390), (384, 390)], fill="black")
+                draw.rectangle((226, 380, 286, 470), fill="black")
                 img.save(icon)
                 traced = run_cmd(
                     [
@@ -426,6 +443,10 @@ def run_step(step: dict, catalog: dict[str, dict], scenario_id: str) -> str:
                 validate_spec(project / "docs" / "PRINT_SPEC.yaml")
                 export_openscad(project, f"src/{step['name']}.scad", f"stl/{step['name']}.stl")
                 names = collect_stls(project, scenario_id)
+                preview_dir = STL_OUT / scenario_id
+                shutil.copy2(icon, preview_dir / "icon.png")
+                if (trace / "overlay.png").is_file():
+                    shutil.copy2(trace / "overlay.png", preview_dir / "overlay.png")
                 validate_project(project)
             return f"export_image_stencil stls={names}"
         except CadMissing as exc:

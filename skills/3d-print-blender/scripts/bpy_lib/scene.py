@@ -80,27 +80,37 @@ def export_stl(
     # deselect all, select target
     bpy.ops.object.select_all(action="DESELECT")
     set_active(obj)
-    bpy.ops.export_mesh.stl(
-        filepath=str(path),
-        use_selection=True,
-        global_scale=1.0,
-        use_mesh_modifiers=True,
-        ascii=False,
-    )
+    _stl_export(path)
     print(f"Wrote {path} ({path.stat().st_size} bytes)")
     return path
+
+
+def _stl_export(path: Path) -> None:
+    # 4.2+ uses wm.stl_export. Ubuntu's 4.0 package still exposes the name
+    # but calling it raises AttributeError — fall back to export_mesh.stl.
+    try:
+        bpy.ops.wm.stl_export(
+            filepath=str(path),
+            export_selected_objects=True,
+            global_scale=1.0,
+            apply_modifiers=True,
+            ascii_format=False,
+        )
+        return
+    except Exception:
+        bpy.ops.export_mesh.stl(
+            filepath=str(path),
+            use_selection=True,
+            global_scale=1.0,
+            use_mesh_modifiers=True,
+            ascii=False,
+        )
 
 
 def export_selected_stl(path: Path | str) -> Path:
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    bpy.ops.export_mesh.stl(
-        filepath=str(path),
-        use_selection=True,
-        global_scale=1.0,
-        use_mesh_modifiers=True,
-        ascii=False,
-    )
+    _stl_export(path)
     print(f"Wrote {path} ({path.stat().st_size} bytes)")
     return path
 

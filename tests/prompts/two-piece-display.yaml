@@ -21,34 +21,7 @@ expect:
 run:
   - kind: export_openscad_assembly
     sources:
-      src/case.scad: |
-        pcb_x = 88.3;
-        pcb_y = 64.3;
-        bezel_z = 2.4;
-        wall = 2.4;
-        floor_t = 2.4;
-        wall_h = 10;
-        window_inset = 6;
-        which = "base";
-
-        module base() {
-          difference() {
-            cube([pcb_x + 2 * wall, pcb_y + 2 * wall, floor_t + wall_h]);
-            translate([wall, wall, floor_t])
-              cube([pcb_x, pcb_y, wall_h + 1]);
-          }
-        }
-
-        module bezel() {
-          difference() {
-            cube([pcb_x + 2 * wall, pcb_y + 2 * wall, bezel_z]);
-            translate([wall + window_inset, wall + window_inset, -1])
-              cube([pcb_x - 2 * window_inset, pcb_y - 2 * window_inset, bezel_z + 2]);
-          }
-        }
-
-        if (which == "base") base();
-        else bezel();
+      src/case.scad: "@tests/prompts/fixtures/display_case.scad"
     bodies:
       - path: stl/base.stl
         body: base
@@ -63,3 +36,7 @@ run:
       - {name: pcb_x, parameter: pcb_x, value_mm: 88.3}
       - {name: pcb_y, parameter: pcb_y, value_mm: 64.3}
       - {name: bezel_z, parameter: bezel_z, value_mm: 2.4}
+      - {name: fit_clearance, parameter: fit_clearance, value_mm: 0.4}
+      - {name: usb_w, parameter: usb_w, value_mm: 13.0}
+      - {name: usb_h, parameter: usb_h, value_mm: 8.5}
+      - {name: stemma_w, parameter: stemma_w, value_mm: 22.0}
