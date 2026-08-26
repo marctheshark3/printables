@@ -56,45 +56,30 @@ def plate_with_hex_holes() -> bpy.types.Object:
     bmesh.ops.scale(bm, vec=(OUTER_X, OUTER_Y, OUTER_Z), verts=bm.verts)
     bmesh.ops.translate(bm, vec=(OUTER_X / 2.0, OUTER_Y / 2.0, OUTER_Z / 2.0), verts=bm.verts)
     plate = new_mesh_object(NAME, bm)
-    set_active(plate)
-    bevel = plate.modifiers.new("Bevel", "BEVEL")
-    bevel.width = min(CORNER_R, OUTER_Z / 3)
-    bevel.segments = 3
-    bevel.limit_method = "ANGLE"
-    bpy.ops.object.modifier_apply(modifier=bevel.name)
 
-    cutters = []
-    for i, (x, y) in enumerate(hex_centers(OUTER_X, OUTER_Y)):
-        bpy.ops.mesh.primitive_cylinder_add(
-            vertices=6,
-            radius=HOLE_R,
+    centers = hex_centers(OUTER_X, OUTER_Y)
+    print(f"hex holes={len(centers)}")
+    for i, (x, y) in enumerate(centers):
+        hbm = bmesh.new()
+        bmesh.ops.create_cone(
+            hbm,
+            cap_ends=True,
+            cap_tris=False,
+            segments=6,
+            radius1=HOLE_R,
+            radius2=HOLE_R,
             depth=OUTER_Z + 4.0,
-            location=(x, y, OUTER_Z / 2.0),
         )
-        cutter = bpy.context.active_object
-        cutter.name = f"hex_{i}"
-        cutter.rotation_euler[2] = math.radians(30)
-        cutters.append(cutter)
-
-    if cutters:
-        set_active(cutters[0])
-        for obj in cutters:
-            obj.select_set(True)
-        if len(cutters) > 1:
-            bpy.ops.object.join()
-        hive = bpy.context.active_object
+        bmesh.ops.translate(hbm, verts=hbm.verts, vec=(x, y, OUTER_Z / 2.0))
+        cutter = new_mesh_object(f"hex_{i}", hbm)
+        print(f"  cutter {i} verts={len(cutter.data.vertices)}")
         set_active(plate)
-        plate.select_set(True)
-        hive.select_set(False)
-        mod = plate.modifiers.new("honeycomb", "BOOLEAN")
+        mod = plate.modifiers.new(f"hex_{i}", "BOOLEAN")
         mod.operation = "DIFFERENCE"
-        try:
-            mod.solver = "EXACT"
-        except TypeError:
-            mod.solver = "FAST"
-        mod.object = hive
+        mod.solver = "FAST"
+        mod.object = cutter
         bpy.ops.object.modifier_apply(modifier=mod.name)
-        bpy.data.objects.remove(hive, do_unlink=True)
+        bpy.data.objects.remove(cutter, do_unlink=True)
 
     merge_by_distance(plate, 0.04)
     recalculate_normals_outside(plate)

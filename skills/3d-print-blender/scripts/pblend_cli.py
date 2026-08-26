@@ -251,7 +251,7 @@ def cmd_run(args: argparse.Namespace) -> int:
     if args.blend and "--blend" not in forward:
         forward = ["--blend", *forward]
 
-    cmd = [blender, "-b", "-P", str(script)]
+    cmd = [blender, "-b", "--python-exit-code", "1", "-P", str(script)]
     if forward:
         cmd.append("--")
         cmd.extend(forward)

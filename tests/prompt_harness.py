@@ -352,10 +352,11 @@ def run_step(step: dict, catalog: dict[str, dict], scenario_id: str) -> str:
             exported = run_cmd(
                 [sys.executable, str(cli), "--blender", blender, "run", "--project", str(project)]
             )
-            if exported.returncode:
-                raise AssertionError(
-                    f"pblend run failed\n{exported.stdout}\n{exported.stderr}"
-                )
+            log = (exported.stdout or "") + (exported.stderr or "")
+            if exported.returncode or "Traceback" in log:
+                raise AssertionError(f"pblend run failed\n{log}")
+            if not list((project / "stl").glob("*.stl")):
+                raise AssertionError(f"pblend run produced no STL\n{log}")
             names = collect_stls(project, scenario_id)
             validate_project(project)
         return f"export_blender_project {step['name']} stls={names}"
