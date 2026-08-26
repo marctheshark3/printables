@@ -1,0 +1,452 @@
+schema_version: 1
+part:
+  name: robot-kit-03-gimbal
+  revision: 0.2.0
+  product_class: robot-module
+  purpose: Kid-friendly enclosed 03 joystick/gimbal. Rounded hull and lid hide pan/tilt
+    SG90s; stick comes through a collar; 03 on the face; red knob is the only red.
+    Not a stack of cubes.
+manufacturing:
+  process: fdm
+  printer: generic-256mm
+  build_volume_mm:
+  - 256
+  - 256
+  - 256
+  material: PETG
+  nozzle_mm: 0.4
+  layer_height_mm: 0.2
+cad:
+  backend: openscad
+  parametric: true
+  units: mm
+  source_files:
+  - src/gimbal.scad
+  - src/lib/robot_kit.scad
+geometry:
+  min_wall_mm: 1.6
+  min_feature_mm: 1.6
+  overlapping_solids_allowed: false
+  stl_files:
+  - path: stl/hull.stl
+    body: hull
+    expected_shells: 1
+  - path: stl/lid.stl
+    body: lid
+    expected_shells: 1
+  - path: stl/stick.stl
+    body: stick
+    expected_shells: 1
+  - path: stl/knob.stl
+    body: knob
+    expected_shells: 1
+fit:
+  required: true
+  clearance_per_side_mm: 0.4
+  evidence: datasheet
+  coupon: fit/mcu-pocket-coupon.scad
+dimensions:
+- name: plate
+  parameter: plate_mm
+  value_mm: 72.0
+  tolerance_mm: 0.2
+  source: from-user
+- name: gim_hull_h
+  parameter: gim_hull_h_mm
+  value_mm: 30.0
+  tolerance_mm: 0.2
+  source: from-user
+- name: gim_hull_r
+  parameter: gim_hull_r_mm
+  value_mm: 14.0
+  tolerance_mm: 0.2
+  source: from-user
+- name: deck_thickness
+  parameter: deck_thickness_mm
+  value_mm: 3.2
+  tolerance_mm: 0.1
+  source: from-user
+- name: wall
+  parameter: wall_mm
+  value_mm: 2.4
+  tolerance_mm: 0.1
+  source: from-user
+- name: stick_h
+  parameter: stick_h_mm
+  value_mm: 36.0
+  tolerance_mm: 0.2
+  source: from-user
+- name: stick_base_d
+  parameter: stick_base_d_mm
+  value_mm: 8.0
+  tolerance_mm: 0.2
+  source: from-user
+- name: horn_boss_od
+  parameter: horn_boss_od_mm
+  value_mm: 10.0
+  tolerance_mm: 0.2
+  source: from-user
+- name: horn_id
+  parameter: horn_id_mm
+  value_mm: 2.4
+  tolerance_mm: 0.05
+  source: datasheet
+- name: knob_d
+  parameter: knob_d_mm
+  value_mm: 16.0
+  tolerance_mm: 0.2
+  source: from-user
+- name: collar_id
+  parameter: collar_id_mm
+  value_mm: 12.0
+  tolerance_mm: 0.2
+  source: from-user
+print:
+  orientation: base-on-bed
+  bed_face: bottom
+  up_axis: Z
+  supports: none
+  max_overhang_deg: 45
+service:
+  environment: dry
+  drainage: not-applicable
+hardware:
+  components:
+  - id: mcu
+    mpn_or_generic: ESP32-C3 Super Mini
+    role: mcu
+    qty: 1
+    envelope_mm:
+    - 22.5
+    - 18.0
+    - 4.5
+    interfaces:
+    - name: mcu_length
+      parameter: mcu_length_mm
+      value_mm: 22.5
+      tolerance_mm: 0.2
+      source: datasheet
+    - name: mcu_width
+      parameter: mcu_width_mm
+      value_mm: 18.0
+      tolerance_mm: 0.2
+      source: datasheet
+    - name: mcu_thickness
+      parameter: mcu_thickness_mm
+      value_mm: 3.5
+      tolerance_mm: 0.2
+      source: datasheet
+    - name: mcu_pocket_clearance
+      parameter: mcu_pocket_clearance_mm
+      value_mm: 0.4
+      tolerance_mm: 0.1
+      source: measured
+    - name: mcu_pocket_depth
+      parameter: mcu_pocket_depth_mm
+      value_mm: 1.6
+      tolerance_mm: 0.1
+      source: from-user
+  - id: servo_pan
+    mpn_or_generic: SG90 9g micro servo
+    role: servo
+    qty: 1
+    envelope_mm:
+    - 22.8
+    - 12.2
+    - 22.8
+    interfaces:
+    - name: sg90_body_x
+      parameter: sg90_body_x_mm
+      value_mm: 22.8
+      tolerance_mm: 0.2
+      source: datasheet
+    - name: sg90_body_y
+      parameter: sg90_body_y_mm
+      value_mm: 12.2
+      tolerance_mm: 0.2
+      source: datasheet
+    - name: sg90_body_z
+      parameter: sg90_body_z_mm
+      value_mm: 22.8
+      tolerance_mm: 0.2
+      source: datasheet
+    - name: sg90_tab_span
+      parameter: sg90_tab_span_mm
+      value_mm: 32.3
+      tolerance_mm: 0.3
+      source: datasheet
+    - name: sg90_tab_thick
+      parameter: sg90_tab_thick_mm
+      value_mm: 2.5
+      tolerance_mm: 0.2
+      source: datasheet
+    - name: sg90_tab_width
+      parameter: sg90_tab_width_mm
+      value_mm: 12.0
+      tolerance_mm: 0.2
+      source: datasheet
+    - name: sg90_pocket_clearance
+      parameter: sg90_pocket_clearance_mm
+      value_mm: 0.4
+      tolerance_mm: 0.1
+      source: measured
+  - id: servo_tilt
+    mpn_or_generic: SG90 9g micro servo
+    role: servo
+    qty: 1
+    envelope_mm:
+    - 22.8
+    - 12.2
+    - 22.8
+    interfaces:
+    - name: sg90_horn_radius
+      parameter: sg90_horn_radius_mm
+      value_mm: 16.0
+      tolerance_mm: 0.5
+      source: datasheet
+    - name: sg90_horn_clearance_h
+      parameter: sg90_horn_clearance_h_mm
+      value_mm: 6.0
+      tolerance_mm: 0.2
+      source: from-user
+  - id: fasteners
+    mpn_or_generic: M2 and M3 machine screws
+    role: fastener
+    qty: 8
+    envelope_mm:
+    - 6.6
+    - 6.6
+    - 8.0
+    interfaces:
+    - name: m2_through
+      parameter: m2_through_d_mm
+      value_mm: 2.4
+      tolerance_mm: 0.05
+      source: datasheet
+    - name: m3_through
+      parameter: m3_through_d_mm
+      value_mm: 3.4
+      tolerance_mm: 0.05
+      source: datasheet
+    - name: m2_boss_od
+      parameter: m2_boss_od_mm
+      value_mm: 5.6
+      tolerance_mm: 0.1
+      source: datasheet
+    - name: m3_boss_od
+      parameter: m3_boss_od_mm
+      value_mm: 6.6
+      tolerance_mm: 0.1
+      source: datasheet
+  - id: battery
+    mpn_or_generic: 1S LiPo pack or 5 V USB power
+    role: battery
+    qty: 1
+    envelope_mm:
+    - 30.0
+    - 20.0
+    - 6.0
+    interfaces:
+    - name: battery_envelope_h
+      parameter: battery_envelope_h_mm
+      value_mm: 6.0
+      tolerance_mm: 0.2
+      source: datasheet
+wiring:
+  voltage_domains:
+  - name: v3v3
+    volts: 3.3
+  - name: v5
+    volts: 5.0
+  - name: gnd
+    volts: 0.0
+  pin_map:
+  - mcu_pin: GPIO4
+    function: servo_pan_pwm
+    voltage: 3.3
+    net: servo_pan_pwm
+  - mcu_pin: GPIO5
+    function: servo_tilt_pwm
+    voltage: 3.3
+    net: servo_tilt_pwm
+  - mcu_pin: VIN
+    function: servo_vm
+    voltage: 5.0
+    net: vm
+  - mcu_pin: GND
+    function: ground
+    voltage: 0.0
+    net: gnd
+  nets:
+  - name: servo_pan_pwm
+    voltage_domain: v3v3
+  - name: servo_tilt_pwm
+    voltage_domain: v3v3
+  - name: vm
+    voltage_domain: v5
+  - name: gnd
+    voltage_domain: gnd
+  connector_keepouts:
+  - name: usb_c
+    parameter: usb_c_keepout_w_mm
+    width_mm: 13.5
+    height_mm: 9.0
+    depth_mm: 12.0
+    source: datasheet
+  - name: usb_c_height
+    parameter: usb_c_keepout_h_mm
+    width_mm: 13.5
+    height_mm: 9.0
+    source: datasheet
+  - name: usb_c_depth
+    parameter: usb_c_keepout_d_mm
+    width_mm: 13.5
+    height_mm: 9.0
+    depth_mm: 12.0
+    source: datasheet
+  cable_path_keepouts:
+  - name: pan
+    parameter: cable_path_pan_w_mm
+    width_mm: 4.0
+    height_mm: 1.6
+    source: from-user
+  - name: tilt
+    parameter: cable_path_tilt_w_mm
+    width_mm: 4.0
+    height_mm: 1.6
+    source: from-user
+  - name: cable_height
+    parameter: cable_path_h_mm
+    width_mm: 4.0
+    height_mm: 1.6
+    source: from-user
+assembly:
+  frame: assembled
+  bodies:
+  - id: hull
+    body: hull
+    parent: world
+    pose:
+      xyz_mm:
+      - 0.0
+      - 0.0
+      - 0.0
+      rpy_deg:
+      - 0.0
+      - 0.0
+      - 0.0
+  - id: lid
+    body: lid
+    parent: hull
+    pose:
+      xyz_mm:
+      - 0.0
+      - 0.0
+      - 30.4
+      rpy_deg:
+      - 0.0
+      - 0.0
+      - 0.0
+  - id: stick
+    body: stick
+    parent: hull
+    pose:
+      xyz_mm:
+      - 36.0
+      - 36.0
+      - 28.4
+      rpy_deg:
+      - 0.0
+      - 0.0
+      - 0.0
+  - id: knob
+    body: knob
+    parent: stick
+    pose:
+      xyz_mm:
+      - 36.0
+      - 36.0
+      - 70.0
+      rpy_deg:
+      - 0.0
+      - 0.0
+      - 0.0
+  - id: mcu
+    hardware: mcu
+    parent: hull
+    pose:
+      xyz_mm:
+      - 8.4
+      - 8.4
+      - 1.6
+      rpy_deg:
+      - 0.0
+      - 0.0
+      - 0.0
+  - id: servo_pan
+    hardware: servo_pan
+    parent: hull
+    pose:
+      xyz_mm:
+      - 24.6
+      - 29.9
+      - 3.6
+      rpy_deg:
+      - 0.0
+      - 0.0
+      - 0.0
+  joints:
+  - id: pan
+    type: revolute
+    parent: hull
+    child: stick
+    axis:
+    - 0.0
+    - 0.0
+    - 1.0
+    limits:
+      min_deg: -6
+      max_deg: 6
+    clearance_per_side_mm: 0.4
+    source: from-user
+  - id: tilt
+    type: revolute
+    parent: stick
+    child: knob
+    axis:
+    - 0.0
+    - 1.0
+    - 0.0
+    limits:
+      min_deg: -8
+      max_deg: 8
+    clearance_per_side_mm: 0.4
+    source: from-user
+loads:
+- id: gravity
+  kind: gravity
+  target: assembled
+  magnitude: 9810
+  units: mm_s2
+  safety_factor: 2.0
+  source: from-user
+- id: stall_pan
+  kind: moment
+  target: stick
+  magnitude: 0.18
+  units: N_m
+  safety_factor: 2.0
+  source: datasheet
+  section:
+    outer_parameter: horn_boss_od_mm
+    inner_parameter: horn_id_mm
+- id: stall_tilt
+  kind: moment
+  target: knob
+  magnitude: 0.18
+  units: N_m
+  safety_factor: 2.0
+  source: datasheet
+  section:
+    outer_parameter: horn_boss_od_mm
+    inner_parameter: horn_id_mm
