@@ -338,7 +338,7 @@ def run_step(step: dict, catalog: dict[str, dict], scenario_id: str) -> str:
             project = Path(td) / step["name"]
             validate_spec(project / "docs" / "PRINT_SPEC.yaml")
             exported = run_cmd(
-                [sys.executable, str(cli), "run", "--project", str(project), "--blender", blender]
+                [sys.executable, str(cli), "--blender", blender, "run", "--project", str(project)]
             )
             if exported.returncode:
                 raise AssertionError(
