@@ -10,31 +10,37 @@ permissions:
   contents: read
 
 jobs:
-  smoke:
+  validate:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Unit tests (no Docker, no Blender)
+      - name: Install test dependencies
+        run: python3 -m pip install PyYAML pytest
+      - name: Contract and STL tests
+        run: python3 -m pytest -q skills/3d-print-validate/tests
+      - name: Blender CLI tests
+        run: python3 -m unittest discover -s skills/3d-print-blender/scripts/tests -v
+      - name: Example contract
         run: |
-          python3 -m unittest discover -s tests -v
-          python3 -m unittest discover -s skills/blender-printables/scripts/tests -v
-      - name: Scripts compile
+          python3 skills/3d-print-design-brief/scripts/validate_print_spec.py \
+            examples/bracket-coupon/docs/PRINT_SPEC.yaml
+      - name: Python compile
         run: |
           python3 -m py_compile \
-            skills/openscad-printables/scripts/dfm_gate.py \
-            skills/blender-printables/scripts/pblend_cli.py \
-            skills/image-silhouette-print/scripts/trace_silhouette.py \
-            skills/image-silhouette-print/scripts/overlay_preview.py \
-            skills/image-silhouette-print/scripts/scad_from_poly.py
-      - name: Secret / hostname scan
+            skills/3d-print-design-brief/scripts/*.py \
+            skills/3d-print-validate/scripts/*.py \
+            skills/3d-print-blender/scripts/pblend_cli.py \
+            skills/3d-print-image-silhouette/scripts/*.py
+      - name: Skill frontmatter and routing
+        run: python3 tests/test_skill_contract.py
+      - name: Secret and private-path scan
         run: |
-          # Scan published skills/tools only — not docs that mention the deny-list.
-          if grep -RInE 'spark-adb4|tailf9bab6|\.ts\.net|BEGIN (RSA|OPENSSH) PRIVATE|[[:space:]]gho_[A-Za-z0-9]+|[[:space:]]ghp_[A-Za-z0-9]+' \
-            --exclude-dir=.git skills examples tests install.sh ; then
-            echo "possible secret or private hostname — fail" >&2
+          if grep -RInE 'spark-adb4|tailf9bab6|\.ts\.net|/home/[A-Za-z0-9._-]+|~/Documents/the-grid|BEGIN (RSA|OPENSSH) PRIVATE|[[:space:]]gho_[A-Za-z0-9]+|[[:space:]]ghp_[A-Za-z0-9]+' \
+            --exclude-dir=.git skills examples install.sh; then
+            echo "private path or secret-like value found" >&2
             exit 1
           fi
           echo "scan clean"

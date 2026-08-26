@@ -1,0 +1,23 @@
+name: 3d-print
+description: Validated FDM contract, obvious CAD backend, gated STL.
+skills:
+  - 3d-print-design-brief
+  - 3d-print-openscad
+  - 3d-print-blender
+  - 3d-print-validate
+instruction: |
+  Build an FDM part through one fail-closed sequence.
+
+  1. Create and validate docs/PRINT_SPEC.yaml before CAD.
+  2. Select the backend from geometry need:
+     - dimensional mechanical geometry -> 3d-print-openscad
+     - organic or lattice geometry -> 3d-print-blender
+  3. Use named millimetre parameters. Every critical dimension has value, tolerance,
+     provenance, and a CAD identifier. Clearance is always per side.
+  4. Export one STL per independently printed body. Construction solids must be unioned
+     or subtracted; overlapping printable solids are forbidden.
+  5. Run 3d-print-validate/scripts/validate_project.py. HARD fail means not done.
+  6. Inspect each body in print orientation and in the slicer before delivery.
+
+  Defaults: FDM, Z-up, PETG, 0.4 mm nozzle, minimum wall/feature at least two nozzle
+  widths, no assumed critical fits, no raw STL delivery without a zipped pack.

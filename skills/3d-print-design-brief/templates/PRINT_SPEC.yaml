@@ -1,0 +1,59 @@
+schema_version: 1
+part:
+  name: example-bracket
+  revision: 0.1.0
+  product_class: bracket
+  purpose: Mount a measured device to a flat surface.
+
+manufacturing:
+  process: fdm
+  printer: bambu-lab-p1s
+  build_volume_mm: [256, 256, 256]
+  material: PETG
+  nozzle_mm: 0.4
+  layer_height_mm: 0.2
+
+cad:
+  backend: openscad
+  parametric: true
+  units: mm
+  source_files:
+    - src/example-bracket.scad
+
+geometry:
+  min_wall_mm: 1.6
+  min_feature_mm: 1.6
+  overlapping_solids_allowed: false
+  stl_files:
+    - path: stl/example-bracket.stl
+      body: bracket
+      expected_shells: 1
+
+fit:
+  required: true
+  clearance_per_side_mm: 0.4
+  evidence: measured
+  coupon: fit/example-bracket-fit-coupon.stl
+
+dimensions:
+  - name: device_width
+    parameter: device_width_mm
+    value_mm: 40.0
+    tolerance_mm: 0.2
+    source: measured
+  - name: mounting_hole_diameter
+    parameter: mounting_hole_diameter_mm
+    value_mm: 3.4
+    tolerance_mm: 0.1
+    source: datasheet
+
+print:
+  orientation: base-on-bed
+  bed_face: bottom
+  up_axis: Z
+  supports: none
+  max_overhang_deg: 45
+
+service:
+  environment: dry
+  drainage: not-applicable

@@ -1,0 +1,64 @@
+schema_version: 1
+part:
+  name: bracket-coupon
+  revision: 0.1.0
+  product_class: bracket
+  purpose: Demonstrate a non-production parametric bracket contract.
+
+manufacturing:
+  process: fdm
+  printer: generic-256mm
+  build_volume_mm: [256, 256, 256]
+  material: PETG
+  nozzle_mm: 0.4
+  layer_height_mm: 0.2
+
+cad:
+  backend: openscad
+  parametric: true
+  units: mm
+  source_files:
+    - src/bracket-coupon.scad
+
+geometry:
+  min_wall_mm: 1.6
+  min_feature_mm: 1.6
+  overlapping_solids_allowed: false
+  stl_files:
+    - path: stl/bracket-coupon.stl
+      body: bracket
+      expected_shells: 1
+
+fit:
+  required: false
+  clearance_per_side_mm: 0.4
+  evidence: none
+  coupon: not-required
+
+dimensions:
+  - name: object_x
+    parameter: object_x
+    value_mm: 40.0
+    tolerance_mm: 0.2
+    source: assumed
+  - name: object_y
+    parameter: object_y
+    value_mm: 30.0
+    tolerance_mm: 0.2
+    source: assumed
+  - name: object_z
+    parameter: object_z
+    value_mm: 12.0
+    tolerance_mm: 0.2
+    source: assumed
+
+print:
+  orientation: base-on-bed
+  bed_face: bottom
+  up_axis: Z
+  supports: none
+  max_overhang_deg: 45
+
+service:
+  environment: dry
+  drainage: not-applicable

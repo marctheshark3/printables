@@ -1,10 +1,5 @@
 #!/usr/bin/env bash
-# install.sh — copy printables skills into Hermes profiles
-# Usage:
-#   ./install.sh
-#   HERMES_PROFILES="default tron" ./install.sh
-#   ./install.sh --dry-run
-#   ./install.sh --with-grok
+# Install the validated 3D-print skill set into Hermes profiles.
 set -euo pipefail
 
 PACK="$(cd "$(dirname "$0")" && pwd)"
@@ -15,26 +10,25 @@ for arg in "$@"; do
     --dry-run) DRY=1 ;;
     --with-grok) WITH_GROK=1 ;;
     -h|--help)
-      echo "Usage: $0 [--with-grok] [--dry-run]"
-      echo "  HERMES_PROFILES=\"default tron\" $0"
+      echo "Usage: $0 [--dry-run] [--with-grok]"
+      echo 'Optional: HERMES_PROFILES="default tron"'
       exit 0
       ;;
+    *) echo "Unknown argument: $arg" >&2; exit 2 ;;
   esac
 done
 
 SKILLS=(
-  printables-part-brief
-  openscad-printables
-  printables-dfm-gate
-  blender-printables
-  printables-display-enclosures
-  print-vs-buy-shop-fixtures
-  image-silhouette-print
-  vibecad-printables
+  3d-print-design-brief
+  3d-print-openscad
+  3d-print-blender
+  3d-print-validate
+  3d-print-display-enclosure
+  3d-print-image-silhouette
+  3d-print-shop-fixture
 )
-BUNDLES=(printables.yaml printables-blender.yaml)
+BUNDLES=(3d-print.yaml)
 
-# Additive rsync only. Never --delete — a stale pack once wiped a good dfm_gate.py.
 sync_dir() {
   local src="$1" dst="$2"
   if [[ "$DRY" -eq 1 ]]; then
@@ -42,7 +36,8 @@ sync_dir() {
     return
   fi
   mkdir -p "$(dirname "$dst")"
-  rsync -a "$src/" "$dst/"
+  # Additive by design: installation must not erase local extensions.
+  rsync -a --exclude='__pycache__' --exclude='*.pyc' "$src/" "$dst/"
   echo "installed $dst"
 }
 
@@ -51,88 +46,50 @@ discover_profiles() {
     echo "$HERMES_PROFILES"
     return
   fi
-  local found=()
-  if [[ -d "$HOME/.hermes/profiles" ]]; then
-    while IFS= read -r d; do
-      found+=("$(basename "$d")")
-    done < <(find "$HOME/.hermes/profiles" -mindepth 1 -maxdepth 1 -type d | sort)
-  fi
-  if [[ ${#found[@]} -eq 0 ]]; then
+  if [[ ! -d "$HOME/.hermes/profiles" ]]; then
     echo ""
-  else
-    echo "${found[*]}"
+    return
   fi
+  local names=()
+  while IFS= read -r path; do names+=("$(basename "$path")"); done \
+    < <(find "$HOME/.hermes/profiles" -mindepth 1 -maxdepth 1 -type d | sort)
+  echo "${names[*]:-}"
 }
-
-echo "=== printables install ==="
-echo "pack: $PACK"
 
 PROFILES_STR="$(discover_profiles)"
 if [[ -z "$PROFILES_STR" ]]; then
-  echo "No Hermes profiles found under ~/.hermes/profiles and HERMES_PROFILES is unset."
-  echo "Skills are still usable in-place:"
-  echo "  python3 $PACK/skills/openscad-printables/scripts/dfm_gate.py --help"
-  echo "  $PACK/skills/blender-printables/scripts/pblend doctor"
+  echo "No Hermes profiles found; skills remain usable in this checkout."
 else
   # shellcheck disable=SC2206
   PROFILES=($PROFILES_STR)
   for profile in "${PROFILES[@]}"; do
-    HOME_P="$HOME/.hermes/profiles/$profile"
-    if [[ ! -d "$HOME_P" ]]; then
-      echo "skip missing profile: $profile"
-      continue
-    fi
-    echo "--- profile: $profile ---"
-    for s in "${SKILLS[@]}"; do
-      src="$PACK/skills/$s"
-      dst="$HOME_P/skills/creative/$s"
-      if [[ ! -d "$src" ]]; then
-        echo "missing skill source: $src" >&2
-        exit 1
-      fi
-      sync_dir "$src" "$dst"
+    profile_root="$HOME/.hermes/profiles/$profile"
+    [[ -d "$profile_root" ]] || { echo "skip missing profile: $profile"; continue; }
+    for skill in "${SKILLS[@]}"; do
+      sync_dir "$PACK/skills/$skill" "$profile_root/skills/creative/$skill"
     done
-    mkdir -p "$HOME_P/skill-bundles"
-    for b in "${BUNDLES[@]}"; do
-      bsrc="$PACK/skill-bundles/$b"
-      bdst="$HOME_P/skill-bundles/$b"
-      if [[ ! -f "$bsrc" ]]; then
-        echo "missing bundle: $bsrc" >&2
-        exit 1
-      fi
-      if [[ "$DRY" -eq 1 ]]; then
-        echo "DRY cp $bsrc -> $bdst"
-      else
-        cp "$bsrc" "$bdst"
-        echo "installed $bdst"
-      fi
-    done
-    if [[ "$DRY" -eq 0 ]]; then
-      chmod +x "$HOME_P/skills/creative/openscad-printables/scripts/"*.sh 2>/dev/null || true
-      chmod +x "$HOME_P/skills/creative/openscad-printables/scripts/dfm_gate.py" 2>/dev/null || true
-      chmod +x "$HOME_P/skills/creative/blender-printables/scripts/pblend" 2>/dev/null || true
-      chmod +x "$HOME_P/skills/creative/image-silhouette-print/scripts/"*.py 2>/dev/null || true
+    if [[ "$DRY" -eq 1 ]]; then
+      echo "DRY cp $PACK/skill-bundles/3d-print.yaml -> $profile_root/skill-bundles/3d-print.yaml"
+    else
+      mkdir -p "$profile_root/skill-bundles"
+      cp "$PACK/skill-bundles/3d-print.yaml" "$profile_root/skill-bundles/3d-print.yaml"
+      chmod +x "$profile_root/skills/creative/3d-print-design-brief/scripts/"*.py 2>/dev/null || true
+      chmod +x "$profile_root/skills/creative/3d-print-validate/scripts/"*.py 2>/dev/null || true
+      chmod +x "$profile_root/skills/creative/3d-print-blender/scripts/pblend" 2>/dev/null || true
+      chmod +x "$profile_root/skills/creative/3d-print-image-silhouette/scripts/"*.py 2>/dev/null || true
     fi
   done
 fi
 
 if [[ "$WITH_GROK" -eq 1 ]]; then
-  echo "--- grok ---"
-  for s in "${SKILLS[@]}"; do
-    src="$PACK/skills/$s"
-    dst="$HOME/.grok/skills/$s"
-    if [[ -d "$(dirname "$dst")" || "$DRY" -eq 1 ]]; then
-      sync_dir "$src" "$dst"
-    else
-      mkdir -p "$HOME/.grok/skills"
-      sync_dir "$src" "$dst"
-    fi
+  for skill in "${SKILLS[@]}"; do
+    sync_dir "$PACK/skills/$skill" "$HOME/.grok/skills/$skill"
   done
 fi
 
-echo
-echo "Done. New Hermes sessions pick up skills."
-echo "Invoke: /printables <part> | /printables-blender <organic part>"
-echo "CLI:    $PACK/skills/blender-printables/scripts/pblend doctor"
-echo "Gate:   python3 $PACK/skills/openscad-printables/scripts/dfm_gate.py --help"
-echo "Canonical pack (edit here, re-run install): $PACK"
+cat <<EOF
+Done. Start a new Hermes session, then use:
+  /3d-print <part>
+Validate directly:
+  python3 "$PACK/skills/3d-print-validate/scripts/validate_project.py" <project>
+EOF

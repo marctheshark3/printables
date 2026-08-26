@@ -1,38 +1,46 @@
 # Contributing
 
-This pack is used by coding agents. Keep diffs small and fail-closed.
+This pack is executed by coding agents. Keep behavior deterministic and validation fail-closed.
 
 ## Source of truth
 
-- Edit files **in this repo**, then `./install.sh` into local Hermes profiles.
-- Do not long-term fork a profile copy and forget to merge back.
+Edit this repository, run the complete checks, then install into local Hermes profiles. Do not treat a profile copy as canonical.
 
 ## What belongs here
 
-- Skill prose, scaffolds, `dfm_gate.py`, `pblend`, silhouette scripts
-- Generic examples with invented dims
-- Tests that run without Docker, Blender, or private fixtures
+- portable skill prose and machine-readable contracts
+- parametric scaffolds and backend CLIs
+- backend-neutral STL validation
+- generic examples with invented dimensions
+- tests that run without Docker, Blender, or private fixtures
 
 ## What does not
 
-- `.env`, tokens, VibeCAD `~/.local/share/VibeCAD/agent/token`
-- Household / shop / family geometry, photos, printer queues
-- LAN / Tailscale hub URLs
-- Vendor assemblies you do not have rights to publish
+- credentials, tokens, private hostnames, or machine-local paths
+- household geometry, photos, queues, or inventory
+- a CAD backend that cannot satisfy the same contract
+- aliases for deleted skill names
+- a relaxed HARD gate added only to make a failing artifact pass
 
 ## Checks before a PR
 
 ```bash
-python3 -m unittest discover -s tests -v
-python3 -m unittest discover -s skills/blender-printables/scripts/tests -v
-rg -n 'spark-adb4|tailscale|\.ts\.net|:9093|BEGIN (RSA|OPENSSH) PRIVATE|gho_|ghp_|sk-|xai-' . \
-  --glob '!.git/**' && echo 'possible secret — stop' || echo 'scan clean'
+python3 -m pip install PyYAML pytest
+python3 -m pytest -q
+python3 -m unittest discover -s skills/3d-print-blender/scripts/tests -v
+python3 tests/test_skill_contract.py
+python3 skills/3d-print-design-brief/scripts/validate_print_spec.py \
+  examples/bracket-coupon/docs/PRINT_SPEC.yaml
 ```
 
-If you change `dfm_gate.py` or scaffolds, say so in the PR and describe the gate behavior change. Do not loosen HARD gates to make a pretty mesh pass.
+Also run the private-path and secret scan from `.github/workflows/ci.yml`.
 
-## Style
+## Change rules
 
-- Skills: numbered procedure, pitfalls, done-when. MIT frontmatter is fine.
-- Python: stdlib first. numpy is optional in the gate.
-- OpenSCAD: parametric, echo version/orientation/class, Docker 2021.01.
+- Every behavior change needs a focused test.
+- Every published skill name begins with `3d-print-`.
+- Descriptions are one sentence, at most 60 characters, ending in a period.
+- Every `related_skills` entry must resolve in this repository.
+- OpenSCAD remains the dimensional default.
+- Blender is an exception for organic or lattice bodies.
+- HARD validation failures block delivery.
