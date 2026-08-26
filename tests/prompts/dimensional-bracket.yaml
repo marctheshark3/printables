@@ -1,0 +1,27 @@
+id: dimensional-bracket
+prompt: |
+  Make a PETG FDM bracket for a measured 40 mm device on a flat surface.
+  Lock a PRINT_SPEC first. Use parametric OpenSCAD, millimetres, named
+  parameters, and fail-closed STL validation before delivery.
+expect:
+  primary: 3d-print-openscad
+  skills:
+    - 3d-print-design-brief
+    - 3d-print-openscad
+    - 3d-print-validate
+  bundle: 3d-print
+  outrank:
+    - 3d-print-blender
+    - 3d-print-shop-fixture
+    - 3d-print-image-silhouette
+  skill_contains:
+    3d-print-openscad:
+      - PRINT_SPEC.yaml
+      - validate
+    3d-print-design-brief:
+      - cad.parametric
+run:
+  - kind: validate_spec
+    path: examples/bracket-coupon/docs/PRINT_SPEC.yaml
+  - kind: project_with_cubes
+    from: examples/bracket-coupon

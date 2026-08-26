@@ -1,0 +1,26 @@
+id: image-stencil
+prompt: |
+  Turn this PNG icon into a toddler water-stencil silhouette plate. Trace the
+  image, overlay QA, then OpenSCAD extrude. Do not sculpt the icon with hulls.
+expect:
+  primary: 3d-print-image-silhouette
+  skills:
+    - 3d-print-image-silhouette
+    - 3d-print-design-brief
+    - 3d-print-validate
+  outrank:
+    - 3d-print-blender
+    - 3d-print-shop-fixture
+    - 3d-print-display-enclosure
+  skill_contains:
+    3d-print-image-silhouette:
+      - PRINT_SPEC.yaml
+      - trace_silhouette.py
+      - overlay_preview.py
+      - validate_project.py
+run:
+  - kind: scripts_exist
+    paths:
+      - skills/3d-print-image-silhouette/scripts/trace_silhouette.py
+      - skills/3d-print-image-silhouette/scripts/overlay_preview.py
+      - skills/3d-print-image-silhouette/scripts/scad_from_poly.py
