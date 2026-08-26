@@ -12,6 +12,7 @@ Last reviewed 2026-08-25.
 - `3d-print-validate` is backend-neutral and mandatory after every export.
 - `3d-print-robotics` is the class skill for numbered `robot-module` kit bodies.
 - `3d-print-sim` / `validate_assembly.py` is the assembled occupancy gate when `assembly` is present. A render is not proof.
+- `sim2real: true` is a PRINT_SPEC claim gated by mass/friction/actuator coupons (measured or datasheet). Assumed calibration cannot claim it.
 - HARD failure means the part is not deliverable.
 
 ## Enforced today
@@ -28,6 +29,7 @@ Last reviewed 2026-08-25.
 - fit evidence, service material, and drainage policy
 - explicit print orientation and supports policy
 - assembled occupancy, joint sweep, and hub section check when `assembly` is present
+- sim2real claim requires measured or datasheet mass, friction, and actuator coupons
 
 ## Known limits
 

@@ -39,6 +39,8 @@ python3 skills/3d-print-validate/scripts/validate_project.py \
   examples/robot-kit-01-rover
 python3 skills/3d-print-validate/scripts/validate_assembly.py \
   examples/robot-kit-01-rover
+python3 skills/3d-print-sim/scripts/roll_table_flat.py \
+  examples/robot-kit-01-rover
 ```
 
 Also run the private-path and secret scan from `.github/workflows/ci.yml`.

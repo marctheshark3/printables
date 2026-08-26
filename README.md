@@ -77,6 +77,9 @@ python3 skills/3d-print-validate/scripts/validate_project.py \
 
 python3 skills/3d-print-validate/scripts/validate_assembly.py \
   examples/robot-kit-01-rover
+
+python3 skills/3d-print-sim/scripts/roll_table_flat.py \
+  examples/robot-kit-01-rover
 ```
 
 For Blender:
@@ -104,6 +107,8 @@ skills/3d-print-blender/scripts/pblend gate --project "$HOME/print-projects/orga
 - class-specific overhang and open-under failures
 
 When `assembly` is present, `validate_assembly.py` then fail-closes on illegal assembled occupancy, joint self-collision, and missing or assumed required loads. A render is not proof.
+
+`sim2real: true` requires mass, friction, and actuator calibration coupons with measured or datasheet sources. Assumed calibration cannot claim sim2real. A MuJoCo window is not the contract.
 
 Short STL chords are tessellation, not wall thickness. They remain warning-only; minimum walls come from CAD parameters and slicer verification.
 

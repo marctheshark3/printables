@@ -1,0 +1,25 @@
+id: robot-kit-sim2real
+prompt: |
+  Claim sim2real on this numbered robot-module rover kit: mass coupon on a scale,
+  friction sled on table-flat, N20 stall actuator datasheet, 100 mm roll error
+  budget. PRINT_SPEC calibration, not a photoreal house. A screenshot is not proof.
+expect:
+  primary: 3d-print-sim
+  skills:
+    - 3d-print-sim
+    - 3d-print-design-brief
+    - 3d-print-robotics
+    - 3d-print-validate
+  outrank:
+    - 3d-print-shop-fixture
+    - 3d-print-image-silhouette
+    - 3d-print-blender
+  skill_contains:
+    3d-print-sim:
+      - sim2real
+      - calibration
+      - roll_table_flat.py
+      - "screenshot is not proof"
+run:
+  - kind: validate_spec
+    path: examples/robot-kit-01-rover/docs/PRINT_SPEC.yaml

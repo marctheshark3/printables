@@ -8,9 +8,12 @@ from print_spec import (
     DIMENSION_SOURCES,
     AssemblyBody,
     AssemblyJoint,
+    CalibrationCoupon,
     HardwareComponent,
     Load,
+    OptionalBlocks,
     Pose,
+    SimRoll,
     SimScene,
     finite_number,
     nested,
@@ -19,6 +22,15 @@ from print_spec import (
 JOINT_TYPES = {"fixed", "revolute", "prismatic"}
 LOAD_KINDS = {"gravity", "point-force", "moment"}
 WORLD_PARENTS = {"", "world"}
+CALIBRATION_SOURCES = {"measured", "datasheet", "fit-tested", "assumed"}
+SIM2REAL_SOURCES = {"measured", "datasheet"}
+COUPON_TYPES = {"mass", "friction", "actuator"}
+ACTUATOR_KINDS = {"stall_torque", "free_run_rpm"}
+REQUIRED_SIM2REAL_TYPES = ("mass", "friction", "actuator")
+
+
+def is_named_scene(ident: str) -> bool:
+    return ident.startswith("table-flat") or ident.startswith("floor-generic")
 
 
 def vec3(value: Any) -> tuple[float, float, float] | None:
@@ -389,6 +401,141 @@ def _policy_from_mapping(data: dict[str, Any], loads: list[dict[str, Any]]) -> l
     )
 
 
+def _validate_calibration(
+    data: dict[str, Any], sim: dict[str, Any], scene_id: str | None, errors: list[str]
+) -> None:
+    coupons = sim.get("calibration")
+    if coupons is None:
+        return
+    if not isinstance(coupons, list):
+        errors.append("sim.calibration must be a list")
+        return
+    ids: set[str] = set()
+    stl_names = stl_body_names(data)
+    hw_ids = set(hardware_ids(data))
+    joint_ids: set[str] = set()
+    assembly = data.get("assembly")
+    joints = assembly.get("joints") if isinstance(assembly, dict) else None
+    if isinstance(joints, list):
+        for joint in joints:
+            if isinstance(joint, dict) and isinstance(joint.get("id"), str):
+                joint_ids.add(joint["id"])
+    seen_types: set[str] = set()
+    for index, coupon in enumerate(coupons):
+        label = f"sim.calibration[{index}]"
+        if not isinstance(coupon, dict):
+            errors.append(f"{label} must be a mapping")
+            continue
+        for key in ("id", "type", "source", "magnitude", "units"):
+            if key not in coupon:
+                errors.append(f"{label}.{key} is required")
+        ident = coupon.get("id")
+        if not isinstance(ident, str) or not ident:
+            errors.append(f"{label}.id must be non-empty")
+        elif ident in ids:
+            errors.append(f"duplicate calibration coupon id: {ident}")
+        else:
+            ids.add(ident)
+        ctype = coupon.get("type")
+        if "type" in coupon and ctype not in COUPON_TYPES:
+            errors.append(f"{label}.type must be one of {sorted(COUPON_TYPES)}")
+        source = coupon.get("source")
+        if "source" in coupon and source not in CALIBRATION_SOURCES:
+            errors.append(f"{label}.source must be one of {sorted(CALIBRATION_SOURCES)}")
+        mag = coupon.get("magnitude")
+        if "magnitude" in coupon and (not finite_number(mag) or float(mag) < 0):
+            errors.append(f"{label}.magnitude must be a finite non-negative number")
+        units = coupon.get("units")
+        if "units" in coupon and (not isinstance(units, str) or not units):
+            errors.append(f"{label}.units must be a non-empty string")
+        if ctype in REQUIRED_SIM2REAL_TYPES:
+            if ctype in seen_types:
+                errors.append(f"duplicate calibration type: {ctype}")
+            else:
+                seen_types.add(str(ctype))
+        if ctype == "mass":
+            target = coupon.get("target")
+            if not isinstance(target, str) or not target:
+                errors.append(f"{label}.target is required for mass coupons")
+            elif target not in stl_names:
+                errors.append(f"{label}.target must be a geometry.stl_files body")
+        elif ctype == "friction":
+            scene = coupon.get("scene")
+            if not isinstance(scene, str) or not scene:
+                errors.append(f"{label}.scene is required for friction coupons")
+            elif not is_named_scene(scene):
+                errors.append(f"{label}.scene must be table-flat or floor-generic")
+            elif scene_id is not None and scene != scene_id:
+                errors.append(f"{label}.scene must match sim.scene.id")
+        elif ctype == "actuator":
+            kind = coupon.get("kind")
+            if kind not in ACTUATOR_KINDS:
+                errors.append(f"{label}.kind must be stall_torque or free_run_rpm")
+            target = coupon.get("target")
+            if not isinstance(target, str) or not target:
+                errors.append(f"{label}.target is required for actuator coupons")
+            elif target not in hw_ids and target not in joint_ids:
+                errors.append(f"{label}.target must be a hardware id or assembly joint id")
+
+
+def _validate_sim2real(sim: dict[str, Any], errors: list[str]) -> None:
+    if "sim2real" not in sim:
+        return
+    claim = sim.get("sim2real")
+    if claim is not True and claim is not False:
+        errors.append("sim.sim2real must be true or false")
+        return
+    if claim is not True:
+        return
+    coupons = sim.get("calibration")
+    if not isinstance(coupons, list) or not coupons:
+        errors.append("sim2real requires mass, friction, and actuator calibration coupons")
+        return
+    covered: dict[str, str] = {}
+    for index, coupon in enumerate(coupons):
+        if not isinstance(coupon, dict):
+            continue
+        if coupon.get("source") == "assumed":
+            errors.append(
+                f"sim.calibration[{index}].source cannot be assumed when sim2real is true"
+            )
+        ctype = coupon.get("type")
+        source = coupon.get("source")
+        if ctype in REQUIRED_SIM2REAL_TYPES and source in SIM2REAL_SOURCES:
+            covered[str(ctype)] = str(source)
+    missing = [name for name in REQUIRED_SIM2REAL_TYPES if name not in covered]
+    if missing:
+        errors.append(
+            "sim2real requires measured or datasheet coupons for: " + ", ".join(missing)
+        )
+
+
+def _validate_roll(sim: dict[str, Any], errors: list[str]) -> None:
+    roll = sim.get("roll")
+    if roll is None:
+        return
+    if not isinstance(roll, dict):
+        errors.append("sim.roll must be a mapping")
+        return
+    if "distance_mm" not in roll:
+        errors.append("sim.roll.distance_mm is required")
+    elif not finite_number(roll.get("distance_mm")) or float(roll["distance_mm"]) <= 0:
+        errors.append("sim.roll.distance_mm must be a finite positive number")
+    scene = roll.get("scene")
+    if not isinstance(scene, str) or not scene:
+        errors.append("sim.roll.scene is required")
+    elif not is_named_scene(scene):
+        errors.append("sim.roll.scene must be table-flat or floor-generic")
+    for key in ("sim_mm", "bench_mm", "error_budget_mm"):
+        if key in roll and (not finite_number(roll.get(key)) or float(roll[key]) < 0):
+            errors.append(f"sim.roll.{key} must be a finite non-negative number")
+    source = roll.get("source")
+    if source is not None and source not in CALIBRATION_SOURCES:
+        errors.append(f"sim.roll.source must be one of {sorted(CALIBRATION_SOURCES)}")
+    elif source == "assumed":
+        errors.append("sim.roll.source cannot be assumed")
+
+
 def validate_sim(data: dict[str, Any], errors: list[str]) -> None:
     sim = data.get("sim")
     if sim is None:
@@ -406,8 +553,8 @@ def validate_sim(data: dict[str, Any], errors: list[str]) -> None:
     ident = scene.get("id")
     if not isinstance(ident, str) or not ident:
         errors.append("sim.scene.id must be non-empty")
-    elif not ident.startswith("table-flat"):
-        errors.append("sim.scene.id must start with table-flat")
+    elif not is_named_scene(ident):
+        errors.append("sim.scene.id must be a named scene table-flat or floor-generic")
     gravity = scene.get("gravity_mm_s2")
     if gravity is None:
         errors.append("sim.scene.gravity_mm_s2 is required")
@@ -423,28 +570,41 @@ def validate_sim(data: dict[str, Any], errors: list[str]) -> None:
     friction = scene.get("friction")
     if not isinstance(friction, dict):
         errors.append("sim.scene.friction must be a mapping")
-        return
-    if "source" not in friction:
-        errors.append("sim.scene.friction.source is required")
-    elif friction.get("source") not in DIMENSION_SOURCES:
-        errors.append(f"sim.scene.friction.source must be one of {sorted(DIMENSION_SOURCES)}")
-    elif friction.get("source") == "assumed":
-        errors.append("sim.scene.friction.source cannot be assumed")
-    mu = friction.get("mu")
-    if mu is None:
-        errors.append("sim.scene.friction.mu is required")
-    elif not finite_number(mu) or float(mu) < 0:
-        errors.append("sim.scene.friction.mu must be a finite non-negative number")
+    else:
+        if "source" not in friction:
+            errors.append("sim.scene.friction.source is required")
+        elif friction.get("source") not in DIMENSION_SOURCES:
+            errors.append(f"sim.scene.friction.source must be one of {sorted(DIMENSION_SOURCES)}")
+        elif friction.get("source") == "assumed":
+            errors.append("sim.scene.friction.source cannot be assumed")
+        mu = friction.get("mu")
+        if mu is None:
+            errors.append("sim.scene.friction.mu is required")
+        elif not finite_number(mu) or float(mu) < 0:
+            errors.append("sim.scene.friction.mu must be a finite non-negative number")
+    _validate_calibration(data, sim, ident if isinstance(ident, str) else None, errors)
+    _validate_sim2real(sim, errors)
+    _validate_roll(sim, errors)
 
 
-def parse_optional_blocks(data: dict[str, Any]) -> tuple[
-    tuple[HardwareComponent, ...],
-    str | None,
-    tuple[AssemblyBody, ...],
-    tuple[AssemblyJoint, ...],
-    tuple[Load, ...],
-    SimScene | None,
-]:
+def _parse_coupon(coupon: dict[str, Any]) -> CalibrationCoupon:
+    ctype = coupon["type"]
+    target = coupon.get("target") if isinstance(coupon.get("target"), str) else None
+    scene = coupon.get("scene") if isinstance(coupon.get("scene"), str) else None
+    kind = coupon.get("kind") if isinstance(coupon.get("kind"), str) else None
+    return CalibrationCoupon(
+        id=coupon["id"],
+        type=ctype,
+        source=coupon["source"],
+        magnitude=float(coupon["magnitude"]),
+        units=coupon["units"],
+        target=target if ctype in {"mass", "actuator"} else None,
+        scene=scene if ctype == "friction" else None,
+        actuator_kind=kind if ctype == "actuator" else None,
+    )
+
+
+def parse_optional_blocks(data: dict[str, Any]) -> OptionalBlocks:
     hardware_comps: list[HardwareComponent] = []
     hardware = data.get("hardware")
     components = hardware.get("components") if isinstance(hardware, dict) else None
@@ -523,6 +683,9 @@ def parse_optional_blocks(data: dict[str, Any]) -> tuple[
             )
         )
     sim_scene = None
+    sim2real = False
+    calibration: list[CalibrationCoupon] = []
+    sim_roll = None
     sim = data.get("sim")
     if isinstance(sim, dict) and isinstance(sim.get("scene"), dict):
         scene = sim["scene"]
@@ -534,5 +697,32 @@ def parse_optional_blocks(data: dict[str, Any]) -> tuple[
             friction_mu=float(scene["friction"]["mu"]),
             friction_source=scene["friction"]["source"],
         )
+        sim2real = sim.get("sim2real") is True
+        for coupon in sim.get("calibration") or []:
+            if not isinstance(coupon, dict):
+                continue
+            calibration.append(_parse_coupon(coupon))
+        roll = sim.get("roll")
+        if isinstance(roll, dict):
+            sim_roll = SimRoll(
+                distance_mm=float(roll["distance_mm"]),
+                scene=str(roll["scene"]),
+                sim_mm=float(roll["sim_mm"]) if finite_number(roll.get("sim_mm")) else None,
+                bench_mm=float(roll["bench_mm"]) if finite_number(roll.get("bench_mm")) else None,
+                error_budget_mm=(
+                    float(roll["error_budget_mm"]) if finite_number(roll.get("error_budget_mm")) else None
+                ),
+                source=roll.get("source") if isinstance(roll.get("source"), str) else None,
+            )
     frame = assembly_frame if isinstance(assembly_frame, str) else None
-    return tuple(hardware_comps), frame, tuple(assembly_bodies), tuple(joints), tuple(loads), sim_scene
+    return OptionalBlocks(
+        hardware=tuple(hardware_comps),
+        assembly_frame=frame,
+        assembly_bodies=tuple(assembly_bodies),
+        joints=tuple(joints),
+        loads=tuple(loads),
+        sim_scene=sim_scene,
+        sim2real=sim2real,
+        calibration=tuple(calibration),
+        sim_roll=sim_roll,
+    )

@@ -126,6 +126,28 @@ class SimScene:
 
 
 @dataclass(frozen=True)
+class CalibrationCoupon:
+    id: str
+    type: str
+    source: str
+    magnitude: float
+    units: str
+    target: str | None
+    scene: str | None
+    actuator_kind: str | None
+
+
+@dataclass(frozen=True)
+class SimRoll:
+    distance_mm: float
+    scene: str
+    sim_mm: float | None
+    bench_mm: float | None
+    error_budget_mm: float | None
+    source: str | None
+
+
+@dataclass(frozen=True)
 class PrintSpec:
     """Validated manufacturing contract. One object, many exported bodies."""
 
@@ -164,6 +186,22 @@ class PrintSpec:
     joints: tuple[AssemblyJoint, ...]
     loads: tuple[Load, ...]
     sim_scene: SimScene | None
+    sim2real: bool
+    calibration: tuple[CalibrationCoupon, ...]
+    sim_roll: SimRoll | None
+
+
+@dataclass(frozen=True)
+class OptionalBlocks:
+    hardware: tuple[HardwareComponent, ...]
+    assembly_frame: str | None
+    assembly_bodies: tuple[AssemblyBody, ...]
+    joints: tuple[AssemblyJoint, ...]
+    loads: tuple[Load, ...]
+    sim_scene: SimScene | None
+    sim2real: bool
+    calibration: tuple[CalibrationCoupon, ...]
+    sim_roll: SimRoll | None
 
 
 def nested(data: dict[str, Any], path: str) -> Any:
@@ -671,7 +709,7 @@ def parse_spec(data: dict[str, Any]) -> PrintSpec:
         )
         for dim in data["dimensions"]
     )
-    hardware_comps, assembly_frame, assembly_bodies, joints, loads, sim_scene = parse_optional_blocks(data)
+    extra = parse_optional_blocks(data)
     return PrintSpec(
         schema_version=int(data["schema_version"]),
         part_name=nested(data, "part.name"),
@@ -702,12 +740,15 @@ def parse_spec(data: dict[str, Any]) -> PrintSpec:
         service_environment=nested(data, "service.environment"),
         drainage=nested(data, "service.drainage"),
         extra_parameters=extra_cad_parameters(data),
-        hardware=hardware_comps,
-        assembly_frame=assembly_frame,
-        assembly_bodies=assembly_bodies,
-        joints=joints,
-        loads=loads,
-        sim_scene=sim_scene,
+        hardware=extra.hardware,
+        assembly_frame=extra.assembly_frame,
+        assembly_bodies=extra.assembly_bodies,
+        joints=extra.joints,
+        loads=extra.loads,
+        sim_scene=extra.sim_scene,
+        sim2real=extra.sim2real,
+        calibration=extra.calibration,
+        sim_roll=extra.sim_roll,
     )
 
 

@@ -55,7 +55,11 @@ Ignored when absent. When present they cannot be assumed, and Markdown / MJCF / 
 
 `loads[]`: `id`, `kind` (`gravity` | `point-force` | `moment`), `target` (assembly body, hardware id, or assembled frame), `magnitude`, `units`, `safety_factor` >= 1, `source`. Moment loads declare `section.outer_parameter` and `section.inner_parameter` naming `dimensions[].parameter`. Load `source` cannot be `assumed`.
 
-`sim.scene`: `id` starting with `table-flat`, `gravity_mm_s2`, `floor.z_mm`, `friction.mu` with `source`.
+`sim.scene`: named id `table-flat` or `floor-generic` (or a prefix of either), `gravity_mm_s2`, `floor.z_mm`, `friction.mu` with `source`. Not a photoreal house.
+
+`sim.calibration[]` is ignored when absent. Each coupon has `id`, `type` (`mass` | `friction` | `actuator`), `magnitude`, `units`, and `source` (`measured` | `datasheet` | `fit-tested` | `assumed`). Mass targets a printed body. Friction names a scene. Actuator `kind` is `stall_torque` or `free_run_rpm` and targets hardware or a joint. `sim.sim2real: true` is allowed only when mass, friction, and actuator coupons exist with `measured` or `datasheet` sources; `assumed` (and `fit-tested` alone) cannot claim sim2real. Markdown / MJCF / URDF / USD cannot grant the claim.
+
+`sim.roll` when present records a commanded `distance_mm` on a named scene plus optional `sim_mm`, `bench_mm`, and `error_budget_mm`.
 
 A robot-module that declares `assembly.bodies` fail-closes unless every printed STL body appears, every assembly ref resolves, every revolute joint has limits, and required loads exist (gravity, plus a stall moment targeting each revolute child).
 

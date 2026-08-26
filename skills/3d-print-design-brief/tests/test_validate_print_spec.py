@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+import subprocess
 import sys
 from pathlib import Path
 
 import yaml
 
 SCRIPTS = Path(__file__).resolve().parents[1] / "scripts"
+VALIDATOR = SCRIPTS / "validate_print_spec.py"
+REPO = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(SCRIPTS))
 
 import print_spec as module  # noqa: E402
@@ -447,3 +450,169 @@ def test_parse_spec_keeps_assembly_and_loads():
     assert {joint.id for joint in parsed.joints} == {"wheel_left", "wheel_right"}
     assert parsed.sim_scene is not None and parsed.sim_scene.id == "table-flat"
     assert any(load.kind == "moment" for load in parsed.loads)
+    assert parsed.sim2real is False
+    assert parsed.calibration == ()
+
+
+def _calibration_ok():
+    return [
+        {
+            "id": "chassis_mass",
+            "type": "mass",
+            "target": "chassis",
+            "magnitude": 24.8,
+            "units": "g",
+            "source": "measured",
+        },
+        {
+            "id": "table_sled",
+            "type": "friction",
+            "scene": "table-flat",
+            "magnitude": 0.55,
+            "units": "mu",
+            "source": "measured",
+        },
+        {
+            "id": "n20_stall",
+            "type": "actuator",
+            "target": "drive_left",
+            "kind": "stall_torque",
+            "magnitude": 0.049,
+            "units": "N_m",
+            "source": "datasheet",
+        },
+    ]
+
+
+def test_assembled_robot_without_calibration_still_passes():
+    assert module.validate(assembled_robot_spec()) == []
+
+
+def test_sim2real_with_measured_and_datasheet_coupons_passes():
+    data = assembled_robot_spec()
+    data["sim"]["sim2real"] = True
+    data["sim"]["calibration"] = _calibration_ok()
+    assert module.validate(data) == []
+    parsed = module.parse_spec(data)
+    assert parsed.sim2real is True
+    assert {c.type for c in parsed.calibration} == {"mass", "friction", "actuator"}
+
+
+def test_sim2real_missing_mass_coupon_fails():
+    data = assembled_robot_spec()
+    data["sim"]["sim2real"] = True
+    data["sim"]["calibration"] = [c for c in _calibration_ok() if c["type"] != "mass"]
+    errors = module.validate(data)
+    assert any("measured or datasheet coupons" in error and "mass" in error for error in errors)
+
+
+def test_sim2real_missing_friction_coupon_fails():
+    data = assembled_robot_spec()
+    data["sim"]["sim2real"] = True
+    data["sim"]["calibration"] = [c for c in _calibration_ok() if c["type"] != "friction"]
+    errors = module.validate(data)
+    assert any("friction" in error and "sim2real" in error for error in errors)
+
+
+def test_sim2real_missing_actuator_coupon_fails():
+    data = assembled_robot_spec()
+    data["sim"]["sim2real"] = True
+    data["sim"]["calibration"] = [c for c in _calibration_ok() if c["type"] != "actuator"]
+    errors = module.validate(data)
+    assert any("actuator" in error and "sim2real" in error for error in errors)
+
+
+def test_sim2real_assumed_coupon_fails():
+    data = assembled_robot_spec()
+    data["sim"]["sim2real"] = True
+    coupons = _calibration_ok()
+    coupons[0]["source"] = "assumed"
+    data["sim"]["calibration"] = coupons
+    errors = module.validate(data)
+    assert any("cannot be assumed when sim2real is true" in error for error in errors)
+
+
+def test_sim2real_fit_tested_only_is_not_enough():
+    data = assembled_robot_spec()
+    data["sim"]["sim2real"] = True
+    coupons = _calibration_ok()
+    coupons[1]["source"] = "fit-tested"
+    data["sim"]["calibration"] = coupons
+    errors = module.validate(data)
+    assert any("friction" in error and "measured or datasheet" in error for error in errors)
+
+
+def test_mass_coupon_must_name_printed_stl_body():
+    data = assembled_robot_spec()
+    data["sim"]["sim2real"] = True
+    coupons = _calibration_ok()
+    coupons[0]["target"] = "mcu"
+    data["sim"]["calibration"] = coupons
+    errors = module.validate(data)
+    assert any("must be a geometry.stl_files body" in error for error in errors)
+
+
+def test_duplicate_calibration_type_fails():
+    data = assembled_robot_spec()
+    data["sim"]["sim2real"] = True
+    coupons = _calibration_ok()
+    coupons.append(dict(coupons[0], id="chassis_mass_2"))
+    data["sim"]["calibration"] = coupons
+    errors = module.validate(data)
+    assert any("duplicate calibration type: mass" in error for error in errors)
+
+
+def test_sim2real_true_without_calibration_fails():
+    data = assembled_robot_spec()
+    data["sim"]["sim2real"] = True
+    errors = module.validate(data)
+    assert any("requires mass, friction, and actuator" in error for error in errors)
+
+
+def test_markdown_cannot_grant_sim2real(tmp_path):
+    data = assembled_robot_spec()
+    (tmp_path / "DESIGN.md").write_text("sim2real: true\ncalibration: assumed\n", encoding="utf-8")
+    assert module.validate(data) == []
+    parsed = module.parse_spec(data)
+    assert parsed.sim2real is False
+
+
+def test_mjcf_file_cannot_grant_sim2real(tmp_path):
+    data = assembled_robot_spec()
+    (tmp_path / "rover.mjcf").write_text("<mujoco model='grant'><option/></mujoco>\n")
+    assert module.validate(data) == []
+    parsed = module.parse_spec(data)
+    assert parsed.sim2real is False
+    assert parsed.calibration == ()
+
+
+def test_gold_rover_sim2real_coupons_are_measured_or_datasheet():
+    path = REPO / "examples/robot-kit-01-rover/docs/PRINT_SPEC.yaml"
+    data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    assert module.validate(data) == []
+    assert data["sim"]["sim2real"] is True
+    roll = data["sim"]["roll"]
+    assert roll["distance_mm"] == 100
+    assert roll["scene"] == "table-flat"
+    assert roll["error_budget_mm"] >= abs(roll["sim_mm"] - roll["bench_mm"])
+    kinds = {c["type"]: c["source"] for c in data["sim"]["calibration"]}
+    assert kinds["mass"] in {"measured", "datasheet"}
+    assert kinds["friction"] in {"measured", "datasheet"}
+    assert kinds["actuator"] in {"measured", "datasheet"}
+
+
+def test_gold_rover_assumed_calibration_is_hard(tmp_path):
+    src = REPO / "examples/robot-kit-01-rover/docs/PRINT_SPEC.yaml"
+    data = yaml.safe_load(src.read_text(encoding="utf-8"))
+    data["sim"]["calibration"][0]["source"] = "assumed"
+    spec = tmp_path / "PRINT_SPEC.yaml"
+    spec.write_text(yaml.safe_dump(data, sort_keys=False), encoding="utf-8")
+    result = subprocess.run(
+        [sys.executable, str(VALIDATOR), str(spec)],
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    assert result.returncode != 0
+    assert "HARD:" in result.stdout
+    assert "assumed" in result.stdout

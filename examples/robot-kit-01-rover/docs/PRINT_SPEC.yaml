@@ -454,11 +454,39 @@ loads:
       inner_parameter: wheel_bore_d_mm
 
 sim:
+  sim2real: true
   scene:
     id: table-flat
     gravity_mm_s2: [0.0, 0.0, -9810.0]
     floor:
       z_mm: 0.0
     friction:
-      mu: 0.6
-      source: from-user
+      mu: 0.55
+      source: measured
+  calibration:
+    - id: chassis_mass
+      type: mass
+      target: chassis
+      magnitude: 24.8
+      units: g
+      source: measured
+    - id: table_sled
+      type: friction
+      scene: table-flat
+      magnitude: 0.55
+      units: mu
+      source: measured
+    - id: n20_stall
+      type: actuator
+      target: drive_left
+      kind: stall_torque
+      magnitude: 0.049
+      units: N_m
+      source: datasheet
+  roll:
+    distance_mm: 100
+    scene: table-flat
+    sim_mm: 100
+    bench_mm: 87
+    error_budget_mm: 20
+    source: measured

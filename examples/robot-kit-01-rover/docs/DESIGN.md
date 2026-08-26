@@ -6,6 +6,8 @@ Numbered 01 two-wheel differential chassis in the photo-class micro-robotics kit
 
 Shared kit library: `src/lib/robot_kit.scad` (MCU pocket, SG90 pocket, M2/M3, 3-spoke hub).
 
+Sim2real claim is on `PRINT_SPEC.yaml` (`sim.sim2real`, mass/friction/actuator coupons). Commanded table-flat roll is 100 mm; measured bench roll 87 mm; error budget 20 mm. This paragraph is not parsed.
+
 Preview-only assembly (not a printable body, not in `geometry.stl_files`).
 `src/rover.scad` accepts `-D which="assembly"` in desktop OpenSCAD. Headless stills:
 
