@@ -1,17 +1,16 @@
 from __future__ import annotations
 
-import importlib.util
+import sys
 from pathlib import Path
 
 import yaml
 
-ROOT = Path(__file__).resolve().parents[1]
-SCRIPT = ROOT.parent / "3d-print-design-brief" / "scripts" / "validate_print_spec.py"
-TEMPLATE = ROOT.parent / "3d-print-design-brief" / "templates" / "PRINT_SPEC.yaml"
-spec = importlib.util.spec_from_file_location("validate_print_spec", SCRIPT)
-assert spec and spec.loader
-module = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(module)
+SCRIPTS = Path(__file__).resolve().parents[1] / "scripts"
+sys.path.insert(0, str(SCRIPTS))
+
+import print_spec as module  # noqa: E402
+
+TEMPLATE = Path(__file__).resolve().parents[1] / "templates" / "PRINT_SPEC.yaml"
 
 
 def valid_spec():
@@ -121,3 +120,10 @@ def test_missing_coupon_file_fails(tmp_path):
     (tmp_path / "stl/example-bracket.stl").write_bytes(b"solid")
     errors = module.validate(data, project=tmp_path, check_files=True)
     assert any("fit/example-bracket-fit-coupon.stl" in error for error in errors)
+
+
+def test_parse_spec_roundtrip():
+    parsed = module.parse_spec(valid_spec())
+    assert parsed.backend == "openscad"
+    assert parsed.stl_files[0].expected_shells == 1
+    assert parsed.up_axis == "Z"

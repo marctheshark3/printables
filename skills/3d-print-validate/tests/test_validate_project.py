@@ -155,6 +155,16 @@ def test_wet_slots_drainage_passes(tmp_path):
     assert result.returncode == 0, result.stdout + result.stderr
 
 
+def test_design_md_cannot_override_print_spec(tmp_path):
+    make_project(tmp_path, cube_triangles())
+    (tmp_path / "docs/DESIGN.md").write_text(
+        "---\nexpected_components: 99\nproduct_class: tray\n---\n",
+        encoding="utf-8",
+    )
+    result = run(tmp_path)
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
 def test_parameter_substring_is_not_a_declaration(tmp_path):
     make_project(
         tmp_path,

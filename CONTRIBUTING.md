@@ -26,7 +26,7 @@ Edit this repository, run the complete checks, then install into local Hermes pr
 
 ```bash
 python3 -m pip install PyYAML pytest
-python3 -m pytest -q
+python3 -m pytest -q skills/3d-print-design-brief/tests skills/3d-print-validate/tests
 python3 -m unittest discover -s skills/3d-print-blender/scripts/tests -v
 python3 tests/test_skill_contract.py
 python3 skills/3d-print-design-brief/scripts/validate_print_spec.py \

@@ -13,47 +13,63 @@ metadata:
 
 # 3D Print Validate
 
-Validate the machine-readable print contract and every exported STL. This skill is backend-neutral. It does not assume OpenSCAD, Blender, VibeCAD, or FreeCAD.
+Prove the CAD/CAM contract and every exported body. Backend-neutral. Does not parse DESIGN.md.
 
 ## When to Use
 
 - after every STL export
 - after changing any CAD parameter
 - before saying a part is printable or delivering files
-- when evaluating a new CAD backend
+- when an assembly has more than one independently manufactured body
 
 ## Procedure
-
-Run one command after export:
 
 ```bash
 python3 scripts/validate_project.py "$PROJECT"
 ```
 
-It validates `docs/PRINT_SPEC.yaml`, confirms every declared source/output file exists, confirms each dimension maps to a named CAD parameter, and runs the STL gate for every declared body with the spec's X/Y/Z build volume and shell count.
+That command:
+
+1. loads `docs/PRINT_SPEC.yaml` (fit, drainage, material, parameters, bodies)
+2. checks declared source/STL/coupon files exist
+3. checks each dimension maps to a CAD assignment
+4. audits each STL in-process (topology, occupancy, volume, envelope, DFM)
 
 Never convert a HARD check into a warning to make a file pass.
 
+Mesh-only (no spec policy):
+
+```bash
+python3 scripts/validate_stl.py --stl path.stl --build-x-mm 256 --build-y-mm 256 --build-z-mm 256 \
+  --expected-components 1 --product-class bracket --print-orientation base-on-bed
+```
+
 ## Hard Checks
 
+Spec (this skill consumes `3d-print-design-brief`):
+
 - contract complete and internally consistent
-- source and output files exist
-- STL parses and has positive volume
+- source, output, and coupon files exist
+- fit and wet-service evidence are acceptable
+- CAD parameters are declared, not mentioned
+
+Mesh:
+
+- STL parses and has positive signed volume
 - closed watertight topology
 - no boundary or non-manifold edges
 - consistent face orientation
 - no duplicate or excessive degenerate faces
 - edge-connected shell count equals `expected_shells`
 - overlapping exported solids are rejected
-- bounding box fits strictly inside the printer envelope
-- fit and wet-service evidence are acceptable
+- bounding box fits strictly inside the machine envelope
 - overhang and class-specific rules pass
 
-Short STL chords are tessellation, not a wall-thickness measurement. Chord density is warning-only. Minimum walls are verified from CAD parameters and slicer output.
+Short STL chords are tessellation, not wall thickness. Chord density is warning-only.
 
 ## Overrides
 
-Only the user may waive a named check. Record the exact check, reason, and scope in `PRINT_SPEC.yaml`. Never use a global “ignore validation” switch.
+Only the user may waive a named check. Record the exact check, reason, and scope in `PRINT_SPEC.yaml`.
 
 ## Verification
 

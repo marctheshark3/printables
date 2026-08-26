@@ -1,12 +1,12 @@
 # Printables
 
-Deterministic Hermes skills for FDM part design:
+Deterministic CAD/CAM for FDM: agents write one contract, pick a CAD backend, export one STL per independently manufactured body, then fail closed.
 
 ```text
-PRINT_SPEC.yaml → obvious CAD backend → STL → fail-closed validation
+PRINT_SPEC.yaml → CAD backend → one STL per body → validate_project.py
 ```
 
-The contract is intentionally dull. Every critical dimension has a CAD parameter, value, tolerance, and source. Every printable body has one declared STL and expected shell count. HARD failures block delivery.
+Markdown is narrative only. `docs/DESIGN.md` is never parsed. An assembly is multiple `geometry.stl_files` entries.
 
 ## Skill names
 
@@ -34,7 +34,7 @@ Each project owns `docs/PRINT_SPEC.yaml` with:
 - explicit X/Y/Z printer build volume
 - named CAD parameter for each critical dimension
 - nominal value, tolerance, and provenance for each dimension
-- one STL per independently printed body
+- one STL per independently manufactured body (an assembly is several entries)
 - expected watertight shell count per STL
 - overlapping exported solids forbidden
 - minimum wall and feature sizes
@@ -92,6 +92,7 @@ skills/3d-print-blender/scripts/pblend gate --project "$HOME/print-projects/orga
 - non-parametric backend declaration
 - open, non-manifold, inconsistently oriented, duplicate, or degenerate topology
 - wrong connected-shell count
+- overlapping exported solids
 - non-positive volume
 - build-volume overflow
 - unacceptable fit or wet-service evidence
@@ -102,7 +103,7 @@ Short STL chords are tessellation, not wall thickness. They remain warning-only;
 ## Tests
 
 ```bash
-python3 -m pytest -q skills/3d-print-validate/tests
+python3 -m pytest -q skills/3d-print-design-brief/tests skills/3d-print-validate/tests
 python3 -m unittest discover -s skills/3d-print-blender/scripts/tests -v
 python3 -m py_compile \
   skills/3d-print-design-brief/scripts/*.py \

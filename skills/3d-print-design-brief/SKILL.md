@@ -43,7 +43,7 @@ If uncertain, choose `openscad`.
    - `tolerance_mm`
    - provenance: `measured`, `from-user`, `datasheet`, `fit-tested`, or `assumed`
 4. Express clearance as `clearance_per_side_mm`, never total clearance.
-5. Declare one output entry per independently printed body and its `expected_shells`.
+5. Declare one output entry per independently manufactured body and its `expected_shells`. An assembly is several entries.
 6. Lock bed face, Z-up orientation, support policy, material, nozzle, minimum wall, and minimum feature.
 7. Run through `terminal`:
 
@@ -58,7 +58,7 @@ Proceed to CAD only when it exits zero.
 - `cad.parametric: true`
 - units are millimetres and print-up is Z
 - `overlapping_solids_allowed: false`
-- one STL per independently printed body
+- one STL per independently manufactured body
 - assumed critical fits do not ship
 - minimum wall and feature are at least two nozzle widths
 - wet parts require drainage and non-PLA material
