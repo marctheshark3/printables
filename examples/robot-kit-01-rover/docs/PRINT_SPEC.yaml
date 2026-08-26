@@ -88,6 +88,16 @@ dimensions:
     value_mm: 5.2
     tolerance_mm: 0.1
     source: datasheet
+  - name: hub_od
+    parameter: hub_od_mm
+    value_mm: 12.0
+    tolerance_mm: 0.2
+    source: from-user
+  - name: wheel_bore
+    parameter: wheel_bore_d_mm
+    value_mm: 3.3
+    tolerance_mm: 0.1
+    source: datasheet
 
 print:
   orientation: base-on-bed
@@ -345,4 +355,110 @@ wiring:
       parameter: cable_path_h_mm
       width_mm: 4.0
       height_mm: 1.6
+      source: from-user
+
+assembly:
+  frame: assembled
+  bodies:
+    - id: chassis
+      body: chassis
+      parent: world
+      pose:
+        xyz_mm: [0.0, 0.0, 11.8]
+        rpy_deg: [0.0, 0.0, 0.0]
+    - id: wheel_left
+      body: wheel
+      parent: chassis
+      pose:
+        xyz_mm: [42.5, -0.5, 20.0]
+        rpy_deg: [90.0, 0.0, 0.0]
+    - id: wheel_right
+      body: wheel
+      parent: chassis
+      pose:
+        xyz_mm: [42.5, 58.5, 20.0]
+        rpy_deg: [-90.0, 0.0, 0.0]
+    - id: head
+      body: head
+      parent: chassis
+      pose:
+        xyz_mm: [80.6, 29.0, 18.4]
+        rpy_deg: [0.0, 0.0, 0.0]
+    - id: mcu
+      hardware: mcu
+      parent: chassis
+      pose:
+        xyz_mm: [8.4, 20.0, 13.5]
+        rpy_deg: [0.0, 0.0, 0.0]
+    - id: drive_left
+      hardware: drive_left
+      parent: chassis
+      pose:
+        xyz_mm: [48.5, 2.8, 15.4]
+        rpy_deg: [0.0, 0.0, 90.0]
+    - id: drive_right
+      hardware: drive_right
+      parent: chassis
+      pose:
+        xyz_mm: [36.5, 55.2, 15.4]
+        rpy_deg: [0.0, 0.0, -90.0]
+  joints:
+    - id: wheel_left
+      type: revolute
+      parent: chassis
+      child: wheel_left
+      axis: [0.0, 1.0, 0.0]
+      limits:
+        min_deg: 0
+        max_deg: 360
+      clearance_per_side_mm: 0.15
+      source: datasheet
+    - id: wheel_right
+      type: revolute
+      parent: chassis
+      child: wheel_right
+      axis: [0.0, 1.0, 0.0]
+      limits:
+        min_deg: 0
+        max_deg: 360
+      clearance_per_side_mm: 0.15
+      source: from-user
+
+loads:
+  - id: gravity
+    kind: gravity
+    target: assembled
+    magnitude: 9810
+    units: mm_s2
+    safety_factor: 2.0
+    source: from-user
+  - id: stall_left
+    kind: moment
+    target: wheel_left
+    magnitude: 0.049
+    units: N_m
+    safety_factor: 2.0
+    source: datasheet
+    section:
+      outer_parameter: hub_od_mm
+      inner_parameter: wheel_bore_d_mm
+  - id: stall_right
+    kind: moment
+    target: wheel_right
+    magnitude: 0.049
+    units: N_m
+    safety_factor: 2.0
+    source: datasheet
+    section:
+      outer_parameter: hub_od_mm
+      inner_parameter: wheel_bore_d_mm
+
+sim:
+  scene:
+    id: table-flat
+    gravity_mm_s2: [0.0, 0.0, -9810.0]
+    floor:
+      z_mm: 0.0
+    friction:
+      mu: 0.6
       source: from-user

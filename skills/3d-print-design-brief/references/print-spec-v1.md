@@ -53,7 +53,7 @@ Ignored when absent. When present they cannot be assumed, and Markdown / MJCF / 
 
 `assembly.joints[]`: `id`, `type` (`fixed` | `revolute` | `prismatic`), `parent`, `child`, `axis`, `clearance_per_side_mm`, `source`. Revolute joints require `limits.min_deg` / `max_deg`. Joint `source` cannot be `assumed`.
 
-`loads[]`: `id`, `kind` (`gravity` | `point-force` | `moment`), `target` (assembly body, hardware id, or assembled frame), `magnitude`, `units`, `safety_factor` >= 1, `source`. Load `source` cannot be `assumed`.
+`loads[]`: `id`, `kind` (`gravity` | `point-force` | `moment`), `target` (assembly body, hardware id, or assembled frame), `magnitude`, `units`, `safety_factor` >= 1, `source`. Moment loads declare `section.outer_parameter` and `section.inner_parameter` naming `dimensions[].parameter`. Load `source` cannot be `assumed`.
 
 `sim.scene`: `id` starting with `table-flat`, `gravity_mm_s2`, `floor.z_mm`, `friction.mu` with `source`.
 

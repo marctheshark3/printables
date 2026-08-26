@@ -7,11 +7,17 @@ allowable times the declared safety_factor.
 from __future__ import annotations
 
 import math
+import sys
 from pathlib import Path
 from typing import Iterable
 
-from overlap import aabb_separation, triangle_sets_intersect, tris_aabb
-from print_spec import AssemblyBody, AssemblyJoint, Load, PrintSpec, load_spec
+BRIEF_SCRIPTS = Path(__file__).resolve().parent.parent.parent / "3d-print-design-brief" / "scripts"
+if str(BRIEF_SCRIPTS) not in sys.path:
+    sys.path.insert(0, str(BRIEF_SCRIPTS))
+
+from overlap import occupancies_illegal, tris_aabb
+from print_spec import AssemblyBody, PrintSpec, load_spec
+from print_spec_assembly import required_load_errors
 from stl_io import Tri, load_binary_stl
 
 Vec3 = tuple[float, float, float]
@@ -23,7 +29,6 @@ ALLOWABLE_SHEAR_MPA = {
     "ABS": 15.0,
 }
 REVOLUTE_STEP_DEG = 45.0
-CLEARANCE_EPS_MM = 1e-6
 
 
 def rpy_matrix(rpy_deg: Iterable[float]) -> tuple[Vec3, Vec3, Vec3]:
@@ -178,39 +183,64 @@ def hub_shear_mpa(moment_n_m: float, outer_mm: float, inner_mm: float) -> float 
     return (moment_n_m / wp) / 1e6
 
 
-def _place_body(project: Path, spec: PrintSpec, body: AssemblyBody) -> list[Tri]:
-    stl_by_name = {item.body: item.path for item in spec.stl_files}
-    hw_by_id = {item.id: item for item in spec.hardware}
+def _place_body(
+    project: Path,
+    body: AssemblyBody,
+    stl_by_name: dict[str, str],
+    hw_by_id: dict[str, tuple[float, float, float]],
+) -> list[Tri]:
     if body.printed_body:
-        rel = stl_by_name[body.printed_body]
-        _normals, tris, _n = load_binary_stl(project / rel)
+        _normals, tris, _n = load_binary_stl(project / stl_by_name[body.printed_body])
         return transform_tris(tris, body.pose.xyz_mm, body.pose.rpy_deg)
     assert body.hardware_id is not None
-    envelope = hw_by_id[body.hardware_id].envelope_mm
-    return transform_tris(box_triangles(*envelope), body.pose.xyz_mm, body.pose.rpy_deg)
+    return transform_tris(
+        box_triangles(*hw_by_id[body.hardware_id]), body.pose.xyz_mm, body.pose.rpy_deg
+    )
 
 
 def place_assembly(project: Path, spec: PrintSpec) -> dict[str, list[Tri]]:
-    return {body.id: _place_body(project, spec, body) for body in spec.assembly_bodies}
+    stl_by_name = {item.body: item.path for item in spec.stl_files}
+    hw_by_id = {item.id: item.envelope_mm for item in spec.hardware}
+    return {
+        body.id: _place_body(project, body, stl_by_name, hw_by_id)
+        for body in spec.assembly_bodies
+    }
+
+
+def _inflated_aabb_box(tris: list[Tri], clearance_mm: float) -> list[Tri]:
+    xmin, ymin, zmin, xmax, ymax, zmax = tris_aabb(tris)
+    pad = max(clearance_mm, 0.0)
+    return transform_tris(
+        box_triangles(
+            (xmax - xmin) + 2 * pad,
+            (ymax - ymin) + 2 * pad,
+            (zmax - zmin) + 2 * pad,
+        ),
+        (xmin - pad, ymin - pad, zmin - pad),
+        (0.0, 0.0, 0.0),
+    )
 
 
 def l1_occupancy(spec: PrintSpec, placed: dict[str, list[Tri]]) -> list[str]:
     hard: list[str] = []
     ids = [body.id for body in spec.assembly_bodies]
-    aabbs = {ident: tris_aabb(tris) for ident, tris in placed.items()}
     for i, a_id in enumerate(ids):
         for b_id in ids[i + 1 :]:
-            if not triangle_sets_intersect(placed[a_id], placed[b_id]):
+            if not occupancies_illegal(placed[a_id], placed[b_id]):
                 continue
             hard.append(f"L1 collision: {a_id} intersects {b_id}")
     for joint in spec.joints:
-        if joint.parent not in aabbs or joint.child not in aabbs:
+        parent = placed.get(joint.parent)
+        child = placed.get(joint.child)
+        if parent is None or child is None:
             continue
-        gap = aabb_separation(aabbs[joint.parent], aabbs[joint.child])
-        if gap + CLEARANCE_EPS_MM < joint.clearance_per_side_mm:
+        if occupancies_illegal(parent, child):
+            continue
+        inflated = _inflated_aabb_box(child, joint.clearance_per_side_mm)
+        if occupancies_illegal(inflated, parent):
             hard.append(
                 f"L1 clearance: joint {joint.id} {joint.parent}/{joint.child} "
-                f"gap {gap:.3f} mm < {joint.clearance_per_side_mm} mm per side"
+                f"below {joint.clearance_per_side_mm} mm per side"
             )
     return hard
 
@@ -235,7 +265,7 @@ def l2_sweep(spec: PrintSpec, placed: dict[str, list[Tri]]) -> list[str]:
             for other_id, other in others_index.items():
                 if other_id == joint.child:
                     continue
-                if triangle_sets_intersect(posed, other):
+                if occupancies_illegal(posed, other):
                     hard.append(
                         f"L2 self-collision: joint {joint.id} at {angle:g} deg "
                         f"({joint.child} vs {other_id})"
@@ -251,17 +281,15 @@ def l3_loads(spec: PrintSpec) -> list[str]:
     hard: list[str] = []
     material = str(spec.material).upper()
     allowable = ALLOWABLE_SHEAR_MPA.get(material)
-    if spec.product_class == "robot-module" and spec.assembly_bodies:
-        kinds = {load.kind for load in spec.loads}
-        if "gravity" not in kinds:
-            hard.append("L3 missing required gravity load")
-        revolute_children = [j.child for j in spec.joints if j.type == "revolute"]
-        moment_targets = {load.target for load in spec.loads if load.kind == "moment"}
-        if revolute_children and not moment_targets:
-            hard.append("L3 missing required stall moment load")
-        for child in revolute_children:
-            if child not in moment_targets:
-                hard.append(f"L3 missing required moment load targeting {child}")
+    hard.extend(
+        required_load_errors(
+            product_class=spec.product_class,
+            has_assembly_bodies=bool(spec.assembly_bodies),
+            revolute_children=[j.child for j in spec.joints if j.type == "revolute"],
+            load_kinds=[load.kind for load in spec.loads],
+            moment_targets={load.target for load in spec.loads if load.kind == "moment"},
+        )
+    )
     for load in spec.loads:
         if load.source == "assumed":
             hard.append(f"L3 load {load.id} source cannot be assumed")
@@ -274,11 +302,12 @@ def l3_loads(spec: PrintSpec) -> list[str]:
         if moment is None:
             hard.append(f"L3 load {load.id} units {load.units} are not a supported moment unit")
             continue
-        outer = _dimension_mm(spec, "hub_od_mm", "hub_od")
-        inner = _dimension_mm(spec, "wheel_bore_d_mm", "wheel_bore")
+        outer = _dimension_mm(spec, load.section_outer) if load.section_outer else None
+        inner = _dimension_mm(spec, load.section_inner) if load.section_inner else None
         if outer is None or inner is None:
             hard.append(
-                f"L3 load {load.id} needs hub_od_mm and wheel_bore_d_mm dimensions"
+                f"L3 load {load.id} needs section.outer_parameter and section.inner_parameter "
+                "naming dimensions"
             )
             continue
         tau = hub_shear_mpa(moment, outer, inner)
@@ -294,12 +323,16 @@ def l3_loads(spec: PrintSpec) -> list[str]:
 
 
 def audit_assembly(project: Path, spec_rel: str = "docs/PRINT_SPEC.yaml") -> tuple[list[str], list[str], list[str]]:
-    spec, errors = load_spec(project / spec_rel, project=project, check_files=True)
+    spec_path = project / spec_rel
+    spec, errors = load_spec(spec_path, project=project, check_files=False)
     if spec is None or errors:
         return [error for error in errors], [], []
     info: list[str] = []
     if not spec.assembly_bodies:
         return [], [], ["no assembly block; occupancy proof skipped"]
+    spec, errors = load_spec(spec_path, project=project, check_files=True)
+    if spec is None or errors:
+        return [error for error in errors], [], []
     placed = place_assembly(project, spec)
     info.append(f"placed {len(placed)} assembled occupancies in {spec.assembly_frame}")
     hard = []

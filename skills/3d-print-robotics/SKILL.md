@@ -8,7 +8,7 @@ platforms: [linux]
 metadata:
   hermes:
     tags: [3d-print, robotics, robot, module, kit, rover, mcu, servo, numbered, chassis, wiring, hardware, openscad, fdm]
-    related_skills: [3d-print-design-brief, 3d-print-openscad, 3d-print-validate]
+    related_skills: [3d-print-design-brief, 3d-print-openscad, 3d-print-validate, 3d-print-sim]
 ---
 
 # 3D Print Robotics
@@ -31,6 +31,7 @@ Class skill for **numbered micro-robotics kit modules** (01 two-wheel rover, 02 
 3. **OpenSCAD bodies** from `lib/robot_kit.scad` (MCU pocket, servo/motor pockets, M2/M3, wheel hub)
 4. **export** one STL per independently manufactured printed body
 5. **`validate_project.py`** — HARD fail means redesign, not a relaxed gate
+6. **`validate_assembly.py`** when `assembly` is present — occupancy, joint sweep, required loads; a render is not proof
 
 ## Geometry laws (session-hard)
 
@@ -67,4 +68,4 @@ Print: chassis, wheels, heads, horns-adjacent brackets, fastener bosses, cable-p
 
 ## Done when
 
-Gated robot-module spec + one STL per printed body + hardware/wiring + `validate_project.py` HARD=0.
+Gated robot-module spec + one STL per printed body + hardware/wiring + `validate_project.py` HARD=0. When `assembly` is declared, `validate_assembly.py` HARD=0 as well.

@@ -345,6 +345,7 @@ def assembled_robot_spec():
             "units": "N_m",
             "safety_factor": 2.0,
             "source": "datasheet",
+            "section": {"outer_parameter": "device_width_mm", "inner_parameter": "mounting_hole_diameter_mm"},
         },
         {
             "id": "stall_right",
@@ -354,6 +355,7 @@ def assembled_robot_spec():
             "units": "N_m",
             "safety_factor": 2.0,
             "source": "datasheet",
+            "section": {"outer_parameter": "device_width_mm", "inner_parameter": "mounting_hole_diameter_mm"},
         },
     ]
     data["sim"] = {
@@ -410,6 +412,13 @@ def test_assumed_stall_load_fails():
     data["loads"][1]["source"] = "assumed"
     errors = module.validate(data)
     assert any("loads[1].source cannot be assumed" in error for error in errors)
+
+
+def test_moment_load_without_section_fails():
+    data = assembled_robot_spec()
+    data["loads"][1].pop("section")
+    errors = module.validate(data)
+    assert any("section is required for moment loads" in error for error in errors)
 
 
 def test_robot_module_assembly_missing_gravity_fails():

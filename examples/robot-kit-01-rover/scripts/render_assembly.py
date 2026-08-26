@@ -10,99 +10,34 @@ import numpy as np
 from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[1]
-SCRIPTS = Path(__file__).resolve().parents[3] / "skills" / "3d-print-validate" / "scripts"
-sys.path.insert(0, str(SCRIPTS))
-from stl_io import load_binary_stl, tri_normal  # noqa: E402
+PACK = Path(__file__).resolve().parents[3]
+VALIDATE = PACK / "skills" / "3d-print-validate" / "scripts"
+BRIEF = PACK / "skills" / "3d-print-design-brief" / "scripts"
+for path in (str(VALIDATE), str(BRIEF)):
+    if path not in sys.path:
+        sys.path.insert(0, path)
 
-CHASSIS_LENGTH = 88.0
-CHASSIS_WIDTH = 58.0
-DECK_T = 3.2
-WALL = 2.4
-MCU_L, MCU_W, MCU_T = 22.5, 18.0, 3.5
-MCU_CLEAR, MCU_DEPTH = 0.4, 1.6
-M2_BOSS_OD = 5.6
-GEAR_L, GEAR_W, GEAR_H = 15.0, 12.0, 10.0
-MOTOR_CLEAR = 0.4
-SHAFT_D, SHAFT_L = 3.0, 10.0
-WHEEL_OD, WHEEL_T = 40.0, 6.0
-HEAD_H, HEAD_BOSS_H, HEAD_BOSS_OD = 12.0, 3.2, 10.0
-LED_D = 5.2
+from assembly import place_assembly  # noqa: E402
+from print_spec import load_spec  # noqa: E402
+from stl_io import tri_normal  # noqa: E402
 
-
-def xf(tris, fn):
-    return tuple((fn(a), fn(b), fn(c)) for a, b, c in tris)
-
-
-def rot_x(p, deg):
-    r = math.radians(deg)
-    c, s = math.cos(r), math.sin(r)
-    x, y, z = p
-    return (x, y * c - z * s, y * s + z * c)
-
-
-def add(p, t):
-    return (p[0] + t[0], p[1] + t[1], p[2] + t[2])
-
-
-def box(origin, size):
-    x0, y0, z0 = origin
-    dx, dy, dz = size
-    p = [
-        (x0, y0, z0), (x0 + dx, y0, z0), (x0 + dx, y0 + dy, z0), (x0, y0 + dy, z0),
-        (x0, y0, z0 + dz), (x0 + dx, y0, z0 + dz), (x0 + dx, y0 + dy, z0 + dz), (x0, y0 + dy, z0 + dz),
-    ]
-    faces = [
-        (0, 2, 1), (0, 3, 2), (4, 5, 6), (4, 6, 7),
-        (0, 1, 5), (0, 5, 4), (1, 2, 6), (1, 6, 5),
-        (2, 3, 7), (2, 7, 6), (3, 0, 4), (3, 4, 7),
-    ]
-    return tuple((p[i], p[j], p[k]) for i, j, k in faces)
-
-
-def load_body(name):
-    _n, tris, _c = load_binary_stl(ROOT / "stl" / f"{name}.stl")
-    return tris
+COLORS = {
+    "chassis": (48, 48, 52),
+    "wheel_left": (22, 22, 24),
+    "wheel_right": (22, 22, 24),
+    "head": (62, 62, 68),
+    "mcu": (46, 125, 50),
+    "drive_left": (176, 176, 180),
+    "drive_right": (176, 176, 180),
+}
 
 
 def assemble():
-    mcu_x = WALL + M2_BOSS_OD
-    mcu_pl = MCU_L + 2 * MCU_CLEAR
-    mcu_pw = MCU_W + 2 * MCU_CLEAR
-    mcu_y = (CHASSIS_WIDTH - mcu_pw) / 2
-    motor_box_x = GEAR_W + 2 * MOTOR_CLEAR + 2 * WALL
-    motor_cx = mcu_x + mcu_pl + WALL + motor_box_x / 2
-    head_x = CHASSIS_LENGTH - WALL - HEAD_BOSS_OD / 2
-    cy = CHASSIS_WIDTH / 2
-    axis_z = DECK_T + GEAR_H / 2
-    lift = WHEEL_OD / 2 - axis_z
-
-    chassis = xf(load_body("chassis"), lambda p: add(p, (0, 0, lift)))
-    wheel = load_body("wheel")
-    left = xf(xf(wheel, lambda p: rot_x(p, 90)), lambda p: add(p, (motor_cx, 0, axis_z + lift)))
-    right = xf(xf(wheel, lambda p: rot_x(p, -90)), lambda p: add(p, (motor_cx, CHASSIS_WIDTH, axis_z + lift)))
-    head = xf(load_body("head"), lambda p: add(p, (head_x, cy, DECK_T + HEAD_BOSS_H + lift)))
-
-    mcu = xf(box((mcu_x + MCU_CLEAR, mcu_y + MCU_CLEAR, DECK_T - MCU_DEPTH), (MCU_L, MCU_W, MCU_T)),
-             lambda p: add(p, (0, 0, lift)))
-    motor_l = xf(box((motor_cx - GEAR_W / 2, WALL + MOTOR_CLEAR, DECK_T), (GEAR_W, GEAR_L, GEAR_H)),
-                 lambda p: add(p, (0, 0, lift)))
-    motor_r = xf(box((motor_cx - GEAR_W / 2, CHASSIS_WIDTH - WALL - MOTOR_CLEAR - GEAR_L, DECK_T),
-                     (GEAR_W, GEAR_L, GEAR_H)),
-                 lambda p: add(p, (0, 0, lift)))
-    led = xf(box((head_x - LED_D / 2, cy - LED_D / 2, DECK_T + HEAD_BOSS_H + HEAD_H - 1 + lift),
-                 (LED_D, LED_D, 4.0)),
-             lambda p: p)
-
-    return [
-        (chassis, (48, 48, 52)),
-        (left, (22, 22, 24)),
-        (right, (22, 22, 24)),
-        (head, (62, 62, 68)),
-        (mcu, (46, 125, 50)),
-        (motor_l, (176, 176, 180)),
-        (motor_r, (176, 176, 180)),
-        (led, (220, 50, 50)),
-    ]
+    spec, errors = load_spec(ROOT / "docs/PRINT_SPEC.yaml", project=ROOT, check_files=True)
+    if spec is None or errors:
+        raise SystemExit("HARD: " + "; ".join(errors))
+    placed = place_assembly(ROOT, spec)
+    return [(tris, COLORS.get(body_id, (180, 180, 180))) for body_id, tris in placed.items()]
 
 
 def look_at(eye, center, up=(0.0, 0.0, 1.0)):

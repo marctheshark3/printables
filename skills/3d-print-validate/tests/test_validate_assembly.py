@@ -16,7 +16,6 @@ sys.path.insert(0, str(BRIEF))
 
 from assembly import (  # noqa: E402
     ALLOWABLE_SHEAR_MPA,
-    box_triangles,
     hub_shear_mpa,
     l1_occupancy,
     l2_sweep,
@@ -108,14 +107,21 @@ def base_spec():
     }
 
 
-def assembly_block(wheel_xyz, wheel_rpy=(0.0, 0.0, 0.0), clearance=0.2, limits=True, stall_source="datasheet"):
+def assembly_block(
+    wheel_xyz,
+    wheel_rpy=(0.0, 0.0, 0.0),
+    clearance=0.2,
+    limits=True,
+    stall_source="datasheet",
+    axis=(1.0, 0.0, 0.0),
+):
     joints = [
         {
             "id": "wheel_left",
             "type": "revolute",
             "parent": "chassis",
             "child": "wheel_left",
-            "axis": [0, 0, 1],
+            "axis": list(axis),
             "clearance_per_side_mm": clearance,
             "source": "datasheet",
         }
@@ -128,7 +134,7 @@ def assembly_block(wheel_xyz, wheel_rpy=(0.0, 0.0, 0.0), clearance=0.2, limits=T
             "bodies": [
                 {"id": "chassis", "body": "chassis", "parent": "world", "pose": pose((0, 0, 0))},
                 {"id": "wheel_left", "body": "wheel", "parent": "chassis", "pose": pose(wheel_xyz, wheel_rpy)},
-                {"id": "mcu", "hardware": "mcu", "parent": "chassis", "pose": pose((40, 40, 0))},
+                {"id": "mcu", "hardware": "mcu", "parent": "chassis", "pose": pose((80, 80, 0))},
             ],
             "joints": joints,
         },
@@ -150,6 +156,7 @@ def assembly_block(wheel_xyz, wheel_rpy=(0.0, 0.0, 0.0), clearance=0.2, limits=T
                 "units": "N_m",
                 "safety_factor": 2.0,
                 "source": stall_source,
+                "section": {"outer_parameter": "hub_od_mm", "inner_parameter": "wheel_bore_d_mm"},
             },
         ],
         "sim": {
@@ -185,14 +192,6 @@ def run_cli(project: Path):
     )
 
 
-def placed_from(tmp_path: Path):
-    from print_spec import load_spec
-
-    spec, errors = load_spec(tmp_path / "docs/PRINT_SPEC.yaml", project=tmp_path, check_files=True)
-    assert spec is not None and errors == [], errors
-    return spec, place_assembly(tmp_path, spec)
-
-
 def test_rpy_rx90_matches_urdf():
     matrix = rpy_matrix((90.0, 0.0, 0.0))
     tris = transform_tris([((0.0, 0.0, 1.0), (0.0, 0.0, 1.0), (0.0, 0.0, 1.0))], (0.0, 0.0, 0.0), (90.0, 0.0, 0.0))
@@ -210,7 +209,7 @@ def test_l1_illegal_overlap_hard(tmp_path):
 
 
 def test_l1_clearance_pass_and_wheel_through_chassis_hard(tmp_path):
-    spec = parse_spec(make_kit(tmp_path, (22, 0, 0), clearance=0.2))
+    spec = parse_spec(make_kit(tmp_path, (30, 0, 0), clearance=0.2))
     placed = place_assembly(tmp_path, spec)
     hard = l1_occupancy(spec, placed)
     assert hard == [], hard
@@ -222,7 +221,7 @@ def test_l1_clearance_pass_and_wheel_through_chassis_hard(tmp_path):
 
 
 def test_l2_sweep_pass_when_clear(tmp_path):
-    spec = parse_spec(make_kit(tmp_path, (0, 16, 0), clearance=0.2))
+    spec = parse_spec(make_kit(tmp_path, (30, 0, 0), clearance=0.2))
     placed = place_assembly(tmp_path, spec)
     assert l1_occupancy(spec, placed) == []
     assert l2_sweep(spec, placed) == []
@@ -231,7 +230,9 @@ def test_l2_sweep_pass_when_clear(tmp_path):
 def test_l2_sweep_hard_on_self_collision(tmp_path):
     chassis = cube_triangles(sx=20, sy=8, sz=10)
     wheel = cube_triangles(sx=4, sy=8, sz=4)
-    spec = parse_spec(make_kit(tmp_path, (5, 10, 5), chassis=chassis, wheel=wheel, clearance=0.2))
+    spec = parse_spec(
+        make_kit(tmp_path, (5, 10, 5), chassis=chassis, wheel=wheel, clearance=0.2, axis=(0.0, 0.0, 1.0))
+    )
     placed = place_assembly(tmp_path, spec)
     assert l1_occupancy(spec, placed) == [], l1_occupancy(spec, placed)
     hard = l2_sweep(spec, placed)
@@ -249,7 +250,7 @@ def test_l3_section_check_uses_declared_numbers():
 
 
 def test_l3_pass_fail_and_missing_required(tmp_path):
-    spec = parse_spec(make_kit(tmp_path, (22, 0, 0)))
+    spec = parse_spec(make_kit(tmp_path, (30, 0, 0)))
     assert l3_loads(spec) == []
 
     data = yaml.safe_load((tmp_path / "docs/PRINT_SPEC.yaml").read_text())
@@ -262,7 +263,7 @@ def test_l3_pass_fail_and_missing_required(tmp_path):
     data["loads"] = [load for load in data["loads"] if load["kind"] != "gravity"]
     spec = parse_spec(data)
     hard = l3_loads(spec)
-    assert any("missing required gravity" in item for item in hard)
+    assert any("requires a gravity load" in item for item in hard)
 
 
 def test_cli_overlap_hard(tmp_path):
@@ -274,7 +275,7 @@ def test_cli_overlap_hard(tmp_path):
 
 
 def test_cli_missing_joint_limits_hard(tmp_path):
-    make_kit(tmp_path, (22, 0, 0), limits=False)
+    make_kit(tmp_path, (30, 0, 0), limits=False)
     result = run_cli(tmp_path)
     assert result.returncode != 0
     assert "HARD:" in result.stdout
@@ -282,7 +283,7 @@ def test_cli_missing_joint_limits_hard(tmp_path):
 
 
 def test_cli_assumed_stall_hard(tmp_path):
-    make_kit(tmp_path, (22, 0, 0), stall_source="assumed")
+    make_kit(tmp_path, (30, 0, 0), stall_source="assumed")
     result = run_cli(tmp_path)
     assert result.returncode != 0
     assert "HARD:" in result.stdout
@@ -290,7 +291,24 @@ def test_cli_assumed_stall_hard(tmp_path):
 
 
 def test_cli_clearance_pass(tmp_path):
-    make_kit(tmp_path, (22, 0, 0), clearance=0.2)
+    make_kit(tmp_path, (30, 0, 0), clearance=0.2)
     result = run_cli(tmp_path)
     assert result.returncode == 0, result.stdout + result.stderr
+    assert "RESULT: PASS" in result.stdout
+
+
+def test_cli_skips_when_assembly_absent(tmp_path):
+    spec = base_spec()
+    spec["part"]["product_class"] = "bracket"
+    spec.pop("hardware", None)
+    spec["geometry"]["stl_files"] = [
+        {"path": "stl/chassis.stl", "body": "chassis", "expected_shells": 1}
+    ]
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src/part.scad").write_text("cube_size_mm = 10;\n")
+    (tmp_path / "docs/PRINT_SPEC.yaml").write_text(yaml.safe_dump(spec, sort_keys=False))
+    result = run_cli(tmp_path)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "no assembly block" in result.stdout
     assert "RESULT: PASS" in result.stdout

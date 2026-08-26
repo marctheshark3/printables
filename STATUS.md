@@ -11,6 +11,7 @@ Last reviewed 2026-08-25.
 - Hybrid means separate declared bodies owned by separate backends—not two kernels editing one body.
 - `3d-print-validate` is backend-neutral and mandatory after every export.
 - `3d-print-robotics` is the class skill for numbered `robot-module` kit bodies.
+- `3d-print-sim` / `validate_assembly.py` is the assembled occupancy gate when `assembly` is present. A render is not proof.
 - HARD failure means the part is not deliverable.
 
 ## Enforced today
@@ -26,12 +27,14 @@ Last reviewed 2026-08-25.
 - positive volume and X/Y/Z build envelope
 - fit evidence, service material, and drainage policy
 - explicit print orientation and supports policy
+- assembled occupancy, joint sweep, and hub section check when `assembly` is present
 
 ## Known limits
 
 - STL geometry cannot prove wall thickness; the contract and slicer own that measurement.
 - Coarse overhang analysis is conservative and can warn on intentional geometry.
 - Self-intersection detection is not a full exact-kernel proof; each CAD backend must validate its final solid before export.
+- Assembled occupancy is in-process mesh placement plus a handbook hub-section check, not FEA.
 - The installer is additive. It does not remove old user-local skill directories.
 - Blender still depends on Blender's boolean and modifier behavior; malformed output must fail the shared validator.
 

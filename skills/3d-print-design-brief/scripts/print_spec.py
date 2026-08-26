@@ -41,9 +41,6 @@ POSITIVE_DRAINAGE = {
 }
 COUPON_SUFFIXES = {".stl", ".scad", ".py", ".yaml", ".yml", ".md"}
 CRITICAL_HARDWARE_ROLES = {"mcu", "servo", "motor", "drive"}
-JOINT_TYPES = {"fixed", "revolute", "prismatic"}
-LOAD_KINDS = {"gravity", "point-force", "moment"}
-WORLD_PARENTS = {"", "world"}
 VOLT_ALIASES = {
     "3V3": 3.3, "3.3V": 3.3, "3.3": 3.3, "+3V3": 3.3,
     "5V": 5.0, "5.0V": 5.0, "5": 5.0, "5.0": 5.0, "+5V": 5.0,
@@ -114,6 +111,9 @@ class Load:
     units: str
     safety_factor: float
     source: str
+    magnitude_xyz: tuple[float, float, float] | None = None
+    section_outer: str | None = None
+    section_inner: str | None = None
 
 
 @dataclass(frozen=True)
@@ -367,399 +367,6 @@ def validate_hardware(data: dict[str, Any], errors: list[str]) -> None:
                 )
 
 
-def _vec3(value: Any) -> tuple[float, float, float] | None:
-    if not isinstance(value, list) or len(value) != 3:
-        return None
-    if not all(finite_number(v) for v in value):
-        return None
-    return (float(value[0]), float(value[1]), float(value[2]))
-
-
-def _world_parent(name: str | None, frame: str | None) -> bool:
-    if name is None:
-        return True
-    if name in WORLD_PARENTS:
-        return True
-    if frame is not None and name == frame:
-        return True
-    return False
-
-
-def validate_pose(pose: Any, label: str, errors: list[str]) -> None:
-    if not isinstance(pose, dict):
-        errors.append(f"{label} must be a mapping")
-        return
-    if "xyz_mm" not in pose:
-        errors.append(f"{label}.xyz_mm is required")
-    elif _vec3(pose.get("xyz_mm")) is None:
-        errors.append(f"{label}.xyz_mm must be [X, Y, Z] millimetres")
-    if "rpy_deg" not in pose:
-        errors.append(f"{label}.rpy_deg is required")
-    elif _vec3(pose.get("rpy_deg")) is None:
-        errors.append(f"{label}.rpy_deg must be [roll, pitch, yaw] degrees")
-
-
-def _stl_body_names(data: dict[str, Any]) -> set[str]:
-    names: set[str] = set()
-    stl_files = data.get("geometry", {}).get("stl_files") if isinstance(data.get("geometry"), dict) else None
-    if isinstance(stl_files, list):
-        for item in stl_files:
-            if isinstance(item, dict) and isinstance(item.get("body"), str) and item["body"]:
-                names.add(item["body"])
-    return names
-
-
-def _hardware_ids(data: dict[str, Any]) -> dict[str, str]:
-    ids: dict[str, str] = {}
-    hardware = data.get("hardware")
-    components = hardware.get("components") if isinstance(hardware, dict) else None
-    if isinstance(components, list):
-        for comp in components:
-            if isinstance(comp, dict) and isinstance(comp.get("id"), str) and comp["id"]:
-                ids[comp["id"]] = str(comp.get("role") or "")
-    return ids
-
-
-def _assembly_body_ids(bodies: list) -> set[str]:
-    ids: set[str] = set()
-    for item in bodies:
-        if isinstance(item, dict) and isinstance(item.get("id"), str) and item["id"]:
-            ids.add(item["id"])
-    return ids
-
-
-def validate_assembly(data: dict[str, Any], errors: list[str]) -> None:
-    assembly = data.get("assembly")
-    if assembly is None:
-        return
-    if not isinstance(assembly, dict):
-        errors.append("assembly must be a mapping")
-        return
-
-    frame = assembly.get("frame")
-    if not isinstance(frame, str) or not frame:
-        errors.append("assembly.frame must be a non-empty string")
-        frame = None
-    bodies = assembly.get("bodies")
-    if not isinstance(bodies, list) or not bodies:
-        errors.append("assembly.bodies must be a non-empty list")
-        bodies = []
-
-    stl_names = _stl_body_names(data)
-    hw_ids = _hardware_ids(data)
-    seen: set[str] = set()
-    printed_refs: set[str] = set()
-    body_entries: list[dict[str, Any]] = []
-    for index, item in enumerate(bodies):
-        label = f"assembly.bodies[{index}]"
-        if not isinstance(item, dict):
-            errors.append(f"{label} must be a mapping")
-            continue
-        body_entries.append(item)
-        if "id" not in item:
-            errors.append(f"{label}.id is required")
-        ident = item.get("id")
-        if not isinstance(ident, str) or not ident:
-            errors.append(f"{label}.id must be non-empty")
-        elif ident in seen:
-            errors.append(f"duplicate assembly body id: {ident}")
-        else:
-            seen.add(ident)
-        if "parent" not in item:
-            errors.append(f"{label}.parent is required")
-        elif not isinstance(item.get("parent"), str) or not item.get("parent"):
-            errors.append(f"{label}.parent must be a non-empty string")
-        if "pose" not in item:
-            errors.append(f"{label}.pose is required")
-        else:
-            validate_pose(item.get("pose"), f"{label}.pose", errors)
-            pose = item.get("pose")
-            if isinstance(pose, dict) and "frame" in pose and frame is not None:
-                if pose.get("frame") != frame:
-                    errors.append(f"{label}.pose.frame must equal assembly.frame")
-        has_body = "body" in item and item.get("body") is not None
-        has_hw = "hardware" in item and item.get("hardware") is not None
-        if has_body == has_hw:
-            errors.append(f"{label} must declare exactly one of body or hardware")
-            continue
-        if has_body:
-            ref = item.get("body")
-            if not isinstance(ref, str) or not ref:
-                errors.append(f"{label}.body must be non-empty")
-            elif ref not in stl_names:
-                errors.append(f"{label}.body is not a geometry.stl_files body: {ref}")
-            else:
-                printed_refs.add(ref)
-        else:
-            ref = item.get("hardware")
-            if not isinstance(ref, str) or not ref:
-                errors.append(f"{label}.hardware must be non-empty")
-            elif ref not in hw_ids:
-                errors.append(f"{label}.hardware is not a hardware.components id: {ref}")
-
-    for index, item in enumerate(body_entries):
-        parent = item.get("parent")
-        ident = item.get("id")
-        if not isinstance(parent, str) or not parent:
-            continue
-        if _world_parent(parent, frame):
-            continue
-        if parent not in seen:
-            errors.append(f"assembly.bodies[{index}].parent is not an assembly body id: {parent}")
-        elif parent == ident:
-            errors.append(f"assembly.bodies[{index}].parent cannot be self")
-
-    product_class = None
-    try:
-        product_class = nested(data, "part.product_class")
-    except KeyError:
-        product_class = None
-    if product_class == "robot-module" and bodies:
-        missing_printed = stl_names - printed_refs
-        for name in sorted(missing_printed):
-            errors.append(f"robot-module assembly is missing printed body: {name}")
-
-    joints = assembly.get("joints")
-    if joints is None:
-        return
-    if not isinstance(joints, list):
-        errors.append("assembly.joints must be a list")
-        return
-    joint_ids: set[str] = set()
-    for index, joint in enumerate(joints):
-        label = f"assembly.joints[{index}]"
-        if not isinstance(joint, dict):
-            errors.append(f"{label} must be a mapping")
-            continue
-        for key in ("id", "type", "parent", "child", "axis", "clearance_per_side_mm", "source"):
-            if key not in joint:
-                errors.append(f"{label}.{key} is required")
-        ident = joint.get("id")
-        if not isinstance(ident, str) or not ident:
-            errors.append(f"{label}.id must be non-empty")
-        elif ident in joint_ids:
-            errors.append(f"duplicate assembly joint id: {ident}")
-        else:
-            joint_ids.add(ident)
-        jtype = joint.get("type")
-        if "type" in joint and jtype not in JOINT_TYPES:
-            errors.append(f"{label}.type must be one of {sorted(JOINT_TYPES)}")
-        parent = joint.get("parent")
-        if "parent" in joint and (not isinstance(parent, str) or parent not in seen):
-            errors.append(f"{label}.parent must name an assembly body")
-        child = joint.get("child")
-        if "child" in joint and (not isinstance(child, str) or child not in seen):
-            errors.append(f"{label}.child must name an assembly body")
-        if isinstance(parent, str) and isinstance(child, str) and parent == child:
-            errors.append(f"{label}.parent and child must be different")
-        axis = _vec3(joint.get("axis")) if "axis" in joint else None
-        if "axis" in joint and (axis is None or axis == (0.0, 0.0, 0.0)):
-            errors.append(f"{label}.axis must be a non-zero [X, Y, Z] vector")
-        clearance = joint.get("clearance_per_side_mm")
-        if "clearance_per_side_mm" in joint and (not finite_number(clearance) or float(clearance) < 0):
-            errors.append(f"{label}.clearance_per_side_mm must be a finite non-negative number")
-        source = joint.get("source")
-        if "source" in joint and source not in DIMENSION_SOURCES:
-            errors.append(f"{label}.source must be one of {sorted(DIMENSION_SOURCES)}")
-        elif source == "assumed":
-            errors.append(f"{label}.source cannot be assumed")
-        limits = joint.get("limits")
-        if jtype == "revolute":
-            if not isinstance(limits, dict):
-                errors.append(f"{label}.limits is required for revolute joints")
-            else:
-                if "min_deg" not in limits:
-                    errors.append(f"{label}.limits.min_deg is required")
-                if "max_deg" not in limits:
-                    errors.append(f"{label}.limits.max_deg is required")
-                if "min_deg" in limits and not finite_number(limits.get("min_deg")):
-                    errors.append(f"{label}.limits.min_deg must be a finite number")
-                if "max_deg" in limits and not finite_number(limits.get("max_deg")):
-                    errors.append(f"{label}.limits.max_deg must be a finite number")
-                if (
-                    finite_number(limits.get("min_deg"))
-                    and finite_number(limits.get("max_deg"))
-                    and float(limits["max_deg"]) < float(limits["min_deg"])
-                ):
-                    errors.append(f"{label}.limits.max_deg must be >= min_deg")
-        elif jtype == "prismatic":
-            if not isinstance(limits, dict):
-                errors.append(f"{label}.limits is required for prismatic joints")
-            else:
-                if "min_mm" not in limits:
-                    errors.append(f"{label}.limits.min_mm is required")
-                if "max_mm" not in limits:
-                    errors.append(f"{label}.limits.max_mm is required")
-                if "min_mm" in limits and (not finite_number(limits.get("min_mm"))):
-                    errors.append(f"{label}.limits.min_mm must be a finite number")
-                if "max_mm" in limits and (not finite_number(limits.get("max_mm"))):
-                    errors.append(f"{label}.limits.max_mm must be a finite number")
-
-
-def validate_loads(data: dict[str, Any], errors: list[str]) -> None:
-    loads = data.get("loads")
-    if loads is None:
-        _require_robot_module_loads(data, errors, [])
-        return
-    if not isinstance(loads, list):
-        errors.append("loads must be a list")
-        _require_robot_module_loads(data, errors, [])
-        return
-    ids: set[str] = set()
-    parsed: list[dict[str, Any]] = []
-    body_ids = set()
-    assembly = data.get("assembly")
-    if isinstance(assembly, dict) and isinstance(assembly.get("bodies"), list):
-        body_ids = _assembly_body_ids(assembly["bodies"])
-    frame = assembly.get("frame") if isinstance(assembly, dict) else None
-    hw_ids = set(_hardware_ids(data))
-    for index, load in enumerate(loads):
-        label = f"loads[{index}]"
-        if not isinstance(load, dict):
-            errors.append(f"{label} must be a mapping")
-            continue
-        parsed.append(load)
-        for key in ("id", "kind", "target", "magnitude", "units", "safety_factor", "source"):
-            if key not in load:
-                errors.append(f"{label}.{key} is required")
-        ident = load.get("id")
-        if not isinstance(ident, str) or not ident:
-            errors.append(f"{label}.id must be non-empty")
-        elif ident in ids:
-            errors.append(f"duplicate load id: {ident}")
-        else:
-            ids.add(ident)
-        kind = load.get("kind")
-        if "kind" in load and kind not in LOAD_KINDS:
-            errors.append(f"{label}.kind must be one of {sorted(LOAD_KINDS)}")
-        target = load.get("target")
-        if "target" in load:
-            if not isinstance(target, str) or not target:
-                errors.append(f"{label}.target must be non-empty")
-            elif not (
-                target in body_ids
-                or target in hw_ids
-                or _world_parent(target, frame)
-            ):
-                errors.append(
-                    f"{label}.target must be an assembly body id, hardware id, or assembled frame"
-                )
-        mag = load.get("magnitude")
-        if "magnitude" in load:
-            if finite_number(mag):
-                pass
-            elif _vec3(mag) is None:
-                errors.append(f"{label}.magnitude must be a finite number or [X, Y, Z]")
-        units = load.get("units")
-        if "units" in load and (not isinstance(units, str) or not units):
-            errors.append(f"{label}.units must be a non-empty string")
-        sf = load.get("safety_factor")
-        if "safety_factor" in load and (not finite_number(sf) or float(sf) < 1):
-            errors.append(f"{label}.safety_factor must be a finite number >= 1")
-        source = load.get("source")
-        if "source" in load and source not in DIMENSION_SOURCES:
-            errors.append(f"{label}.source must be one of {sorted(DIMENSION_SOURCES)}")
-        elif source == "assumed":
-            errors.append(f"{label}.source cannot be assumed")
-    _require_robot_module_loads(data, errors, parsed)
-
-
-def _require_robot_module_loads(
-    data: dict[str, Any], errors: list[str], loads: list[dict[str, Any]]
-) -> None:
-    try:
-        product_class = nested(data, "part.product_class")
-    except KeyError:
-        return
-    assembly = data.get("assembly")
-    bodies = assembly.get("bodies") if isinstance(assembly, dict) else None
-    if product_class != "robot-module" or not isinstance(bodies, list) or not bodies:
-        return
-    kinds = [load.get("kind") for load in loads if isinstance(load, dict)]
-    if "gravity" not in kinds:
-        errors.append("robot-module assembly requires a gravity load")
-    joints = assembly.get("joints") if isinstance(assembly, dict) else None
-    revolute_children: list[str] = []
-    if isinstance(joints, list):
-        for joint in joints:
-            if isinstance(joint, dict) and joint.get("type") == "revolute":
-                child = joint.get("child")
-                if isinstance(child, str) and child:
-                    revolute_children.append(child)
-    hw_roles = _hardware_ids(data)
-    assembly_hw: list[str] = []
-    for item in bodies:
-        if not isinstance(item, dict):
-            continue
-        hid = item.get("hardware")
-        if isinstance(hid, str) and hw_roles.get(hid) in {"motor", "drive"}:
-            assembly_hw.append(hid)
-    moment_targets = {
-        load.get("target")
-        for load in loads
-        if isinstance(load, dict) and load.get("kind") == "moment"
-    }
-    if revolute_children or assembly_hw:
-        covered = set()
-        for child in revolute_children:
-            if child in moment_targets:
-                covered.add(child)
-        if not any(load.get("kind") == "moment" for load in loads if isinstance(load, dict)):
-            errors.append("robot-module assembly requires a stall moment load at each hub")
-        else:
-            missing = [child for child in revolute_children if child not in moment_targets]
-            for child in missing:
-                errors.append(f"robot-module assembly requires a moment load targeting {child}")
-
-
-def validate_sim(data: dict[str, Any], errors: list[str]) -> None:
-    sim = data.get("sim")
-    if sim is None:
-        return
-    if not isinstance(sim, dict):
-        errors.append("sim must be a mapping")
-        return
-    scene = sim.get("scene")
-    if scene is None:
-        errors.append("sim.scene is required when sim is present")
-        return
-    if not isinstance(scene, dict):
-        errors.append("sim.scene must be a mapping")
-        return
-    ident = scene.get("id")
-    if not isinstance(ident, str) or not ident:
-        errors.append("sim.scene.id must be non-empty")
-    elif not ident.startswith("table-flat"):
-        errors.append("sim.scene.id must start with table-flat")
-    gravity = scene.get("gravity_mm_s2")
-    if gravity is None:
-        errors.append("sim.scene.gravity_mm_s2 is required")
-    elif _vec3(gravity) is None:
-        errors.append("sim.scene.gravity_mm_s2 must be [X, Y, Z] millimetres per second squared")
-    floor = scene.get("floor")
-    if not isinstance(floor, dict):
-        errors.append("sim.scene.floor must be a mapping")
-    elif "z_mm" not in floor:
-        errors.append("sim.scene.floor.z_mm is required")
-    elif not finite_number(floor.get("z_mm")):
-        errors.append("sim.scene.floor.z_mm must be a finite number")
-    friction = scene.get("friction")
-    if not isinstance(friction, dict):
-        errors.append("sim.scene.friction must be a mapping")
-    else:
-        if "source" not in friction:
-            errors.append("sim.scene.friction.source is required")
-        elif friction.get("source") not in DIMENSION_SOURCES:
-            errors.append(f"sim.scene.friction.source must be one of {sorted(DIMENSION_SOURCES)}")
-        elif friction.get("source") == "assumed":
-            errors.append("sim.scene.friction.source cannot be assumed")
-        mu = friction.get("mu")
-        if mu is None:
-            errors.append("sim.scene.friction.mu is required")
-        elif not finite_number(mu) or float(mu) < 0:
-            errors.append("sim.scene.friction.mu must be a finite non-negative number")
-
-
 def validate_wiring(data: dict[str, Any], errors: list[str]) -> None:
     wiring = data.get("wiring")
     if wiring is None:
@@ -881,6 +488,14 @@ def validate_wiring(data: dict[str, Any], errors: list[str]) -> None:
         _validate_keepout_list(
             wiring.get("cable_path_keepouts"), "wiring.cable_path_keepouts", errors
         )
+
+
+from print_spec_assembly import (  # noqa: E402
+    parse_optional_blocks,
+    validate_assembly,
+    validate_loads,
+    validate_sim,
+)
 
 
 def validate(data: Any, project: Path | None = None, check_files: bool = False) -> list[str]:
@@ -1056,90 +671,7 @@ def parse_spec(data: dict[str, Any]) -> PrintSpec:
         )
         for dim in data["dimensions"]
     )
-    hardware_comps: list[HardwareComponent] = []
-    hardware = data.get("hardware")
-    components = hardware.get("components") if isinstance(hardware, dict) else None
-    if isinstance(components, list):
-        for comp in components:
-            envelope = comp["envelope_mm"]
-            hardware_comps.append(
-                HardwareComponent(
-                    id=comp["id"],
-                    role=str(comp.get("role") or ""),
-                    envelope_mm=(float(envelope[0]), float(envelope[1]), float(envelope[2])),
-                )
-            )
-    assembly = data.get("assembly") if isinstance(data.get("assembly"), dict) else None
-    assembly_frame = assembly.get("frame") if assembly else None
-    assembly_bodies: list[AssemblyBody] = []
-    joints: list[AssemblyJoint] = []
-    if assembly:
-        for item in assembly.get("bodies") or []:
-            pose = item["pose"]
-            parent = item["parent"]
-            assembly_bodies.append(
-                AssemblyBody(
-                    id=item["id"],
-                    printed_body=item.get("body") if isinstance(item.get("body"), str) else None,
-                    hardware_id=item.get("hardware") if isinstance(item.get("hardware"), str) else None,
-                    parent=parent,
-                    pose=Pose(
-                        xyz_mm=tuple(float(v) for v in pose["xyz_mm"]),  # type: ignore[arg-type]
-                        rpy_deg=tuple(float(v) for v in pose["rpy_deg"]),  # type: ignore[arg-type]
-                    ),
-                )
-            )
-        for joint in assembly.get("joints") or []:
-            limits = joint.get("limits")
-            limit_pair = None
-            if isinstance(limits, dict):
-                if joint["type"] == "revolute":
-                    limit_pair = (float(limits["min_deg"]), float(limits["max_deg"]))
-                elif joint["type"] == "prismatic":
-                    limit_pair = (float(limits["min_mm"]), float(limits["max_mm"]))
-            axis = tuple(float(v) for v in joint["axis"])
-            joints.append(
-                AssemblyJoint(
-                    id=joint["id"],
-                    type=joint["type"],
-                    parent=joint["parent"],
-                    child=joint["child"],
-                    axis=(axis[0], axis[1], axis[2]),
-                    limits=limit_pair,
-                    clearance_per_side_mm=float(joint["clearance_per_side_mm"]),
-                    source=joint["source"],
-                )
-            )
-    loads: list[Load] = []
-    for load in data.get("loads") or []:
-        mag = load["magnitude"]
-        if isinstance(mag, list):
-            magnitude = math.sqrt(sum(float(v) ** 2 for v in mag))
-        else:
-            magnitude = float(mag)
-        loads.append(
-            Load(
-                id=load["id"],
-                kind=load["kind"],
-                target=load["target"],
-                magnitude=magnitude,
-                units=load["units"],
-                safety_factor=float(load["safety_factor"]),
-                source=load["source"],
-            )
-        )
-    sim_scene = None
-    sim = data.get("sim")
-    if isinstance(sim, dict) and isinstance(sim.get("scene"), dict):
-        scene = sim["scene"]
-        gx, gy, gz = scene["gravity_mm_s2"]
-        sim_scene = SimScene(
-            id=scene["id"],
-            gravity_mm_s2=(float(gx), float(gy), float(gz)),
-            floor_z_mm=float(scene["floor"]["z_mm"]),
-            friction_mu=float(scene["friction"]["mu"]),
-            friction_source=scene["friction"]["source"],
-        )
+    hardware_comps, assembly_frame, assembly_bodies, joints, loads, sim_scene = parse_optional_blocks(data)
     return PrintSpec(
         schema_version=int(data["schema_version"]),
         part_name=nested(data, "part.name"),
@@ -1170,11 +702,11 @@ def parse_spec(data: dict[str, Any]) -> PrintSpec:
         service_environment=nested(data, "service.environment"),
         drainage=nested(data, "service.drainage"),
         extra_parameters=extra_cad_parameters(data),
-        hardware=tuple(hardware_comps),
-        assembly_frame=assembly_frame if isinstance(assembly_frame, str) else None,
-        assembly_bodies=tuple(assembly_bodies),
-        joints=tuple(joints),
-        loads=tuple(loads),
+        hardware=hardware_comps,
+        assembly_frame=assembly_frame,
+        assembly_bodies=assembly_bodies,
+        joints=joints,
+        loads=loads,
         sim_scene=sim_scene,
     )
 
