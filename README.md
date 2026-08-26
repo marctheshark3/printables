@@ -17,6 +17,7 @@ All tools use the same prefix, followed by one obvious job:
 - `3d-print-blender` — organic or lattice CAD; exception backend
 - `3d-print-validate` — contract and STL validation
 - `3d-print-display-enclosure` — small two-piece display enclosures
+- `3d-print-robotics` — numbered FDM micro-robotics kit modules
 - `3d-print-image-silhouette` — image-derived stencils and silhouettes
 - `3d-print-shop-fixture` — decide whether a shop fixture should be printed or bought
 

@@ -16,3 +16,15 @@ python3 skills/3d-print-validate/scripts/validate_project.py \
 ```
 
 CI sample prompts export this STL (and the other prompt STLs) as the `generated-stls` artifact.
+
+`robot-kit-01-rover` is a numbered-01 two-wheel `robot-module` chassis (MCU on deck, LED head). Motors, MCU, battery, and driver are bought.
+
+```bash
+python3 skills/3d-print-design-brief/scripts/validate_print_spec.py \
+  examples/robot-kit-01-rover/docs/PRINT_SPEC.yaml
+
+python3 skills/3d-print-validate/scripts/validate_project.py \
+  examples/robot-kit-01-rover
+
+python3 examples/robot-kit-01-rover/scripts/render_assembly.py
+```

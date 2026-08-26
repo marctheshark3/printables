@@ -46,17 +46,10 @@ Class skill for **board + screen** cases (lab COP, desk shell). CAD backend defa
 | Tilt | Off by default; separate stand if needed |
 | Hybrid | OpenSCAD owns shell; Blender only organic/hex lid half |
 
-## Connector keepouts (defaults)
+## Connector keepouts
 
-| Port | Window W×H mm | Basis |
-|------|---------------|--------|
-| micro-USB Type-B | **13.0 × 8.5** | Plug ~10.6×8.5 + slack |
-| microSD | **16.0 × 3.5** | Card + path |
-| STEMMA QT pair | **22 × 9** | JST-SH pair |
-| STEMMA single | **10 × 8** | one JST-SH |
-| RESET poke | Ø6.5–7 | face |
-
-See also 3d-print-openscad `references/connector-keepouts-fdm.md` when present.
+Use `3d-print-openscad/references/connector-keepouts-fdm.md` as the only table
+for USB, microSD, STEMMA, and RESET windows. Do not copy those numbers here.
 
 ### PyPortal placement (owned board photo)
 

@@ -1,6 +1,7 @@
 """Occupancy between edge-connected shells."""
 from __future__ import annotations
 
+import math
 from typing import Dict, List, Sequence, Tuple
 
 from stl_io import Tri
@@ -136,6 +137,34 @@ def triangles_intersect(t1, t2, eps: float = 1e-8) -> bool:
     if a is None or b is None:
         return False
     return not (a[1] < b[0] - eps or b[1] < a[0] - eps)
+
+
+def tris_aabb(tris: Sequence[Tri]) -> AABB:
+    return _points_aabb([p for tri in tris for p in tri])
+
+
+def aabb_separation(a: AABB, b: AABB) -> float:
+    """Euclidean distance between AABBs. Zero when they overlap or touch."""
+    dx = max(0.0, a[0] - b[3], b[0] - a[3])
+    dy = max(0.0, a[1] - b[4], b[1] - a[4])
+    dz = max(0.0, a[2] - b[5], b[2] - a[5])
+    return math.sqrt(dx * dx + dy * dy + dz * dz)
+
+
+def triangle_sets_intersect(a: Sequence[Tri], b: Sequence[Tri], eps: float = 1e-8) -> bool:
+    """True when any triangle of *a* crosses any triangle of *b*."""
+    if not a or not b:
+        return False
+    if not _aabb_overlap(tris_aabb(a), tris_aabb(b), eps):
+        return False
+    for ta in a:
+        aa = _points_aabb(ta)
+        for tb in b:
+            if not _aabb_overlap(aa, _points_aabb(tb), eps):
+                continue
+            if triangles_intersect(ta, tb, eps):
+                return True
+    return False
 
 
 def count_overlapping_shell_pairs(

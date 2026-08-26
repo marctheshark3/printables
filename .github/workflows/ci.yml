@@ -27,6 +27,8 @@ jobs:
         run: |
           python3 skills/3d-print-design-brief/scripts/validate_print_spec.py \
             examples/bracket-coupon/docs/PRINT_SPEC.yaml
+          python3 skills/3d-print-design-brief/scripts/validate_print_spec.py \
+            examples/robot-kit-01-rover/docs/PRINT_SPEC.yaml
       - name: Python compile
         run: |
           python3 -m py_compile \

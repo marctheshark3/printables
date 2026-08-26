@@ -10,6 +10,7 @@ Last reviewed 2026-08-25.
 - Blender is allowed only for organic or lattice bodies.
 - Hybrid means separate declared bodies owned by separate backends—not two kernels editing one body.
 - `3d-print-validate` is backend-neutral and mandatory after every export.
+- `3d-print-robotics` is the class skill for numbered `robot-module` kit bodies.
 - HARD failure means the part is not deliverable.
 
 ## Enforced today

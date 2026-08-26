@@ -1,0 +1,348 @@
+schema_version: 1
+part:
+  name: robot-kit-01-rover
+  revision: 0.1.0
+  product_class: robot-module
+  purpose: Numbered 01 two-wheel differential rover with MCU on deck and LED head.
+
+manufacturing:
+  process: fdm
+  printer: generic-256mm
+  build_volume_mm: [256, 256, 256]
+  material: PETG
+  nozzle_mm: 0.4
+  layer_height_mm: 0.2
+
+cad:
+  backend: openscad
+  parametric: true
+  units: mm
+  source_files:
+    - src/rover.scad
+    - src/lib/robot_kit.scad
+
+geometry:
+  min_wall_mm: 1.6
+  min_feature_mm: 1.6
+  overlapping_solids_allowed: false
+  stl_files:
+    - path: stl/chassis.stl
+      body: chassis
+      expected_shells: 1
+    - path: stl/wheel.stl
+      body: wheel
+      expected_shells: 1
+    - path: stl/head.stl
+      body: head
+      expected_shells: 1
+
+fit:
+  required: true
+  clearance_per_side_mm: 0.4
+  evidence: datasheet
+  coupon: fit/mcu-pocket-coupon.scad
+
+dimensions:
+  - name: chassis_length
+    parameter: chassis_length_mm
+    value_mm: 88.0
+    tolerance_mm: 0.2
+    source: from-user
+  - name: chassis_width
+    parameter: chassis_width_mm
+    value_mm: 58.0
+    tolerance_mm: 0.2
+    source: from-user
+  - name: deck_thickness
+    parameter: deck_thickness_mm
+    value_mm: 3.2
+    tolerance_mm: 0.1
+    source: from-user
+  - name: wall
+    parameter: wall_mm
+    value_mm: 2.4
+    tolerance_mm: 0.1
+    source: from-user
+  - name: wheel_od
+    parameter: wheel_od_mm
+    value_mm: 40.0
+    tolerance_mm: 0.2
+    source: from-user
+  - name: wheel_thickness
+    parameter: wheel_thickness_mm
+    value_mm: 6.0
+    tolerance_mm: 0.2
+    source: from-user
+  - name: head_od
+    parameter: head_od_mm
+    value_mm: 24.0
+    tolerance_mm: 0.2
+    source: from-user
+  - name: head_height
+    parameter: head_height_mm
+    value_mm: 12.0
+    tolerance_mm: 0.2
+    source: from-user
+  - name: led_d
+    parameter: led_d_mm
+    value_mm: 5.2
+    tolerance_mm: 0.1
+    source: datasheet
+
+print:
+  orientation: base-on-bed
+  bed_face: bottom
+  up_axis: Z
+  supports: none
+  max_overhang_deg: 45
+
+service:
+  environment: dry
+  drainage: not-applicable
+
+hardware:
+  components:
+    - id: mcu
+      mpn_or_generic: ESP32-C3 Super Mini
+      role: mcu
+      qty: 1
+      envelope_mm: [22.5, 18.0, 4.5]
+      interfaces:
+        - name: mcu_length
+          parameter: mcu_length_mm
+          value_mm: 22.5
+          tolerance_mm: 0.2
+          source: datasheet
+        - name: mcu_width
+          parameter: mcu_width_mm
+          value_mm: 18.0
+          tolerance_mm: 0.2
+          source: datasheet
+        - name: mcu_thickness
+          parameter: mcu_thickness_mm
+          value_mm: 3.5
+          tolerance_mm: 0.2
+          source: datasheet
+        - name: mcu_pocket_clearance
+          parameter: mcu_pocket_clearance_mm
+          value_mm: 0.4
+          tolerance_mm: 0.1
+          source: measured
+        - name: mcu_pocket_depth
+          parameter: mcu_pocket_depth_mm
+          value_mm: 1.6
+          tolerance_mm: 0.1
+          source: from-user
+    - id: drive_left
+      mpn_or_generic: N20-class gear motor
+      role: motor
+      qty: 1
+      envelope_mm: [15.0, 12.0, 10.0]
+      interfaces:
+        - name: motor_gearbox_l
+          parameter: motor_gearbox_l_mm
+          value_mm: 15.0
+          tolerance_mm: 0.2
+          source: datasheet
+        - name: motor_gearbox_w
+          parameter: motor_gearbox_w_mm
+          value_mm: 12.0
+          tolerance_mm: 0.2
+          source: datasheet
+        - name: motor_gearbox_h
+          parameter: motor_gearbox_h_mm
+          value_mm: 10.0
+          tolerance_mm: 0.2
+          source: datasheet
+        - name: motor_shaft_d
+          parameter: motor_shaft_d_mm
+          value_mm: 3.0
+          tolerance_mm: 0.05
+          source: datasheet
+        - name: motor_pocket_clearance
+          parameter: motor_pocket_clearance_mm
+          value_mm: 0.4
+          tolerance_mm: 0.1
+          source: measured
+    - id: drive_right
+      mpn_or_generic: N20-class gear motor
+      role: motor
+      qty: 1
+      envelope_mm: [15.0, 12.0, 10.0]
+      interfaces:
+        - name: motor_shaft_l
+          parameter: motor_shaft_l_mm
+          value_mm: 10.0
+          tolerance_mm: 0.2
+          source: datasheet
+        - name: wheel_bore
+          parameter: wheel_bore_d_mm
+          value_mm: 3.3
+          tolerance_mm: 0.1
+          source: datasheet
+        - name: wheel_d_flat
+          parameter: wheel_d_flat_mm
+          value_mm: 2.8
+          tolerance_mm: 0.1
+          source: datasheet
+        - name: wheel_hub_clearance
+          parameter: wheel_hub_clearance_per_side_mm
+          value_mm: 0.15
+          tolerance_mm: 0.05
+          source: measured
+        - name: hub_od
+          parameter: hub_od_mm
+          value_mm: 12.0
+          tolerance_mm: 0.2
+          source: from-user
+    - id: motor_driver
+      mpn_or_generic: DRV8833-class dual H-bridge
+      role: driver
+      qty: 1
+      envelope_mm: [18.0, 16.0, 3.0]
+      interfaces:
+        - name: driver_keepout_z
+          parameter: driver_keepout_z_mm
+          value_mm: 3.0
+          tolerance_mm: 0.2
+          source: datasheet
+    - id: led
+      mpn_or_generic: 5 mm LED
+      role: led
+      qty: 1
+      envelope_mm: [5.0, 5.0, 8.0]
+      interfaces:
+        - name: led_diameter
+          parameter: led_d_mm
+          value_mm: 5.2
+          tolerance_mm: 0.1
+          source: datasheet
+    - id: fasteners
+      mpn_or_generic: M2 and M3 machine screws
+      role: fastener
+      qty: 8
+      envelope_mm: [6.6, 6.6, 8.0]
+      interfaces:
+        - name: m2_through
+          parameter: m2_through_d_mm
+          value_mm: 2.4
+          tolerance_mm: 0.05
+          source: datasheet
+        - name: m3_through
+          parameter: m3_through_d_mm
+          value_mm: 3.4
+          tolerance_mm: 0.05
+          source: datasheet
+        - name: m2_boss_od
+          parameter: m2_boss_od_mm
+          value_mm: 5.6
+          tolerance_mm: 0.1
+          source: datasheet
+        - name: m3_boss_od
+          parameter: m3_boss_od_mm
+          value_mm: 6.6
+          tolerance_mm: 0.1
+          source: datasheet
+    - id: battery
+      mpn_or_generic: 1S LiPo pack or 5 V USB power
+      role: battery
+      qty: 1
+      envelope_mm: [30.0, 20.0, 6.0]
+      interfaces:
+        - name: battery_envelope_h
+          parameter: battery_envelope_h_mm
+          value_mm: 6.0
+          tolerance_mm: 0.2
+          source: datasheet
+
+wiring:
+  voltage_domains:
+    - name: v3v3
+      volts: 3.3
+    - name: v5
+      volts: 5.0
+    - name: gnd
+      volts: 0.0
+  pin_map:
+    - mcu_pin: GPIO4
+      function: motor_left_in1
+      voltage: 3.3
+      net: motor_left_in1
+    - mcu_pin: GPIO5
+      function: motor_left_in2
+      voltage: 3.3
+      net: motor_left_in2
+    - mcu_pin: GPIO6
+      function: motor_right_in1
+      voltage: 3.3
+      net: motor_right_in1
+    - mcu_pin: GPIO7
+      function: motor_right_in2
+      voltage: 3.3
+      net: motor_right_in2
+    - mcu_pin: GPIO8
+      function: led
+      voltage: 3.3
+      net: led
+    - mcu_pin: VIN
+      function: motor_driver_vm
+      voltage: 5.0
+      net: vm
+    - mcu_pin: GND
+      function: ground
+      voltage: 0.0
+      net: gnd
+  nets:
+    - name: motor_left_in1
+      voltage_domain: v3v3
+    - name: motor_left_in2
+      voltage_domain: v3v3
+    - name: motor_right_in1
+      voltage_domain: v3v3
+    - name: motor_right_in2
+      voltage_domain: v3v3
+    - name: led
+      voltage_domain: v3v3
+    - name: vm
+      voltage_domain: v5
+    - name: gnd
+      voltage_domain: gnd
+  connector_keepouts:
+    - name: usb_c
+      parameter: usb_c_keepout_w_mm
+      width_mm: 13.5
+      height_mm: 9.0
+      depth_mm: 12.0
+      source: datasheet
+    - name: usb_c_height
+      parameter: usb_c_keepout_h_mm
+      width_mm: 13.5
+      height_mm: 9.0
+      source: datasheet
+    - name: usb_c_depth
+      parameter: usb_c_keepout_d_mm
+      width_mm: 13.5
+      height_mm: 9.0
+      depth_mm: 12.0
+      source: datasheet
+  cable_path_keepouts:
+    - name: motor_left
+      parameter: cable_path_motor_left_w_mm
+      width_mm: 4.0
+      height_mm: 1.6
+      source: from-user
+    - name: motor_right
+      parameter: cable_path_motor_right_w_mm
+      width_mm: 4.0
+      height_mm: 1.6
+      source: from-user
+    - name: led
+      parameter: cable_path_led_w_mm
+      width_mm: 4.0
+      height_mm: 1.6
+      source: from-user
+    - name: cable_height
+      parameter: cable_path_h_mm
+      width_mm: 4.0
+      height_mm: 1.6
+      source: from-user
