@@ -343,7 +343,8 @@ def validate_loads(data: dict[str, Any], errors: list[str]) -> None:
         mag = load.get("magnitude")
         if "magnitude" in load:
             if finite_number(mag):
-                pass
+                if kind in {"moment", "point-force"} and float(mag) < 0:
+                    errors.append(f"{label}.magnitude must be non-negative")
             elif vec3(mag) is None:
                 errors.append(f"{label}.magnitude must be a finite number or [X, Y, Z]")
         units = load.get("units")

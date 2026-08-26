@@ -96,7 +96,9 @@ def emit_urdf(spec: PrintSpec) -> str:
         lines.append("    <visual>")
         if body.printed_body:
             lines.append("      <geometry>")
-            lines.append(f'        <mesh filename="{stl_by_body[body.printed_body]}"/>')
+            lines.append(
+                f'        <mesh filename="{stl_by_body[body.printed_body]}" scale="0.001 0.001 0.001"/>'
+            )
             lines.append("      </geometry>")
         elif body.hardware_id:
             envelope = hw_by_id[body.hardware_id].envelope_mm
@@ -124,6 +126,19 @@ def emit_urdf(spec: PrintSpec) -> str:
             lines.append(f'    <limit lower="{_fmt(lo)}" upper="{_fmt(hi)}" effort="0" velocity="0"/>')
         lines.append("  </joint>")
         parent_of.pop(joint.child, None)
+    for child, parent in parent_of.items():
+        if parent in {"", "world"} or (spec.assembly_frame and parent == spec.assembly_frame):
+            continue
+        if parent not in pose_of or child not in pose_of:
+            continue
+        child_pose = pose_of[child]
+        rpy = tuple(math.radians(a) for a in child_pose.rpy_deg)
+        xyz = tuple(v * 0.001 for v in child_pose.xyz_mm)
+        lines.append(f'  <joint name="fixed_{child}" type="fixed">')
+        lines.append(f'    <parent link="{parent}"/>')
+        lines.append(f'    <child link="{child}"/>')
+        lines.append(f'    <origin xyz="{_fmt3(xyz)}" rpy="{_fmt3(rpy)}"/>')
+        lines.append("  </joint>")
     lines.append("</robot>")
     lines.append("")
     return "\n".join(lines)

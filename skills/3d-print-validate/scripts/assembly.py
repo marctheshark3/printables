@@ -28,6 +28,7 @@ ALLOWABLE_SHEAR_MPA = {
     "PLA": 12.0,
     "ABS": 15.0,
 }
+# Coarse discrete sample (contract: 0–360° at a coarse step). Not a continuous sweep.
 REVOLUTE_STEP_DEG = 45.0
 
 
@@ -150,8 +151,9 @@ def sweep_angles(min_deg: float, max_deg: float, step_deg: float = REVOLUTE_STEP
 
 
 def polar_section_modulus_m3(outer_mm: float, inner_mm: float) -> float | None:
-    ro = outer_mm / 1000.0
-    ri = inner_mm / 1000.0
+    """Polar section modulus of an annulus. *outer_mm* / *inner_mm* are diameters."""
+    ro = outer_mm / 2000.0
+    ri = inner_mm / 2000.0
     if ro <= 0 or ri < 0 or ro <= ri:
         return None
     return math.pi * (ro ** 4 - ri ** 4) / (2.0 * ro)
@@ -180,7 +182,7 @@ def hub_shear_mpa(moment_n_m: float, outer_mm: float, inner_mm: float) -> float 
     wp = polar_section_modulus_m3(outer_mm, inner_mm)
     if wp is None or wp <= 0:
         return None
-    return (moment_n_m / wp) / 1e6
+    return (abs(moment_n_m) / wp) / 1e6
 
 
 def _place_body(
@@ -245,35 +247,63 @@ def l1_occupancy(spec: PrintSpec, placed: dict[str, list[Tri]]) -> list[str]:
     return hard
 
 
+def _children_of(spec: PrintSpec) -> dict[str, list[str]]:
+    kids: dict[str, list[str]] = {}
+    for body in spec.assembly_bodies:
+        kids.setdefault(body.parent, []).append(body.id)
+    return kids
+
+
+def _subtree_ids(root: str, kids: dict[str, list[str]]) -> list[str]:
+    out = [root]
+    stack = [root]
+    while stack:
+        current = stack.pop()
+        for child in kids.get(current, []):
+            out.append(child)
+            stack.append(child)
+    return out
+
+
 def l2_sweep(spec: PrintSpec, placed: dict[str, list[Tri]]) -> list[str]:
     hard: list[str] = []
-    others_index = dict(placed)
+    kids = _children_of(spec)
     for joint in spec.joints:
         if joint.type != "revolute" or joint.limits is None:
             continue
-        child = placed.get(joint.child)
         origin_body = next((b for b in spec.assembly_bodies if b.id == joint.child), None)
-        if child is None or origin_body is None:
+        moving = _subtree_ids(joint.child, kids)
+        if origin_body is None or any(ident not in placed for ident in moving):
             hard.append(f"L2 joint {joint.id} child {joint.child} is not placed")
             continue
         origin = origin_body.pose.xyz_mm
+        moving_set = set(moving)
         for angle in sweep_angles(joint.limits[0], joint.limits[1]):
-            if abs(angle - joint.limits[0]) < 1e-9:
-                posed = child
-            else:
-                posed = rotate_tris_around(child, origin, joint.axis, angle - joint.limits[0])
-            for other_id, other in others_index.items():
-                if other_id == joint.child:
-                    continue
-                if occupancies_illegal(posed, other):
-                    hard.append(
-                        f"L2 self-collision: joint {joint.id} at {angle:g} deg "
-                        f"({joint.child} vs {other_id})"
-                    )
+            delta = angle - joint.limits[0]
+            posed = {
+                ident: (
+                    placed[ident]
+                    if abs(delta) < 1e-9
+                    else rotate_tris_around(placed[ident], origin, joint.axis, delta)
+                )
+                for ident in moving
+            }
+            hit = False
+            for mid, mtris in posed.items():
+                for other_id, other in placed.items():
+                    if other_id in moving_set:
+                        continue
+                    if occupancies_illegal(mtris, other):
+                        hard.append(
+                            f"L2 self-collision: joint {joint.id} at {angle:g} deg "
+                            f"({mid} vs {other_id})"
+                        )
+                        hit = True
+                        break
+                if hit:
                     break
-            else:
-                continue
-            break
+            if hit:
+                break
     return hard
 
 

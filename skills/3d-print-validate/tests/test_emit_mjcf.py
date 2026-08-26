@@ -11,7 +11,7 @@ SIM = ROOT / "skills" / "3d-print-sim" / "scripts"
 sys.path.insert(0, str(BRIEF))
 sys.path.insert(0, str(SIM))
 
-from emit_mjcf import SCHEMA, emit_mjcf  # noqa: E402
+from emit_mjcf import SCHEMA, emit_mjcf, emit_urdf  # noqa: E402
 from print_spec import parse_spec, validate  # noqa: E402
 
 
@@ -151,3 +151,13 @@ def test_emit_mjcf_golden_without_mujoco():
     dumped = yaml.safe_dump(data)
     assert "mujoco" not in dumped
     assert "mujoco" not in sys.modules
+
+
+def test_emit_urdf_scales_meshes_and_emits_fixed_parents():
+    data = tiny_spec()
+    assert validate(data) == []
+    urdf = emit_urdf(parse_spec(data))
+    assert 'scale="0.001 0.001 0.001"' in urdf
+    assert '<joint name="fixed_mcu" type="fixed">' in urdf
+    assert '<parent link="chassis"/>' in urdf
+    assert '<child link="mcu"/>' in urdf

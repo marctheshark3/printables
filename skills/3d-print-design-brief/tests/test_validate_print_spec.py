@@ -410,6 +410,13 @@ def test_revolute_joint_without_limits_fails():
     assert any("limits is required for revolute" in error for error in errors)
 
 
+def test_negative_moment_magnitude_fails():
+    data = assembled_robot_spec()
+    data["loads"][1]["magnitude"] = -0.049
+    errors = module.validate(data)
+    assert any("magnitude must be non-negative" in error for error in errors)
+
+
 def test_assumed_stall_load_fails():
     data = assembled_robot_spec()
     data["loads"][1]["source"] = "assumed"

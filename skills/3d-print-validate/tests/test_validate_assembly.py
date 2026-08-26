@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 import struct
 import subprocess
 import sys
@@ -227,6 +228,47 @@ def test_l2_sweep_pass_when_clear(tmp_path):
     assert l2_sweep(spec, placed) == []
 
 
+def test_l2_sweeps_descendant_bodies(tmp_path):
+    chassis = cube_triangles(sx=20, sy=8, sz=10)
+    arm = cube_triangles(sx=4, sy=4, sz=4)
+    spec = parse_spec(
+        make_kit(tmp_path, (8, 14, 3), chassis=chassis, wheel=arm, clearance=0.2, axis=(0.0, 0.0, 1.0))
+    )
+    data = yaml.safe_load((tmp_path / "docs/PRINT_SPEC.yaml").read_text())
+    data["hardware"]["components"].append(
+        {
+            "id": "payload",
+            "mpn_or_generic": "mass",
+            "role": "other",
+            "qty": 1,
+            "envelope_mm": [4.0, 4.0, 4.0],
+            "interfaces": [
+                {
+                    "name": "payload",
+                    "parameter": "mcu_length_mm",
+                    "value_mm": 4.0,
+                    "tolerance_mm": 0.2,
+                    "source": "datasheet",
+                }
+            ],
+        }
+    )
+    data["assembly"]["bodies"].append(
+        {
+            "id": "payload",
+            "hardware": "payload",
+            "parent": "wheel_left",
+            "pose": pose((8.0, 22.0, 3.0)),
+        }
+    )
+    (tmp_path / "docs/PRINT_SPEC.yaml").write_text(yaml.safe_dump(data, sort_keys=False))
+    spec = parse_spec(yaml.safe_load((tmp_path / "docs/PRINT_SPEC.yaml").read_text()))
+    placed = place_assembly(tmp_path, spec)
+    assert l1_occupancy(spec, placed) == [], l1_occupancy(spec, placed)
+    hard = l2_sweep(spec, placed)
+    assert any("payload vs chassis" in item for item in hard)
+
+
 def test_l2_sweep_hard_on_self_collision(tmp_path):
     chassis = cube_triangles(sx=20, sy=8, sz=10)
     wheel = cube_triangles(sx=4, sy=8, sz=4)
@@ -247,6 +289,25 @@ def test_l3_section_check_uses_declared_numbers():
     assert fail is not None
     assert fail * 2.0 > ALLOWABLE_SHEAR_MPA["PETG"]
     assert abs(moment_to_n_m(1000.0, "N_mm") - 1.0) < 1e-9
+
+
+def test_hub_section_treats_od_and_bore_as_diameters():
+    tau = hub_shear_mpa(0.049, 12.0, 3.3)
+    ro, ri = 12.0 / 2000.0, 3.3 / 2000.0
+    wp = math.pi * (ro ** 4 - ri ** 4) / (2.0 * ro)
+    expected = (0.049 / wp) / 1e6
+    assert abs(tau - expected) / expected < 1e-9
+    # Treating 12 mm as a radius is an 8x-softer shear.
+    as_radius = hub_shear_mpa(0.049, 24.0, 6.6)
+    assert abs(tau / as_radius - 8.0) < 1e-6
+
+
+def test_negative_moment_still_fails_section_check(tmp_path):
+    spec = parse_spec(make_kit(tmp_path, (30, 0, 0)))
+    data = yaml.safe_load((tmp_path / "docs/PRINT_SPEC.yaml").read_text())
+    data["loads"][1]["magnitude"] = -100.0
+    hard = l3_loads(parse_spec(data))
+    assert any("L3 hub shear" in item for item in hard)
 
 
 def test_l3_pass_fail_and_missing_required(tmp_path):
