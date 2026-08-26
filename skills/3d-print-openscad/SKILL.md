@@ -54,6 +54,7 @@ docker run --rm -v "$PROJECT:/work" -w /work \
 - use per-side clearance from the spec
 - grow geometry from the bed face; avoid unsupported starts
 - screw and connector interfaces use measured or datasheet dimensions
+- connector window defaults live in `references/connector-keepouts-fdm.md`
 - independent bodies do not touch or overlap in exported mode
 - no zero-thickness contact, coincident faces, or decorative internal geometry
 

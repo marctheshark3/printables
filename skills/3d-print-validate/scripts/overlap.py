@@ -1,6 +1,7 @@
 """Occupancy between edge-connected shells."""
 from __future__ import annotations
 
+import math
 from typing import Dict, List, Sequence, Tuple
 
 from stl_io import Tri
@@ -136,6 +137,103 @@ def triangles_intersect(t1, t2, eps: float = 1e-8) -> bool:
     if a is None or b is None:
         return False
     return not (a[1] < b[0] - eps or b[1] < a[0] - eps)
+
+
+def tris_aabb(tris: Sequence[Tri]) -> AABB:
+    return _points_aabb([p for tri in tris for p in tri])
+
+
+def aabb_separation(a: AABB, b: AABB) -> float:
+    """Euclidean distance between AABBs. Zero when they overlap or touch."""
+    dx = max(0.0, a[0] - b[3], b[0] - a[3])
+    dy = max(0.0, a[1] - b[4], b[1] - a[4])
+    dz = max(0.0, a[2] - b[5], b[2] - a[5])
+    return math.sqrt(dx * dx + dy * dy + dz * dz)
+
+
+def triangle_sets_intersect(a: Sequence[Tri], b: Sequence[Tri], eps: float = 1e-8) -> bool:
+    """True when any triangle of *a* crosses any triangle of *b*."""
+    if not a or not b:
+        return False
+    if not _aabb_overlap(tris_aabb(a), tris_aabb(b), eps):
+        return False
+    for ta in a:
+        aa = _points_aabb(ta)
+        for tb in b:
+            if not _aabb_overlap(aa, _points_aabb(tb), eps):
+                continue
+            if triangles_intersect(ta, tb, eps):
+                return True
+    return False
+
+
+def mesh_centroid(tris: Sequence[Tri]) -> Tuple[float, float, float]:
+    sx = sy = sz = 0.0
+    n = 0
+    for tri in tris:
+        for p in tri:
+            sx += p[0]
+            sy += p[1]
+            sz += p[2]
+            n += 1
+    if n == 0:
+        return (0.0, 0.0, 0.0)
+    return (sx / n, sy / n, sz / n)
+
+
+def _ray_triangle_t(origin, direction, tri, eps: float = 1e-12) -> float | None:
+    v0, v1, v2 = tri
+    e1 = _sub(v1, v0)
+    e2 = _sub(v2, v0)
+    pvec = _cross(direction, e2)
+    det = _dot(e1, pvec)
+    if abs(det) < eps:
+        return None
+    inv = 1.0 / det
+    tvec = _sub(origin, v0)
+    u = _dot(tvec, pvec) * inv
+    if u < -eps or u > 1.0 + eps:
+        return None
+    qvec = _cross(tvec, e1)
+    v = _dot(direction, qvec) * inv
+    if v < -eps or u + v > 1.0 + eps:
+        return None
+    t = _dot(e2, qvec) * inv
+    if t <= eps:
+        return None
+    return t
+
+
+def point_in_mesh(point, tris: Sequence[Tri], eps: float = 1e-8) -> bool:
+    """Odd crossing count along a jittered +X ray. Open cavities read as outside."""
+    box = tris_aabb(tris)
+    if not (
+        box[0] - eps <= point[0] <= box[3] + eps
+        and box[1] - eps <= point[1] <= box[4] + eps
+        and box[2] - eps <= point[2] <= box[5] + eps
+    ):
+        return False
+    direction = (1.0, 0.0012345, 0.0009876)
+    hits: List[float] = []
+    for tri in tris:
+        t = _ray_triangle_t(point, direction, tri)
+        if t is None:
+            continue
+        if any(abs(t - prev) < 1e-6 for prev in hits):
+            continue
+        hits.append(t)
+    return len(hits) % 2 == 1
+
+
+def occupancies_illegal(a: Sequence[Tri], b: Sequence[Tri], eps: float = 1e-8) -> bool:
+    """Surface crossing or one occupancy centroid inside the other solid."""
+    if not a or not b:
+        return False
+    if not _aabb_overlap(tris_aabb(a), tris_aabb(b), eps):
+        return False
+    if triangle_sets_intersect(a, b, eps):
+        return True
+    return point_in_mesh(mesh_centroid(a), b, eps) or point_in_mesh(mesh_centroid(b), a, eps)
 
 
 def count_overlapping_shell_pairs(

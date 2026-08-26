@@ -1,0 +1,30 @@
+id: robot-kit-rover-v2
+prompt: |
+  Upgrade the numbered 01 two-wheel rover to v2: ESP32-C3 Super Mini on the deck,
+  N20 drive, SG90 micro-servo pan, HC-SR04 ultrasonic on a printed bracket,
+  MPU-6050 IMU pad. PRINT_SPEC robot-module with hardware wiring, then
+  validate_project and validate_assembly.
+expect:
+  primary: 3d-print-robotics
+  skills:
+    - 3d-print-robotics
+    - 3d-print-design-brief
+    - 3d-print-openscad
+    - 3d-print-validate
+  outrank:
+    - 3d-print-shop-fixture
+    - 3d-print-image-silhouette
+    - 3d-print-blender
+  skill_contains:
+    3d-print-robotics:
+      - "product_class: robot-module"
+      - hardware
+      - validate_project.py
+      - lib/robot_kit.scad
+run:
+  - kind: validate_spec
+    path: examples/robot-kit-01-rover-v2/docs/PRINT_SPEC.yaml
+  - kind: export_openscad_project
+    from: examples/robot-kit-01-rover-v2
+  - kind: validate_assembly
+    path: examples/robot-kit-01-rover-v2

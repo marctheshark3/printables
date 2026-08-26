@@ -17,7 +17,7 @@ except ImportError as exc:
 BACKENDS = {"openscad", "blender", "hybrid"}
 PRODUCT_CLASSES = {
     "bracket", "mount", "stand", "tray", "enclosure", "equipment-open-frame",
-    "wet-fixture", "pip-hinge", "silhouette", "other",
+    "wet-fixture", "pip-hinge", "silhouette", "robot-module", "other",
 }
 FIT_EVIDENCE = {"measured", "from-user", "datasheet", "fit-tested", "assumed", "none"}
 REQUIRED_FIT_EVIDENCE = {"measured", "from-user", "datasheet", "fit-tested"}
@@ -40,6 +40,12 @@ POSITIVE_DRAINAGE = {
     "slots",
 }
 COUPON_SUFFIXES = {".stl", ".scad", ".py", ".yaml", ".yml", ".md"}
+CRITICAL_HARDWARE_ROLES = {"mcu", "servo", "motor", "drive"}
+VOLT_ALIASES = {
+    "3V3": 3.3, "3.3V": 3.3, "3.3": 3.3, "+3V3": 3.3,
+    "5V": 5.0, "5.0V": 5.0, "5": 5.0, "5.0": 5.0, "+5V": 5.0,
+    "GND": 0.0, "0V": 0.0, "0": 0.0, "0.0": 0.0,
+}
 
 _BLOCK_COMMENT = re.compile(r"/\*.*?\*/", re.S)
 _LINE_COMMENT = re.compile(r"//.*?$", re.M)
@@ -60,6 +66,85 @@ class Dimension:
     value_mm: float
     tolerance_mm: float
     source: str
+
+
+@dataclass(frozen=True)
+class HardwareComponent:
+    id: str
+    role: str
+    envelope_mm: tuple[float, float, float]
+
+
+@dataclass(frozen=True)
+class Pose:
+    xyz_mm: tuple[float, float, float]
+    rpy_deg: tuple[float, float, float]
+
+
+@dataclass(frozen=True)
+class AssemblyBody:
+    id: str
+    printed_body: str | None
+    hardware_id: str | None
+    parent: str
+    pose: Pose
+
+
+@dataclass(frozen=True)
+class AssemblyJoint:
+    id: str
+    type: str
+    parent: str
+    child: str
+    axis: tuple[float, float, float]
+    limits: tuple[float, float] | None
+    clearance_per_side_mm: float
+    source: str
+
+
+@dataclass(frozen=True)
+class Load:
+    id: str
+    kind: str
+    target: str
+    magnitude: float
+    units: str
+    safety_factor: float
+    source: str
+    magnitude_xyz: tuple[float, float, float] | None = None
+    section_outer: str | None = None
+    section_inner: str | None = None
+
+
+@dataclass(frozen=True)
+class SimScene:
+    id: str
+    gravity_mm_s2: tuple[float, float, float]
+    floor_z_mm: float
+    friction_mu: float
+    friction_source: str
+
+
+@dataclass(frozen=True)
+class CalibrationCoupon:
+    id: str
+    type: str
+    source: str
+    magnitude: float
+    units: str
+    target: str | None
+    scene: str | None
+    actuator_kind: str | None
+
+
+@dataclass(frozen=True)
+class SimRoll:
+    distance_mm: float
+    scene: str
+    sim_mm: float | None
+    bench_mm: float | None
+    error_budget_mm: float | None
+    source: str | None
 
 
 @dataclass(frozen=True)
@@ -94,6 +179,29 @@ class PrintSpec:
     max_overhang_deg: float
     service_environment: str
     drainage: str
+    extra_parameters: tuple[str, ...]
+    hardware: tuple[HardwareComponent, ...]
+    assembly_frame: str | None
+    assembly_bodies: tuple[AssemblyBody, ...]
+    joints: tuple[AssemblyJoint, ...]
+    loads: tuple[Load, ...]
+    sim_scene: SimScene | None
+    sim2real: bool
+    calibration: tuple[CalibrationCoupon, ...]
+    sim_roll: SimRoll | None
+
+
+@dataclass(frozen=True)
+class OptionalBlocks:
+    hardware: tuple[HardwareComponent, ...]
+    assembly_frame: str | None
+    assembly_bodies: tuple[AssemblyBody, ...]
+    joints: tuple[AssemblyJoint, ...]
+    loads: tuple[Load, ...]
+    sim_scene: SimScene | None
+    sim2real: bool
+    calibration: tuple[CalibrationCoupon, ...]
+    sim_roll: SimRoll | None
 
 
 def nested(data: dict[str, Any], path: str) -> Any:
@@ -116,6 +224,316 @@ def safe_relative_path(value: str) -> bool:
 
 def coupon_is_path(coupon: str) -> bool:
     return "/" in coupon or Path(coupon).suffix.lower() in COUPON_SUFFIXES
+
+
+def parse_volts(value: Any) -> float | None:
+    if finite_number(value):
+        return float(value)
+    if not isinstance(value, str):
+        return None
+    text = value.strip().upper().replace(" ", "")
+    if text in VOLT_ALIASES:
+        return VOLT_ALIASES[text]
+    try:
+        return float(text.replace("V", ""))
+    except ValueError:
+        return None
+
+
+def logic_rail(volts: float) -> str | None:
+    if abs(volts - 3.3) <= 0.2:
+        return "3v3"
+    if abs(volts - 5.0) <= 0.2:
+        return "5v"
+    return None
+
+
+def validate_named_millimetre(
+    dim: Any, label: str, errors: list[str], names: set[str] | None = None
+) -> None:
+    if not isinstance(dim, dict):
+        errors.append(f"{label} must be a mapping")
+        return
+    for key in ("name", "parameter", "value_mm", "tolerance_mm", "source"):
+        if key not in dim:
+            errors.append(f"{label}.{key} is required")
+    name = dim.get("name")
+    if not isinstance(name, str) or not name:
+        errors.append(f"{label}.name must be non-empty")
+    elif names is not None:
+        if name in names:
+            errors.append(f"duplicate dimension name: {name}")
+        else:
+            names.add(name)
+    parameter = dim.get("parameter")
+    if not isinstance(parameter, str) or not parameter.isidentifier():
+        errors.append(f"{label}.parameter must be a valid CAD identifier")
+    for key in ("value_mm", "tolerance_mm"):
+        if key in dim and (not finite_number(dim[key]) or float(dim[key]) < 0):
+            errors.append(f"{label}.{key} must be a finite non-negative number")
+    if "source" in dim and dim.get("source") not in DIMENSION_SOURCES:
+        errors.append(f"{label}.source must be one of {sorted(DIMENSION_SOURCES)}")
+
+
+def extra_cad_parameters(data: dict[str, Any]) -> tuple[str, ...]:
+    params: list[str] = []
+    hardware = data.get("hardware")
+    if isinstance(hardware, dict):
+        components = hardware.get("components")
+        if isinstance(components, list):
+            for comp in components:
+                if not isinstance(comp, dict):
+                    continue
+                interfaces = comp.get("interfaces")
+                if isinstance(interfaces, list):
+                    for iface in interfaces:
+                        if isinstance(iface, dict) and isinstance(iface.get("parameter"), str):
+                            params.append(iface["parameter"])
+    wiring = data.get("wiring")
+    if isinstance(wiring, dict):
+        for key in ("connector_keepouts", "cable_path_keepouts"):
+            items = wiring.get(key)
+            if isinstance(items, list):
+                for item in items:
+                    if isinstance(item, dict) and isinstance(item.get("parameter"), str):
+                        params.append(item["parameter"])
+    return tuple(params)
+
+
+def _validate_keepout_list(items: Any, label: str, errors: list[str]) -> None:
+    if not isinstance(items, list):
+        errors.append(f"{label} must be a list")
+        return
+    names: set[str] = set()
+    for index, item in enumerate(items):
+        entry = f"{label}[{index}]"
+        if not isinstance(item, dict):
+            errors.append(f"{entry} must be a mapping")
+            continue
+        for key in ("name", "parameter", "width_mm", "height_mm", "source"):
+            if key not in item:
+                errors.append(f"{entry}.{key} is required")
+        name = item.get("name")
+        if not isinstance(name, str) or not name:
+            errors.append(f"{entry}.name must be non-empty")
+        elif name in names:
+            errors.append(f"duplicate keepout name: {name}")
+        else:
+            names.add(name)
+        parameter = item.get("parameter")
+        if not isinstance(parameter, str) or not parameter.isidentifier():
+            errors.append(f"{entry}.parameter must be a valid CAD identifier")
+        for key in ("width_mm", "height_mm", "depth_mm", "length_mm"):
+            if key in item and (not finite_number(item[key]) or float(item[key]) < 0):
+                errors.append(f"{entry}.{key} must be a finite non-negative number")
+        if "source" in item and item.get("source") not in DIMENSION_SOURCES:
+            errors.append(f"{entry}.source must be one of {sorted(DIMENSION_SOURCES)}")
+
+
+def validate_hardware(data: dict[str, Any], errors: list[str]) -> None:
+    product_class = nested(data, "part.product_class")
+    hardware = data.get("hardware")
+    if product_class == "robot-module":
+        components = hardware.get("components") if isinstance(hardware, dict) else None
+        if not isinstance(hardware, dict) or not isinstance(components, list) or not components:
+            errors.append("robot-module requires non-empty hardware.components")
+            if not isinstance(hardware, dict):
+                return
+    elif hardware is None:
+        return
+    elif not isinstance(hardware, dict):
+        errors.append("hardware must be a mapping")
+        return
+
+    components = hardware.get("components")
+    if components is None:
+        return
+    if not isinstance(components, list):
+        errors.append("hardware.components must be a list")
+        return
+
+    ids: set[str] = set()
+    for index, comp in enumerate(components):
+        label = f"hardware.components[{index}]"
+        if not isinstance(comp, dict):
+            errors.append(f"{label} must be a mapping")
+            continue
+        for key in ("id", "mpn_or_generic", "role", "qty", "envelope_mm", "interfaces"):
+            if key not in comp:
+                errors.append(f"{label}.{key} is required")
+        ident = comp.get("id")
+        if not isinstance(ident, str) or not ident:
+            errors.append(f"{label}.id must be non-empty")
+        elif ident in ids:
+            errors.append(f"duplicate hardware component id: {ident}")
+        else:
+            ids.add(ident)
+        mpn = comp.get("mpn_or_generic")
+        if "mpn_or_generic" in comp and (not isinstance(mpn, str) or not mpn):
+            errors.append(f"{label}.mpn_or_generic must be non-empty")
+        role = comp.get("role")
+        if "role" in comp and (not isinstance(role, str) or not role):
+            errors.append(f"{label}.role must be non-empty")
+        qty = comp.get("qty")
+        if "qty" in comp and (not isinstance(qty, int) or isinstance(qty, bool) or qty < 1):
+            errors.append(f"{label}.qty must be an integer >= 1")
+        envelope = comp.get("envelope_mm")
+        if "envelope_mm" in comp and (
+            not isinstance(envelope, list) or len(envelope) != 3
+            or not all(finite_number(value) and float(value) > 0 for value in envelope)
+        ):
+            errors.append(f"{label}.envelope_mm must be [X, Y, Z] positive millimetres")
+        interfaces = comp.get("interfaces")
+        if "interfaces" not in comp:
+            continue
+        if not isinstance(interfaces, list):
+            errors.append(f"{label}.interfaces must be a list")
+            continue
+        if role in CRITICAL_HARDWARE_ROLES and not interfaces:
+            errors.append(f"{label}.interfaces must be non-empty for critical role {role}")
+        names: set[str] = set()
+        for iface_index, iface in enumerate(interfaces):
+            iface_label = f"{label}.interfaces[{iface_index}]"
+            validate_named_millimetre(iface, iface_label, errors, names)
+            if (
+                role in CRITICAL_HARDWARE_ROLES
+                and isinstance(iface, dict)
+                and iface.get("source") == "assumed"
+            ):
+                errors.append(
+                    f"{iface_label}.source cannot be assumed for critical role {role}"
+                )
+
+
+def validate_wiring(data: dict[str, Any], errors: list[str]) -> None:
+    wiring = data.get("wiring")
+    if wiring is None:
+        return
+    if not isinstance(wiring, dict):
+        errors.append("wiring must be a mapping")
+        return
+
+    domains = wiring.get("voltage_domains")
+    if not isinstance(domains, list) or not domains:
+        errors.append("wiring.voltage_domains must be a non-empty list")
+        domains = []
+    domain_volts: dict[str, float] = {}
+    domain_names: set[str] = set()
+    for index, domain in enumerate(domains):
+        label = f"wiring.voltage_domains[{index}]"
+        if not isinstance(domain, dict):
+            errors.append(f"{label} must be a mapping")
+            continue
+        if "name" not in domain or "volts" not in domain:
+            if "name" not in domain:
+                errors.append(f"{label}.name is required")
+            if "volts" not in domain:
+                errors.append(f"{label}.volts is required")
+        name = domain.get("name")
+        if not isinstance(name, str) or not name:
+            errors.append(f"{label}.name must be non-empty")
+        elif name in domain_names:
+            errors.append(f"duplicate voltage domain: {name}")
+        else:
+            domain_names.add(name)
+        volts = parse_volts(domain.get("volts"))
+        if volts is None:
+            errors.append(f"{label}.volts must be a finite number or voltage label")
+        elif isinstance(name, str) and name:
+            domain_volts[name] = volts
+
+    pin_map = wiring.get("pin_map")
+    nets = wiring.get("nets")
+    has_pins = isinstance(pin_map, list) and bool(pin_map)
+    has_nets = isinstance(nets, list) and bool(nets)
+    if pin_map is not None and not isinstance(pin_map, list):
+        errors.append("wiring.pin_map must be a list")
+    if nets is not None and not isinstance(nets, list):
+        errors.append("wiring.nets must be a list")
+    if not has_pins and not has_nets:
+        errors.append("wiring requires nets or pin_map")
+
+    pin_rails: dict[str, set[str]] = {}
+    net_rails: dict[str, set[str]] = {}
+
+    if isinstance(nets, list):
+        net_names: set[str] = set()
+        for index, net in enumerate(nets):
+            label = f"wiring.nets[{index}]"
+            if not isinstance(net, dict):
+                errors.append(f"{label} must be a mapping")
+                continue
+            if "name" not in net:
+                errors.append(f"{label}.name is required")
+            if "voltage_domain" not in net:
+                errors.append(f"{label}.voltage_domain is required")
+            name = net.get("name")
+            if not isinstance(name, str) or not name:
+                errors.append(f"{label}.name must be non-empty")
+            elif name in net_names:
+                errors.append(f"duplicate net name: {name}")
+            else:
+                net_names.add(name)
+            domain = net.get("voltage_domain")
+            if domain is not None and domain not in domain_volts:
+                errors.append(f"{label}.voltage_domain must name a voltage_domains entry")
+            volts = domain_volts.get(domain) if isinstance(domain, str) else None
+            rail = logic_rail(volts) if volts is not None else None
+            if rail and isinstance(name, str) and name:
+                net_rails.setdefault(name, set()).add(rail)
+
+    if isinstance(pin_map, list):
+        for index, pin in enumerate(pin_map):
+            label = f"wiring.pin_map[{index}]"
+            if not isinstance(pin, dict):
+                errors.append(f"{label} must be a mapping")
+                continue
+            for key in ("mcu_pin", "function", "voltage"):
+                if key not in pin:
+                    errors.append(f"{label}.{key} is required")
+            mcu_pin = pin.get("mcu_pin")
+            if "mcu_pin" in pin and (not isinstance(mcu_pin, str) or not mcu_pin):
+                errors.append(f"{label}.mcu_pin must be non-empty")
+            function = pin.get("function")
+            if "function" in pin and (not isinstance(function, str) or not function):
+                errors.append(f"{label}.function must be non-empty")
+            volts = parse_volts(pin.get("voltage")) if "voltage" in pin else None
+            if "voltage" in pin and volts is None:
+                errors.append(f"{label}.voltage must be a finite number or voltage label")
+            rail = logic_rail(volts) if volts is not None else None
+            if rail and isinstance(mcu_pin, str) and mcu_pin:
+                pin_rails.setdefault(mcu_pin, set()).add(rail)
+            net = pin.get("net")
+            if net is not None and (not isinstance(net, str) or not net):
+                errors.append(f"{label}.net must be a non-empty string")
+            elif isinstance(net, str) and rail:
+                net_rails.setdefault(net, set()).add(rail)
+
+    for pin, rails in pin_rails.items():
+        if "3v3" in rails and "5v" in rails:
+            errors.append(f"wiring 3V3/5V collision on pin {pin}")
+    for net, rails in net_rails.items():
+        if "3v3" in rails and "5v" in rails:
+            errors.append(f"wiring 3V3/5V collision on net {net}")
+
+    if "connector_keepouts" not in wiring:
+        errors.append("wiring.connector_keepouts is required")
+    else:
+        _validate_keepout_list(wiring.get("connector_keepouts"), "wiring.connector_keepouts", errors)
+    if "cable_path_keepouts" not in wiring:
+        errors.append("wiring.cable_path_keepouts is required")
+    else:
+        _validate_keepout_list(
+            wiring.get("cable_path_keepouts"), "wiring.cable_path_keepouts", errors
+        )
+
+
+from print_spec_assembly import (  # noqa: E402
+    parse_optional_blocks,
+    validate_assembly,
+    validate_loads,
+    validate_sim,
+)
 
 
 def validate(data: Any, project: Path | None = None, check_files: bool = False) -> list[str]:
@@ -238,28 +656,13 @@ def validate(data: Any, project: Path | None = None, check_files: bool = False) 
     else:
         names: set[str] = set()
         for index, dim in enumerate(dimensions):
-            label = f"dimensions[{index}]"
-            if not isinstance(dim, dict):
-                errors.append(f"{label} must be a mapping")
-                continue
-            for key in ("name", "parameter", "value_mm", "tolerance_mm", "source"):
-                if key not in dim:
-                    errors.append(f"{label}.{key} is required")
-            name = dim.get("name")
-            if not isinstance(name, str) or not name:
-                errors.append(f"{label}.name must be non-empty")
-            elif name in names:
-                errors.append(f"duplicate dimension name: {name}")
-            else:
-                names.add(name)
-            parameter = dim.get("parameter")
-            if not isinstance(parameter, str) or not parameter.isidentifier():
-                errors.append(f"{label}.parameter must be a valid CAD identifier")
-            for key in ("value_mm", "tolerance_mm"):
-                if key in dim and (not finite_number(dim[key]) or float(dim[key]) < 0):
-                    errors.append(f"{label}.{key} must be a finite non-negative number")
-            if dim.get("source") not in DIMENSION_SOURCES:
-                errors.append(f"{label}.source must be one of {sorted(DIMENSION_SOURCES)}")
+            validate_named_millimetre(dim, f"dimensions[{index}]", errors, names)
+
+    validate_hardware(data, errors)
+    validate_wiring(data, errors)
+    validate_assembly(data, errors)
+    validate_loads(data, errors)
+    validate_sim(data, errors)
 
     if nested(data, "service.environment") == "wet":
         if nested(data, "service.drainage") not in POSITIVE_DRAINAGE:
@@ -306,6 +709,7 @@ def parse_spec(data: dict[str, Any]) -> PrintSpec:
         )
         for dim in data["dimensions"]
     )
+    extra = parse_optional_blocks(data)
     return PrintSpec(
         schema_version=int(data["schema_version"]),
         part_name=nested(data, "part.name"),
@@ -335,6 +739,16 @@ def parse_spec(data: dict[str, Any]) -> PrintSpec:
         max_overhang_deg=float(nested(data, "print.max_overhang_deg")),
         service_environment=nested(data, "service.environment"),
         drainage=nested(data, "service.drainage"),
+        extra_parameters=extra_cad_parameters(data),
+        hardware=extra.hardware,
+        assembly_frame=extra.assembly_frame,
+        assembly_bodies=extra.assembly_bodies,
+        joints=extra.joints,
+        loads=extra.loads,
+        sim_scene=extra.sim_scene,
+        sim2real=extra.sim2real,
+        calibration=extra.calibration,
+        sim_roll=extra.sim_roll,
     )
 
 
@@ -373,7 +787,15 @@ def parameters_in_sources(spec: PrintSpec, project: Path) -> list[str]:
         if (project / rel).is_file()
     )
     errors: list[str] = []
+    seen: set[str] = set()
     for dim in spec.dimensions:
+        seen.add(dim.parameter)
         if not parameter_declared(dim.parameter, text):
             errors.append(f"CAD parameter not found in declared source files: {dim.parameter}")
+    for parameter in spec.extra_parameters:
+        if parameter in seen:
+            continue
+        seen.add(parameter)
+        if not parameter_declared(parameter, text):
+            errors.append(f"CAD parameter not found in declared source files: {parameter}")
     return errors

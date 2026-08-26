@@ -1,0 +1,30 @@
+id: robot-kit-assembly
+prompt: |
+  Prove this numbered robot-module rover kit assembles before print: place chassis,
+  wheels, head, MCU and N20 motor envelopes at assembled poses, revolute wheel joints
+  with clearance, stall loads, table-flat sim scene, then validate_assembly occupancy.
+  A screenshot is not proof. PRINT_SPEC is the contract.
+expect:
+  primary: 3d-print-sim
+  skills:
+    - 3d-print-sim
+    - 3d-print-design-brief
+    - 3d-print-robotics
+    - 3d-print-openscad
+    - 3d-print-validate
+  outrank:
+    - 3d-print-shop-fixture
+    - 3d-print-image-silhouette
+    - 3d-print-blender
+  skill_contains:
+    3d-print-sim:
+      - validate_assembly.py
+      - validate_project.py
+      - PRINT_SPEC
+      - "screenshot is not proof"
+      - emit_mjcf.py
+run:
+  - kind: validate_spec
+    path: examples/robot-kit-01-rover/docs/PRINT_SPEC.yaml
+  - kind: validate_assembly
+    path: examples/robot-kit-01-rover

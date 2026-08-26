@@ -3,7 +3,7 @@
 Deterministic CAD/CAM for FDM: agents write one contract, pick a CAD backend, export one STL per independently manufactured body, then fail closed.
 
 ```text
-PRINT_SPEC.yaml → CAD backend → one STL per body → validate_project.py
+PRINT_SPEC.yaml → CAD backend → one STL per body → validate_project.py → validate_assembly.py
 ```
 
 Markdown is narrative only. `docs/DESIGN.md` is never parsed. An assembly is multiple `geometry.stl_files` entries.
@@ -17,6 +17,8 @@ All tools use the same prefix, followed by one obvious job:
 - `3d-print-blender` — organic or lattice CAD; exception backend
 - `3d-print-validate` — contract and STL validation
 - `3d-print-display-enclosure` — small two-piece display enclosures
+- `3d-print-robotics` — numbered FDM micro-robotics kit modules
+- `3d-print-sim` — assembled occupancy, joint sweep, and load section check
 - `3d-print-image-silhouette` — image-derived stencils and silhouettes
 - `3d-print-shop-fixture` — decide whether a shop fixture should be printed or bought
 
@@ -72,7 +74,21 @@ python3 skills/3d-print-design-brief/scripts/validate_print_spec.py \
 
 python3 skills/3d-print-validate/scripts/validate_project.py \
   /path/to/exported-project
+
+python3 skills/3d-print-validate/scripts/validate_assembly.py \
+  examples/robot-kit-01-rover
+
+python3 skills/3d-print-validate/scripts/validate_assembly.py \
+  examples/robot-kit-01-rover-v2
+
+python3 skills/3d-print-validate/scripts/validate_assembly.py \
+  examples/robot-kit-01-rover-kid
+
+python3 skills/3d-print-sim/scripts/roll_table_flat.py \
+  examples/robot-kit-01-rover
 ```
+
+
 
 For Blender:
 
@@ -98,6 +114,10 @@ skills/3d-print-blender/scripts/pblend gate --project "$HOME/print-projects/orga
 - unacceptable fit or wet-service evidence
 - class-specific overhang and open-under failures
 
+When `assembly` is present, `validate_assembly.py` then fail-closes on illegal assembled occupancy, joint self-collision, and missing or assumed required loads. A render is not proof.
+
+`sim2real: true` requires mass, friction, and actuator calibration coupons with measured or datasheet sources. Assumed calibration cannot claim sim2real. A MuJoCo window is not the contract.
+
 Short STL chords are tessellation, not wall thickness. They remain warning-only; minimum walls come from CAD parameters and slicer verification.
 
 ## Tests
@@ -109,6 +129,7 @@ python3 -m unittest discover -s skills/3d-print-blender/scripts/tests -v
 python3 -m py_compile \
   skills/3d-print-design-brief/scripts/*.py \
   skills/3d-print-validate/scripts/*.py \
+  skills/3d-print-sim/scripts/*.py \
   skills/3d-print-blender/scripts/pblend_cli.py
 ```
 

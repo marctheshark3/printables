@@ -33,7 +33,33 @@ python3 -m unittest discover -s skills/3d-print-blender/scripts/tests -v
 python3 tests/test_skill_contract.py
 python3 skills/3d-print-design-brief/scripts/validate_print_spec.py \
   examples/bracket-coupon/docs/PRINT_SPEC.yaml
+python3 skills/3d-print-design-brief/scripts/validate_print_spec.py \
+  examples/robot-kit-01-rover/docs/PRINT_SPEC.yaml
+python3 skills/3d-print-validate/scripts/validate_project.py \
+  examples/robot-kit-01-rover
+python3 skills/3d-print-validate/scripts/validate_assembly.py \
+  examples/robot-kit-01-rover
+python3 skills/3d-print-design-brief/scripts/validate_print_spec.py \
+  examples/robot-kit-01-rover-v2/docs/PRINT_SPEC.yaml
+python3 skills/3d-print-validate/scripts/validate_project.py \
+  examples/robot-kit-01-rover-v2
+python3 skills/3d-print-validate/scripts/validate_assembly.py \
+  examples/robot-kit-01-rover-v2
+python3 skills/3d-print-sim/scripts/roll_table_flat.py \
+  examples/robot-kit-01-rover
+python3 skills/3d-print-sim/scripts/roll_table_flat.py \
+  examples/robot-kit-01-rover-v2
+python3 skills/3d-print-design-brief/scripts/validate_print_spec.py \
+  examples/robot-kit-01-rover-kid/docs/PRINT_SPEC.yaml
+python3 skills/3d-print-validate/scripts/validate_project.py \
+  examples/robot-kit-01-rover-kid
+python3 skills/3d-print-validate/scripts/validate_assembly.py \
+  examples/robot-kit-01-rover-kid
+python3 skills/3d-print-sim/scripts/roll_table_flat.py \
+  examples/robot-kit-01-rover-kid
 ```
+
+
 
 Also run the private-path and secret scan from `.github/workflows/ci.yml`.
 

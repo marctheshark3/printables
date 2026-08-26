@@ -1,0 +1,320 @@
+schema_version: 1
+part:
+  name: robot-kit-01-rover-v2
+  revision: 0.2.0
+  product_class: robot-module
+  purpose: Numbered 01 rover v2 with ESP32-C3, SG90 pan, HC-SR04, and IMU.
+
+manufacturing:
+  process: fdm
+  printer: generic-256mm
+  build_volume_mm: [256, 256, 256]
+  material: PETG
+  nozzle_mm: 0.4
+  layer_height_mm: 0.2
+
+cad:
+  backend: openscad
+  parametric: true
+  units: mm
+  source_files:
+    - src/rover.scad
+    - src/lib/robot_kit.scad
+
+geometry:
+  min_wall_mm: 1.6
+  min_feature_mm: 1.6
+  overlapping_solids_allowed: false
+  stl_files:
+    - path: stl/chassis.stl
+      body: chassis
+      expected_shells: 1
+    - path: stl/wheel.stl
+      body: wheel
+      expected_shells: 1
+    - path: stl/sensor_bracket.stl
+      body: sensor_bracket
+      expected_shells: 1
+
+fit:
+  required: true
+  clearance_per_side_mm: 0.4
+  evidence: datasheet
+  coupon: fit/mcu-pocket-coupon.scad
+
+dimensions:
+  - {name: chassis_length, parameter: chassis_length_mm, value_mm: 108.0, tolerance_mm: 0.2, source: from-user}
+  - {name: chassis_width, parameter: chassis_width_mm, value_mm: 62.0, tolerance_mm: 0.2, source: from-user}
+  - {name: deck_thickness, parameter: deck_thickness_mm, value_mm: 3.2, tolerance_mm: 0.1, source: from-user}
+  - {name: wall, parameter: wall_mm, value_mm: 2.4, tolerance_mm: 0.1, source: from-user}
+  - {name: wheel_od, parameter: wheel_od_mm, value_mm: 40.0, tolerance_mm: 0.2, source: from-user}
+  - {name: wheel_thickness, parameter: wheel_thickness_mm, value_mm: 6.0, tolerance_mm: 0.2, source: from-user}
+  - {name: hub_od, parameter: hub_od_mm, value_mm: 12.0, tolerance_mm: 0.2, source: from-user}
+  - {name: wheel_bore, parameter: wheel_bore_d_mm, value_mm: 3.3, tolerance_mm: 0.1, source: datasheet}
+  - {name: bracket_length, parameter: bracket_length_mm, value_mm: 46.0, tolerance_mm: 0.2, source: from-user}
+  - {name: bracket_width, parameter: bracket_width_mm, value_mm: 22.0, tolerance_mm: 0.2, source: from-user}
+  - {name: bracket_thickness, parameter: bracket_thickness_mm, value_mm: 3.2, tolerance_mm: 0.1, source: from-user}
+  - {name: horn_boss_od, parameter: horn_boss_od_mm, value_mm: 10.0, tolerance_mm: 0.2, source: from-user}
+  - {name: horn_boss_h, parameter: horn_boss_h_mm, value_mm: 3.2, tolerance_mm: 0.1, source: from-user}
+  - {name: horn_boss_id, parameter: horn_boss_id_mm, value_mm: 2.4, tolerance_mm: 0.05, source: datasheet}
+  - {name: horn_stack, parameter: horn_stack_mm, value_mm: 2.4, tolerance_mm: 0.2, source: datasheet}
+
+print:
+  orientation: base-on-bed
+  bed_face: bottom
+  up_axis: Z
+  supports: none
+  max_overhang_deg: 45
+
+service:
+  environment: dry
+  drainage: not-applicable
+
+hardware:
+  components:
+    - id: mcu
+      mpn_or_generic: ESP32-C3 Super Mini
+      role: mcu
+      qty: 1
+      envelope_mm: [22.5, 18.0, 4.5]
+      interfaces:
+        - {name: mcu_length, parameter: mcu_length_mm, value_mm: 22.5, tolerance_mm: 0.2, source: datasheet}
+        - {name: mcu_width, parameter: mcu_width_mm, value_mm: 18.0, tolerance_mm: 0.2, source: datasheet}
+        - {name: mcu_thickness, parameter: mcu_thickness_mm, value_mm: 3.5, tolerance_mm: 0.2, source: datasheet}
+        - {name: mcu_pocket_clearance, parameter: mcu_pocket_clearance_mm, value_mm: 0.4, tolerance_mm: 0.1, source: measured}
+        - {name: mcu_pocket_depth, parameter: mcu_pocket_depth_mm, value_mm: 1.6, tolerance_mm: 0.1, source: from-user}
+    - id: drive_left
+      mpn_or_generic: N20-class gear motor
+      role: motor
+      qty: 1
+      envelope_mm: [15.0, 12.0, 10.0]
+      interfaces:
+        - {name: motor_gearbox_l, parameter: motor_gearbox_l_mm, value_mm: 15.0, tolerance_mm: 0.2, source: datasheet}
+        - {name: motor_gearbox_w, parameter: motor_gearbox_w_mm, value_mm: 12.0, tolerance_mm: 0.2, source: datasheet}
+        - {name: motor_gearbox_h, parameter: motor_gearbox_h_mm, value_mm: 10.0, tolerance_mm: 0.2, source: datasheet}
+        - {name: motor_shaft_d, parameter: motor_shaft_d_mm, value_mm: 3.0, tolerance_mm: 0.05, source: datasheet}
+        - {name: motor_pocket_clearance, parameter: motor_pocket_clearance_mm, value_mm: 0.4, tolerance_mm: 0.1, source: measured}
+    - id: drive_right
+      mpn_or_generic: N20-class gear motor
+      role: motor
+      qty: 1
+      envelope_mm: [15.0, 12.0, 10.0]
+      interfaces:
+        - {name: motor_shaft_l, parameter: motor_shaft_l_mm, value_mm: 10.0, tolerance_mm: 0.2, source: datasheet}
+        - {name: wheel_bore, parameter: wheel_bore_d_mm, value_mm: 3.3, tolerance_mm: 0.1, source: datasheet}
+        - {name: wheel_d_flat, parameter: wheel_d_flat_mm, value_mm: 2.8, tolerance_mm: 0.1, source: datasheet}
+        - {name: wheel_hub_clearance, parameter: wheel_hub_clearance_per_side_mm, value_mm: 0.15, tolerance_mm: 0.05, source: measured}
+        - {name: hub_od, parameter: hub_od_mm, value_mm: 12.0, tolerance_mm: 0.2, source: from-user}
+    - id: pan_servo
+      mpn_or_generic: SG90 9g micro servo
+      role: servo
+      qty: 1
+      envelope_mm: [22.8, 12.2, 22.8]
+      interfaces:
+        - {name: sg90_body_x, parameter: sg90_body_x_mm, value_mm: 22.8, tolerance_mm: 0.3, source: datasheet}
+        - {name: sg90_body_y, parameter: sg90_body_y_mm, value_mm: 12.2, tolerance_mm: 0.3, source: datasheet}
+        - {name: sg90_body_z, parameter: sg90_body_z_mm, value_mm: 22.8, tolerance_mm: 0.3, source: datasheet}
+        - {name: sg90_tab_span, parameter: sg90_tab_span_mm, value_mm: 32.3, tolerance_mm: 0.4, source: datasheet}
+        - {name: sg90_tab_thick, parameter: sg90_tab_thick_mm, value_mm: 2.5, tolerance_mm: 0.2, source: datasheet}
+        - {name: sg90_tab_width, parameter: sg90_tab_width_mm, value_mm: 12.0, tolerance_mm: 0.3, source: datasheet}
+        - {name: sg90_pocket_clearance, parameter: sg90_pocket_clearance_mm, value_mm: 0.4, tolerance_mm: 0.1, source: measured}
+        - {name: sg90_horn_radius, parameter: sg90_horn_radius_mm, value_mm: 20.0, tolerance_mm: 0.5, source: datasheet}
+        - {name: sg90_horn_clearance_h, parameter: sg90_horn_clearance_h_mm, value_mm: 6.0, tolerance_mm: 0.2, source: from-user}
+    - id: ultrasonic
+      mpn_or_generic: HC-SR04 ultrasonic
+      role: sensor
+      qty: 1
+      envelope_mm: [45.0, 20.0, 15.0]
+      interfaces:
+        - {name: transducer_d, parameter: transducer_d_mm, value_mm: 16.4, tolerance_mm: 0.2, source: datasheet}
+        - {name: transducer_spacing, parameter: transducer_spacing_mm, value_mm: 26.0, tolerance_mm: 0.3, source: datasheet}
+        - {name: ultrasonic_h, parameter: ultrasonic_h_mm, value_mm: 15.0, tolerance_mm: 0.3, source: datasheet}
+    - id: imu
+      mpn_or_generic: MPU-6050 class 6-axis IMU
+      role: sensor
+      qty: 1
+      envelope_mm: [21.0, 16.0, 3.5]
+      interfaces:
+        - {name: imu_length, parameter: imu_length_mm, value_mm: 21.0, tolerance_mm: 0.3, source: datasheet}
+        - {name: imu_width, parameter: imu_width_mm, value_mm: 16.0, tolerance_mm: 0.3, source: datasheet}
+        - {name: imu_thickness, parameter: imu_thickness_mm, value_mm: 3.5, tolerance_mm: 0.2, source: datasheet}
+        - {name: imu_pocket_depth, parameter: imu_pocket_depth_mm, value_mm: 1.2, tolerance_mm: 0.1, source: from-user}
+    - id: motor_driver
+      mpn_or_generic: DRV8833-class dual H-bridge
+      role: driver
+      qty: 1
+      envelope_mm: [18.0, 16.0, 3.0]
+      interfaces:
+        - {name: driver_keepout_z, parameter: driver_keepout_z_mm, value_mm: 3.0, tolerance_mm: 0.2, source: datasheet}
+    - id: battery
+      mpn_or_generic: 1S LiPo pack or 5 V USB power
+      role: battery
+      qty: 1
+      envelope_mm: [30.0, 20.0, 6.0]
+      interfaces:
+        - {name: battery_envelope_h, parameter: battery_envelope_h_mm, value_mm: 6.0, tolerance_mm: 0.2, source: datasheet}
+    - id: fasteners
+      mpn_or_generic: M2 and M3 machine screws
+      role: fastener
+      qty: 10
+      envelope_mm: [6.6, 6.6, 8.0]
+      interfaces:
+        - {name: m2_through, parameter: m2_through_d_mm, value_mm: 2.4, tolerance_mm: 0.05, source: datasheet}
+        - {name: m3_through, parameter: m3_through_d_mm, value_mm: 3.4, tolerance_mm: 0.05, source: datasheet}
+        - {name: m2_boss_od, parameter: m2_boss_od_mm, value_mm: 5.6, tolerance_mm: 0.1, source: datasheet}
+        - {name: m3_boss_od, parameter: m3_boss_od_mm, value_mm: 6.6, tolerance_mm: 0.1, source: datasheet}
+
+wiring:
+  voltage_domains:
+    - {name: v3v3, volts: 3.3}
+    - {name: v5, volts: 5.0}
+    - {name: gnd, volts: 0.0}
+  pin_map:
+    - {mcu_pin: GPIO4, function: motor_left_in1, voltage: 3.3, net: motor_left_in1}
+    - {mcu_pin: GPIO5, function: motor_left_in2, voltage: 3.3, net: motor_left_in2}
+    - {mcu_pin: GPIO6, function: motor_right_in1, voltage: 3.3, net: motor_right_in1}
+    - {mcu_pin: GPIO7, function: motor_right_in2, voltage: 3.3, net: motor_right_in2}
+    - {mcu_pin: GPIO8, function: servo_pwm, voltage: 3.3, net: servo_pwm}
+    - {mcu_pin: GPIO10, function: us_trig, voltage: 3.3, net: us_trig}
+    - {mcu_pin: GPIO9, function: us_echo, voltage: 3.3, net: us_echo}
+    - {mcu_pin: GPIO2, function: imu_sda, voltage: 3.3, net: i2c_sda}
+    - {mcu_pin: GPIO3, function: imu_scl, voltage: 3.3, net: i2c_scl}
+    - {mcu_pin: VIN, function: motor_driver_vm, voltage: 5.0, net: vm}
+    - {mcu_pin: GND, function: ground, voltage: 0.0, net: gnd}
+  nets:
+    - {name: motor_left_in1, voltage_domain: v3v3}
+    - {name: motor_left_in2, voltage_domain: v3v3}
+    - {name: motor_right_in1, voltage_domain: v3v3}
+    - {name: motor_right_in2, voltage_domain: v3v3}
+    - {name: servo_pwm, voltage_domain: v3v3}
+    - {name: us_trig, voltage_domain: v3v3}
+    - {name: us_echo, voltage_domain: v3v3}
+    - {name: i2c_sda, voltage_domain: v3v3}
+    - {name: i2c_scl, voltage_domain: v3v3}
+    - {name: vm, voltage_domain: v5}
+    - {name: gnd, voltage_domain: gnd}
+  connector_keepouts:
+    - {name: usb_c, parameter: usb_c_keepout_w_mm, width_mm: 13.5, height_mm: 9.0, depth_mm: 12.0, source: datasheet}
+    - {name: usb_c_height, parameter: usb_c_keepout_h_mm, width_mm: 13.5, height_mm: 9.0, source: datasheet}
+    - {name: usb_c_depth, parameter: usb_c_keepout_d_mm, width_mm: 13.5, height_mm: 9.0, depth_mm: 12.0, source: datasheet}
+  cable_path_keepouts:
+    - {name: motor_left, parameter: cable_path_motor_left_w_mm, width_mm: 4.0, height_mm: 1.6, source: from-user}
+    - {name: motor_right, parameter: cable_path_motor_right_w_mm, width_mm: 4.0, height_mm: 1.6, source: from-user}
+    - {name: servo, parameter: cable_path_servo_w_mm, width_mm: 4.0, height_mm: 1.6, source: from-user}
+    - {name: imu, parameter: cable_path_imu_w_mm, width_mm: 4.0, height_mm: 1.6, source: from-user}
+    - {name: cable_height, parameter: cable_path_h_mm, width_mm: 4.0, height_mm: 1.6, source: from-user}
+
+assembly:
+  frame: assembled
+  bodies:
+    - id: chassis
+      body: chassis
+      parent: world
+      pose: {xyz_mm: [0.0, 0.0, 11.8], rpy_deg: [0.0, 0.0, 0.0]}
+    - id: wheel_left
+      body: wheel
+      parent: chassis
+      pose: {xyz_mm: [42.5, -0.5, 20.0], rpy_deg: [90.0, 0.0, 0.0]}
+    - id: wheel_right
+      body: wheel
+      parent: chassis
+      pose: {xyz_mm: [42.5, 62.5, 20.0], rpy_deg: [-90.0, 0.0, 0.0]}
+    - id: sensor_bracket
+      body: sensor_bracket
+      parent: pan_servo
+      pose: {xyz_mm: [89.45, 31.0, 40.6], rpy_deg: [0.0, 0.0, 0.0]}
+    - id: mcu
+      hardware: mcu
+      parent: chassis
+      pose: {xyz_mm: [8.4, 22.0, 13.5], rpy_deg: [0.0, 0.0, 0.0]}
+    - id: drive_left
+      hardware: drive_left
+      parent: chassis
+      pose: {xyz_mm: [48.5, 2.8, 15.4], rpy_deg: [0.0, 0.0, 90.0]}
+    - id: drive_right
+      hardware: drive_right
+      parent: chassis
+      pose: {xyz_mm: [36.5, 59.2, 15.4], rpy_deg: [0.0, 0.0, -90.0]}
+    - id: pan_servo
+      hardware: pan_servo
+      parent: chassis
+      pose: {xyz_mm: [78.05, 24.9, 15.4], rpy_deg: [0.0, 0.0, 0.0]}
+    - id: imu
+      hardware: imu
+      parent: chassis
+      pose: {xyz_mm: [53.7, 2.4, 15.1], rpy_deg: [0.0, 0.0, 0.0]}
+    - id: ultrasonic
+      hardware: ultrasonic
+      parent: sensor_bracket
+      pose: {xyz_mm: [104.05, 8.5, 41.6], rpy_deg: [90.0, 0.0, 90.0]}
+  joints:
+    - id: wheel_left
+      type: revolute
+      parent: chassis
+      child: wheel_left
+      axis: [0.0, 1.0, 0.0]
+      limits: {min_deg: 0, max_deg: 360}
+      clearance_per_side_mm: 0.15
+      source: datasheet
+    - id: wheel_right
+      type: revolute
+      parent: chassis
+      child: wheel_right
+      axis: [0.0, 1.0, 0.0]
+      limits: {min_deg: 0, max_deg: 360}
+      clearance_per_side_mm: 0.15
+      source: from-user
+    - id: pan
+      type: revolute
+      parent: chassis
+      child: sensor_bracket
+      axis: [0.0, 0.0, 1.0]
+      limits: {min_deg: 0, max_deg: 180}
+      clearance_per_side_mm: 0.4
+      source: datasheet
+
+loads:
+  - {id: gravity, kind: gravity, target: assembled, magnitude: 9810, units: mm_s2, safety_factor: 2.0, source: from-user}
+  - id: stall_left
+    kind: moment
+    target: wheel_left
+    magnitude: 0.049
+    units: N_m
+    safety_factor: 2.0
+    source: datasheet
+    section: {outer_parameter: hub_od_mm, inner_parameter: wheel_bore_d_mm}
+  - id: stall_right
+    kind: moment
+    target: wheel_right
+    magnitude: 0.049
+    units: N_m
+    safety_factor: 2.0
+    source: datasheet
+    section: {outer_parameter: hub_od_mm, inner_parameter: wheel_bore_d_mm}
+  - id: servo_stall
+    kind: moment
+    target: sensor_bracket
+    magnitude: 0.16
+    units: N_m
+    safety_factor: 2.0
+    source: datasheet
+    section: {outer_parameter: horn_boss_od_mm, inner_parameter: horn_boss_id_mm}
+
+sim:
+  sim2real: true
+  scene:
+    id: table-flat
+    gravity_mm_s2: [0.0, 0.0, -9810.0]
+    floor: {z_mm: 0.0}
+    friction: {mu: 0.55, source: measured}
+  calibration:
+    - {id: chassis_mass, type: mass, target: chassis, magnitude: 38.0, units: g, source: measured}
+    - {id: table_sled, type: friction, scene: table-flat, magnitude: 0.55, units: mu, source: measured}
+    - {id: n20_stall, type: actuator, target: drive_left, kind: stall_torque, magnitude: 0.049, units: N_m, source: datasheet}
+  roll:
+    distance_mm: 100
+    scene: table-flat
+    sim_mm: 100
+    bench_mm: 86
+    error_budget_mm: 20
+    source: measured

@@ -190,6 +190,20 @@ def validate_project(project: Path) -> None:
         )
 
 
+def validate_assembly(project: Path) -> None:
+    result = run_cmd(
+        [
+            sys.executable,
+            str(ROOT / "skills/3d-print-validate/scripts/validate_assembly.py"),
+            str(project),
+        ]
+    )
+    if result.returncode:
+        raise AssertionError(
+            f"validate_assembly failed {project}\n{result.stdout}\n{result.stderr}"
+        )
+
+
 def spec_template(
     *,
     name: str,
@@ -280,6 +294,10 @@ def run_step(step: dict, catalog: dict[str, dict], scenario_id: str) -> str:
     if kind == "validate_spec":
         validate_spec(ROOT / step["path"])
         return f"validate_spec {step['path']}"
+
+    if kind == "validate_assembly":
+        validate_assembly(ROOT / step["path"])
+        return f"validate_assembly {step['path']}"
 
     if kind == "export_openscad_project":
         src = ROOT / step["from"]

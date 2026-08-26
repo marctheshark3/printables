@@ -37,6 +37,14 @@ That command:
 
 Never convert a HARD check into a warning to make a file pass.
 
+When `assembly` is present, run the occupancy gate after mesh validation:
+
+```bash
+python3 scripts/validate_assembly.py "$PROJECT"
+```
+
+That command places printed STLs and hardware envelopes at declared poses and fail-closes on illegal collision, joint self-collision, and missing or assumed required loads. A render is not proof. Mesh HARD gates stay required.
+
 Mesh-only (no spec policy):
 
 ```bash

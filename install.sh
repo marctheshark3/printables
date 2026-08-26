@@ -26,6 +26,8 @@ SKILLS=(
   3d-print-display-enclosure
   3d-print-image-silhouette
   3d-print-shop-fixture
+  3d-print-robotics
+  3d-print-sim
 )
 BUNDLES=(3d-print.yaml)
 
