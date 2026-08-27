@@ -1,11 +1,11 @@
 schema_version: 1
 part:
-  name: robot-kit-03-pendulum
+  name: robot-kit-03-pendulum-wall
   revision: 0.3.0
   product_class: robot-module
-  purpose: Kid-friendly desk inverted pendulum. Horizontal SG90 shaft, cream
-    stick with red ball sweeps a vertical plane in front of a low rounded plate.
-    No lid, no collar. 03 on the front. Super Mini in a shallow well.
+  purpose: Wall-mount inverted pendulum. Same horizontal SG90 shaft and cream/red
+    stick as desk 03. Plate hangs on two M3 keyholes; stick swings in front of the
+    wall in a vertical plane parallel to it. USB-C out the bottom, not into the wall.
 manufacturing:
   process: fdm
   printer: generic-256mm
@@ -21,20 +21,20 @@ cad:
   parametric: true
   units: mm
   source_files:
-  - src/03_desk.scad
+  - src/03_wall.scad
   - src/lib/robot_kit.scad
 geometry:
   min_wall_mm: 1.6
   min_feature_mm: 1.6
   overlapping_solids_allowed: false
   stl_files:
-  - path: stl/03_desk_plate.stl
-    body: plate
+  - path: stl/03_wall_plate.stl
+    body: wall_plate
     expected_shells: 1
-  - path: stl/03_desk_stick.stl
+  - path: stl/03_wall_stick.stl
     body: stick
     expected_shells: 1
-  - path: stl/03_desk_knob.stl
+  - path: stl/03_wall_knob.stl
     body: knob
     expected_shells: 1
 fit:
@@ -48,9 +48,9 @@ dimensions:
   value_mm: 104.0
   tolerance_mm: 0.2
   source: from-user
-- name: plate_w
-  parameter: plate_w_mm
-  value_mm: 56.0
+- name: plate_h
+  parameter: plate_h_mm
+  value_mm: 88.0
   tolerance_mm: 0.2
   source: from-user
 - name: plate_t
@@ -68,9 +68,9 @@ dimensions:
   value_mm: 2.4
   tolerance_mm: 0.1
   source: from-user
-- name: fairing_h
-  parameter: fairing_h_mm
-  value_mm: 26.0
+- name: fairing_w
+  parameter: fairing_w_mm
+  value_mm: 24.0
   tolerance_mm: 0.2
   source: from-user
 - name: shaft_x
@@ -78,14 +78,14 @@ dimensions:
   value_mm: 70.0
   tolerance_mm: 0.2
   source: from-user
-- name: shaft_front
-  parameter: shaft_front_mm
-  value_mm: 7.0
+- name: shaft_y
+  parameter: shaft_y_mm
+  value_mm: 32.0
   tolerance_mm: 0.2
   source: from-user
 - name: shaft_z
   parameter: shaft_z_mm
-  value_mm: 16.0
+  value_mm: 50.0
   tolerance_mm: 0.2
   source: from-user
 - name: stick_h
@@ -116,6 +116,16 @@ dimensions:
 - name: knob_d
   parameter: knob_d_mm
   value_mm: 16.0
+  tolerance_mm: 0.2
+  source: from-user
+- name: keyhole_head_d
+  parameter: keyhole_head_d_mm
+  value_mm: 6.6
+  tolerance_mm: 0.1
+  source: datasheet
+- name: keyhole_drop
+  parameter: keyhole_drop_mm
+  value_mm: 8.0
   tolerance_mm: 0.2
   source: from-user
 print:
@@ -320,40 +330,40 @@ wiring:
 assembly:
   frame: assembled
   bodies:
-  - id: plate
-    body: plate
+  - id: wall_plate
+    body: wall_plate
     parent: world
     pose:
-      xyz_mm: [0.0, 0.0, 0.0]
-      rpy_deg: [0.0, 0.0, 0.0]
+      xyz_mm: [0.0, 0.0, 88.0]
+      rpy_deg: [-90.0, 0.0, 0.0]
   - id: stick
     body: stick
-    parent: plate
+    parent: wall_plate
     pose:
-      xyz_mm: [74.0, -7.0, 16.0]
+      xyz_mm: [74.0, 32.0, 50.0]
       rpy_deg: [0.0, -90.0, 0.0]
   - id: knob
     body: knob
     parent: stick
     pose:
-      xyz_mm: [16.8, -7.0, 16.0]
+      xyz_mm: [16.8, 32.0, 50.0]
       rpy_deg: [0.0, -90.0, 0.0]
   - id: mcu
     hardware: mcu
-    parent: plate
+    parent: wall_plate
     pose:
-      xyz_mm: [8.4, 14.4, 2.6]
-      rpy_deg: [0.0, 0.0, 0.0]
+      xyz_mm: [8.4, 2.4, 24.4]
+      rpy_deg: [-90.0, 0.0, 0.0]
   - id: servo
     hardware: servo
-    parent: plate
+    parent: wall_plate
     pose:
-      xyz_mm: [58.6, -1.0, 22.1]
-      rpy_deg: [-90.0, 0.0, 0.0]
+      xyz_mm: [58.6, 5.0, 38.0]
+      rpy_deg: [0.0, 0.0, 0.0]
   joints:
   - id: pivot
     type: revolute
-    parent: plate
+    parent: wall_plate
     child: stick
     axis: [0.0, 1.0, 0.0]
     limits:
