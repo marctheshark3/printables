@@ -11,3 +11,5 @@ Shop-fixture prompts still stop before CAD.
 
 Add a scenario when you add a skill path. Keep prompts specific enough that
 the intended primary skill outranks blender/openscad/shop/image competitors.
+The VibeCAD remake prompt validates a committed coupon; `run:` must not invoke
+VibeCAD, Docker, AppImage, GPU, or qemu.

@@ -23,8 +23,9 @@ An assembly is multiple independently manufactured bodies: one `geometry.stl_fil
 | dimensional mechanical part, exact fits, brackets, stands, enclosures | `openscad` |
 | organic skin, lattice, sculpted surface | `blender` |
 | separate declared dimensional and organic bodies | `hybrid` |
+| human is already in 10-X-eng/vibecad, or an explicit remake of a PRINT_SPEC part there | `vibecad` |
 
-If more than one row seems plausible, choose `openscad`.
+If more than one row seems plausible, choose `openscad`. `vibecad` is an optional third backend, not the default for a new bracket, and not the PyPI package named vibecad. `hybrid` still means separate bodies, not two kernels editing one body. VibeCAD chat, `.FCStd`, MJCF, and `DESIGN.md` cannot override this file.
 
 ## Tolerance vocabulary
 

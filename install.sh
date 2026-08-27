@@ -22,6 +22,7 @@ SKILLS=(
   3d-print-design-brief
   3d-print-openscad
   3d-print-blender
+  3d-print-vibecad
   3d-print-validate
   3d-print-display-enclosure
   3d-print-image-silhouette

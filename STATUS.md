@@ -1,6 +1,6 @@
 # Status
 
-Last reviewed 2026-08-25.
+Last reviewed 2026-08-26.
 
 ## Supported path
 
@@ -8,6 +8,7 @@ Last reviewed 2026-08-25.
 - An assembly is multiple independently manufactured bodies in `geometry.stl_files`.
 - OpenSCAD is the default for dimensional mechanical parts.
 - Blender is allowed only for organic or lattice bodies.
+- VibeCAD (10-X-eng/vibecad) is an optional x86_64 backend (`cad.backend: vibecad`) using the same validators; it is not the default kernel and is not required by `/3d-print`.
 - Hybrid means separate declared bodies owned by separate backends—not two kernels editing one body.
 - `3d-print-validate` is backend-neutral and mandatory after every export.
 - `3d-print-robotics` is the class skill for numbered `robot-module` kit bodies.
@@ -39,11 +40,11 @@ Last reviewed 2026-08-25.
 - Assembled occupancy is in-process mesh placement plus a handbook hub-section check, not FEA.
 - The installer is additive. It does not remove old user-local skill directories.
 - Blender still depends on Blender's boolean and modifier behavior; malformed output must fail the shared validator.
+- VibeCAD on Linux ARM qemu-x86_64 AppImage is not a supported backend. Boolean welding of overlapping solids remains a known limit until a live coupon exports one solid through VibeCADCmd/freecadcmd.
 
 ## Removed
 
-- The old `printables-*`, `openscad-printables`, and `blender-printables` names were removed from this repository.
-- VibeCAD was removed because its current Linux ARM/headless workflow and boolean welding are not reliable enough for this contract.
+- The old `printables-*`, `openscad-printables`, `blender-printables`, and `vibecad-printables` names were removed from this repository.
 - Private project notes, machine-specific paths, and unused house regression prose were removed from the public skill tree.
 
 There is no compatibility promise for code that does not satisfy the current contract. Working artifacts stay; broken artifacts become negative regression fixtures or leave the pack.

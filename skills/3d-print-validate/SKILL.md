@@ -8,7 +8,7 @@ platforms: [linux, macos, windows]
 metadata:
   hermes:
     tags: [3d-print, fdm, validation, stl, manifold, watertight]
-    related_skills: [3d-print-design-brief, 3d-print-openscad, 3d-print-blender]
+    related_skills: [3d-print-design-brief, 3d-print-openscad, 3d-print-blender, 3d-print-vibecad]
 ---
 
 # 3D Print Validate

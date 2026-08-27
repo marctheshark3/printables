@@ -10,6 +10,7 @@ EXPECTED = {
     "3d-print-design-brief",
     "3d-print-openscad",
     "3d-print-blender",
+    "3d-print-vibecad",
     "3d-print-validate",
     "3d-print-display-enclosure",
     "3d-print-image-silhouette",
@@ -58,6 +59,33 @@ def main() -> int:
     bundle = yaml.safe_load((ROOT / "skill-bundles" / "3d-print.yaml").read_text(encoding="utf-8"))
     assert bundle["name"] == "3d-print"
     assert all(item in EXPECTED for item in bundle["skills"])
+    assert "3d-print-vibecad" not in bundle["skills"]
+    assert not (SKILLS / "vibecad-printables").exists()
+    install = (ROOT / "install.sh").read_text(encoding="utf-8")
+    assert "3d-print-vibecad" in install
+
+    vibecad = (SKILLS / "3d-print-vibecad" / "SKILL.md").read_text(encoding="utf-8")
+    host = (SKILLS / "3d-print-vibecad" / "references" / "vibecad-host.md").read_text(
+        encoding="utf-8"
+    )
+    combined = vibecad + "\n" + host
+    for needle in (
+        "3d-print-design-brief",
+        "validate_project.py",
+        "expected_shells",
+        "multiFuse",
+        "127.0.0.1:8766",
+        "VIBECAD_CMD",
+        "Do not enable VibeCAD MCP",
+        "passwords",
+        "device codes",
+        "x86_64",
+        "freecadcmd",
+        "PRINT_SPEC.yaml",
+        "preview is not printable",
+        "OpenSCAD remains the dimensional default",
+    ):
+        assert needle in combined, f"3d-print-vibecad host contract missing {needle!r}"
     print("RESULT: PASS")
     return 0
 

@@ -14,7 +14,9 @@ except ImportError as exc:
     raise SystemExit("HARD: PyYAML is required: python3 -m pip install PyYAML") from exc
 
 
-BACKENDS = {"openscad", "blender", "hybrid"}
+BACKENDS = {"openscad", "blender", "hybrid", "vibecad"}
+VIBECAD_PARAMETRIC_SUFFIXES = {".py", ".vibescript"}
+VIBECAD_NON_PARAMETRIC_SUFFIXES = {".fcstd", ".md", ".markdown"}
 PRODUCT_CLASSES = {
     "bracket", "mount", "stand", "tray", "enclosure", "equipment-open-frame",
     "wet-fixture", "pip-hinge", "silhouette", "robot-module", "other",
@@ -273,6 +275,23 @@ def validate_named_millimetre(
             errors.append(f"{label}.{key} must be a finite non-negative number")
     if "source" in dim and dim.get("source") not in DIMENSION_SOURCES:
         errors.append(f"{label}.source must be one of {sorted(DIMENSION_SOURCES)}")
+
+
+def vibecad_source_suffix(path: str) -> str:
+    return Path(path).suffix.lower()
+
+
+def vibecad_has_parametric_source(source_files: Any) -> bool:
+    if not isinstance(source_files, list) or not source_files:
+        return False
+    suffixes = [
+        vibecad_source_suffix(item) for item in source_files if isinstance(item, str)
+    ]
+    if not suffixes:
+        return False
+    if all(suffix in VIBECAD_NON_PARAMETRIC_SUFFIXES for suffix in suffixes):
+        return False
+    return any(suffix in VIBECAD_PARAMETRIC_SUFFIXES for suffix in suffixes)
 
 
 def extra_cad_parameters(data: dict[str, Any]) -> tuple[str, ...]:
@@ -611,6 +630,11 @@ def validate(data: Any, project: Path | None = None, check_files: bool = False) 
         isinstance(x, str) and safe_relative_path(x) for x in source_files
     ):
         errors.append("cad.source_files must be a non-empty list of project-relative paths without '..'")
+    elif nested(data, "cad.backend") == "vibecad" and not vibecad_has_parametric_source(source_files):
+        errors.append(
+            "cad.backend vibecad requires project-relative Python/VibeScript "
+            "(.py or .vibescript); .FCStd and Markdown cannot be the only sources"
+        )
 
     stl_files = nested(data, "geometry.stl_files")
     if not isinstance(stl_files, list) or not stl_files:

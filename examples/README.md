@@ -17,6 +17,16 @@ python3 skills/3d-print-validate/scripts/validate_project.py \
 
 CI sample prompts export this STL (and the other prompt STLs) as the `generated-stls` artifact.
 
+`bracket-coupon-vibecad` is the same 40×30×12 mm coupon with `cad.backend: vibecad` and a VibeScript/Part CSG `.py`. Default CI does not run VibeCAD: it checks the spec, named parameters, and the committed STL with `validate_project`. Live OCC export is extra extra when `VIBECAD_CMD` is set.
+
+```bash
+python3 skills/3d-print-design-brief/scripts/validate_print_spec.py \
+  examples/bracket-coupon-vibecad/docs/PRINT_SPEC.yaml
+
+python3 skills/3d-print-validate/scripts/validate_project.py \
+  examples/bracket-coupon-vibecad
+```
+
 `robot-kit-01-rover` is a numbered-01 two-wheel `robot-module` chassis (MCU on deck, LED head). Motors, MCU, battery, and driver are bought.
 
 ```bash

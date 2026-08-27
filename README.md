@@ -15,6 +15,7 @@ All tools use the same prefix, followed by one obvious job:
 - `3d-print-design-brief` — define and validate the manufacturing contract
 - `3d-print-openscad` — dimensional mechanical CAD; default backend
 - `3d-print-blender` — organic or lattice CAD; exception backend
+- `3d-print-vibecad` — optional 10-X-eng/vibecad remake; not the default kernel
 - `3d-print-validate` — contract and STL validation
 - `3d-print-display-enclosure` — small two-piece display enclosures
 - `3d-print-robotics` — numbered FDM micro-robotics kit modules
@@ -22,16 +23,16 @@ All tools use the same prefix, followed by one obvious job:
 - `3d-print-image-silhouette` — image-derived stencils and silhouettes
 - `3d-print-shop-fixture` — decide whether a shop fixture should be printed or bought
 
-The `/3d-print` bundle loads the brief, OpenSCAD, Blender, and validator. Use OpenSCAD for dimensional work and Blender only for organic or lattice bodies.
+The `/3d-print` bundle loads the brief, OpenSCAD, Blender, and validator. Use OpenSCAD for dimensional work and Blender only for organic or lattice bodies. `3d-print-vibecad` is optional and is not required by `/3d-print`.
 
-VibeCAD is not shipped. Its current Linux ARM/headless path and boolean behavior do not meet this pack's reliability contract.
+VibeCAD (10-X-eng/vibecad, not the PyPI package) is an optional x86_64 backend using the same PRINT_SPEC and `validate_project` gates. Linux ARM qemu-x86_64 AppImage is not supported; boolean welding of overlapping solids stays a known limit until a live one-solid remake.
 
 ## Hard contract
 
 Each project owns `docs/PRINT_SPEC.yaml` with:
 
 - `cad.parametric: true`
-- backend chosen from `openscad`, `blender`, or `hybrid`
+- backend chosen from `openscad`, `blender`, `hybrid`, or optional `vibecad`
 - millimetres and Z-up
 - explicit X/Y/Z printer build volume
 - named CAD parameter for each critical dimension

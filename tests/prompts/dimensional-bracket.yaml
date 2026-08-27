@@ -14,6 +14,7 @@ expect:
     - 3d-print-blender
     - 3d-print-shop-fixture
     - 3d-print-image-silhouette
+    - 3d-print-vibecad
   skill_contains:
     3d-print-openscad:
       - PRINT_SPEC.yaml

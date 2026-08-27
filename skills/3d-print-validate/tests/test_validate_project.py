@@ -165,6 +165,37 @@ def test_design_md_cannot_override_print_spec(tmp_path):
     assert result.returncode == 0, result.stdout + result.stderr
 
 
+def test_five_solid_weld_claiming_one_shell_is_hard(tmp_path):
+    # Five overlapping cubes that never share vertices: a failed multiFuse.
+    triangles = []
+    for index in range(5):
+        triangles.extend(cube_triangles(x0=index * 3.0))
+    make_project(tmp_path, triangles, expected_shells=1)
+    result = run(tmp_path)
+    assert result.returncode == 1
+    assert "G-components" in result.stdout
+    assert "expected 1, found 5" in result.stdout
+    assert "RESULT: FAIL" in result.stdout
+
+
+def test_thin_tessellation_edges_remain_warning_only(tmp_path):
+    make_project(tmp_path, cube_triangles(size=0.4))
+    result = run(tmp_path)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "RESULT: PASS" in result.stdout
+    assert "G-tessellation" in result.stdout
+    assert "HARD  G-tessellation" not in result.stdout
+    assert "WARN  G-tessellation" in result.stdout
+
+
+def test_gold_vibecad_coupon_project_passes():
+    project = Path(__file__).resolve().parents[3] / "examples/bracket-coupon-vibecad"
+    result = run(project)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "RESULT: PASS" in result.stdout
+    assert "HARD=" not in result.stdout or "HARD=0" in result.stdout
+
+
 def test_parameter_substring_is_not_a_declaration(tmp_path):
     make_project(
         tmp_path,

@@ -34,6 +34,10 @@ python3 tests/test_skill_contract.py
 python3 skills/3d-print-design-brief/scripts/validate_print_spec.py \
   examples/bracket-coupon/docs/PRINT_SPEC.yaml
 python3 skills/3d-print-design-brief/scripts/validate_print_spec.py \
+  examples/bracket-coupon-vibecad/docs/PRINT_SPEC.yaml
+python3 skills/3d-print-validate/scripts/validate_project.py \
+  examples/bracket-coupon-vibecad
+python3 skills/3d-print-design-brief/scripts/validate_print_spec.py \
   examples/robot-kit-01-rover/docs/PRINT_SPEC.yaml
 python3 skills/3d-print-validate/scripts/validate_project.py \
   examples/robot-kit-01-rover
@@ -71,4 +75,5 @@ Also run the private-path and secret scan from `.github/workflows/ci.yml`.
 - Every `related_skills` entry must resolve in this repository.
 - OpenSCAD remains the dimensional default.
 - Blender is an exception for organic or lattice bodies.
+- VibeCAD is an optional x86_64 remake path, not a required `/3d-print` skill.
 - HARD validation failures block delivery.

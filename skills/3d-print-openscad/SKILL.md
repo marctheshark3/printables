@@ -19,7 +19,7 @@ Build dimensional mechanical FDM parts from a validated `docs/PRINT_SPEC.yaml`. 
 
 Use when `cad.backend: openscad`, or when the geometry is dimensional and no backend has been selected.
 
-Do not use for sculpted organic surfaces or decorative lattices; use `3d-print-blender`.
+Do not use for sculpted organic surfaces or decorative lattices; use `3d-print-blender`. A VibeCAD remake is `3d-print-vibecad` only when the human is already in VibeCAD or asked to remake there — not the default for a new bracket.
 
 ## Source Contract
 

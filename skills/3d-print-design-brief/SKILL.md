@@ -8,7 +8,7 @@ platforms: [linux, macos, windows]
 metadata:
   hermes:
     tags: [3d-print, fdm, design-contract, dimensions, tolerances]
-    related_skills: [3d-print-openscad, 3d-print-blender, 3d-print-validate]
+    related_skills: [3d-print-openscad, 3d-print-blender, 3d-print-validate, 3d-print-vibecad]
 ---
 
 # 3D Print Design Brief
@@ -19,7 +19,7 @@ Create `docs/PRINT_SPEC.yaml` before CAD. This file is the sole machine-readable
 
 - Any new or redesigned FDM part
 - A part derived from a photo, sketch, existing STL, or measured object
-- Before selecting OpenSCAD or Blender
+- Before selecting OpenSCAD, Blender, or an optional VibeCAD remake
 
 Do not write CAD in this skill.
 
@@ -30,6 +30,7 @@ Choose exactly one:
 - `openscad`: dimensional mechanical parts, exact fits, brackets, stands, mounts, enclosures
 - `blender`: organic skins, sculpted surfaces, or lattices
 - `hybrid`: separate declared dimensional and organic bodies; never two backends editing the same body
+- `vibecad`: optional 10-X-eng/vibecad remake when the human is already in VibeCAD or asked to remake there; not the default for a new bracket
 
 If uncertain, choose `openscad`.
 

@@ -623,3 +623,129 @@ def test_gold_rover_assumed_calibration_is_hard(tmp_path):
     assert result.returncode != 0
     assert "HARD:" in result.stdout
     assert "assumed" in result.stdout
+
+
+def _vibecad_spec(source_files):
+    data = valid_spec()
+    data["cad"]["backend"] = "vibecad"
+    data["cad"]["parametric"] = True
+    data["cad"]["source_files"] = source_files
+    return data
+
+
+def test_vibecad_python_backend_is_accepted():
+    data = _vibecad_spec(["src/bracket-coupon.py"])
+    assert module.validate(data) == []
+    parsed = module.parse_spec(data)
+    assert parsed.backend == "vibecad"
+
+
+def test_vibecad_vibescript_backend_is_accepted():
+    data = _vibecad_spec(["src/bracket-coupon.vibescript"])
+    assert module.validate(data) == []
+
+
+def test_vibecad_fcstd_only_fail_closes():
+    data = _vibecad_spec(["src/bracket-coupon.FCStd"])
+    errors = module.validate(data)
+    assert any("Python/VibeScript" in error and ".FCStd" in error for error in errors)
+
+
+def test_vibecad_markdown_only_fail_closes():
+    data = _vibecad_spec(["docs/DESIGN.md"])
+    errors = module.validate(data)
+    assert any("Markdown" in error for error in errors)
+
+
+def test_vibecad_fcstd_and_markdown_only_fail_closes():
+    data = _vibecad_spec(["src/part.FCStd", "docs/notes.md"])
+    errors = module.validate(data)
+    assert any("cannot be the only sources" in error for error in errors)
+
+
+def test_vibecad_scad_only_fail_closes():
+    data = _vibecad_spec(["src/bracket-coupon.scad"])
+    errors = module.validate(data)
+    assert any("Python/VibeScript" in error for error in errors)
+
+
+def test_vibecad_python_plus_fcstd_is_accepted():
+    data = _vibecad_spec(["src/bracket-coupon.py", "src/bracket-coupon.FCStd"])
+    assert module.validate(data) == []
+
+
+def test_openscad_blender_hybrid_backends_still_pass():
+    for backend, sources in (
+        ("openscad", ["src/example-bracket.scad"]),
+        ("blender", ["src/build.py"]),
+        ("hybrid", ["src/example-bracket.scad", "src/build.py"]),
+    ):
+        data = valid_spec()
+        data["cad"]["backend"] = backend
+        data["cad"]["source_files"] = sources
+        assert module.validate(data) == [], backend
+
+
+def test_vibecad_still_forbids_overlapping_solids_policy():
+    data = _vibecad_spec(["src/bracket-coupon.py"])
+    data["geometry"]["overlapping_solids_allowed"] = True
+    assert "geometry.overlapping_solids_allowed must be false" in module.validate(data)
+
+
+def test_vibecad_named_parameters_are_required_in_python(tmp_path):
+    data = _vibecad_spec(["src/part.py"])
+    data["fit"] = {
+        "required": False,
+        "clearance_per_side_mm": 0.4,
+        "evidence": "none",
+        "coupon": "not-required",
+    }
+    (tmp_path / "src").mkdir()
+    (tmp_path / "stl").mkdir()
+    (tmp_path / "src/part.py").write_text(
+        "device_width_mm = 40.0\nmounting_hole_diameter_mm = 3.4\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "stl/example-bracket.stl").write_bytes(b"solid")
+    assert module.validate(data, project=tmp_path, check_files=True) == []
+    parsed = module.parse_spec(data)
+    assert module.parameters_in_sources(parsed, tmp_path) == []
+
+
+def test_vibecad_missing_named_parameter_fails_parameters_in_sources(tmp_path):
+    data = _vibecad_spec(["src/part.py"])
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src/part.py").write_text("device_width_mm = 40.0\n", encoding="utf-8")
+    parsed = module.parse_spec(data)
+    errors = module.parameters_in_sources(parsed, tmp_path)
+    assert any("mounting_hole_diameter_mm" in error for error in errors)
+
+
+def test_vibecad_fcstd_only_fails_shipped_cli(tmp_path):
+    data = _vibecad_spec(["src/part.FCStd"])
+    spec = tmp_path / "PRINT_SPEC.yaml"
+    spec.write_text(yaml.safe_dump(data, sort_keys=False), encoding="utf-8")
+    result = subprocess.run(
+        [sys.executable, str(VALIDATOR), str(spec)],
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    assert result.returncode != 0
+    assert "HARD:" in result.stdout
+    assert "Python/VibeScript" in result.stdout
+
+
+def test_gold_vibecad_coupon_spec_and_named_params():
+    project = REPO / "examples/bracket-coupon-vibecad"
+    path = project / "docs/PRINT_SPEC.yaml"
+    data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    assert module.validate(data) == []
+    assert data["cad"]["backend"] == "vibecad"
+    assert data["cad"]["parametric"] is True
+    parsed = module.parse_spec(data)
+    assert parsed.stl_files[0].expected_shells == 1
+    assert module.parameters_in_sources(parsed, project) == []
+    source = (project / parsed.source_files[0]).read_text(encoding="utf-8")
+    for dim in parsed.dimensions:
+        assert module.parameter_declared(dim.parameter, source)
