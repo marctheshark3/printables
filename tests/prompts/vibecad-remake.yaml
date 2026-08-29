@@ -1,0 +1,26 @@
+id: vibecad-remake
+prompt: |
+  Remake this PRINT_SPEC L-bracket coupon in VibeCAD. I am already in VibeCAD.
+  Use VibeScript Part CSG with named millimetre parameters, export a binary
+  STL inside VibeCAD, then run validate_project.
+expect:
+  primary: 3d-print-vibecad
+  skills:
+    - 3d-print-design-brief
+    - 3d-print-vibecad
+    - 3d-print-validate
+  outrank:
+    - 3d-print-blender
+    - 3d-print-shop-fixture
+  skill_contains:
+    3d-print-vibecad:
+      - PRINT_SPEC.yaml
+      - validate_project.py
+      - expected_shells
+      - 127.0.0.1:8766
+      - VIBECAD_CMD
+run:
+  - kind: validate_spec
+    path: examples/bracket-coupon-vibecad/docs/PRINT_SPEC.yaml
+  - kind: validate_project
+    path: examples/bracket-coupon-vibecad

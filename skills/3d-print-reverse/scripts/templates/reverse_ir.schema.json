@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "reverse_ir.schema.json",
+  "title": "Printables reverse IR",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "units",
+    "input_stl",
+    "body",
+    "class",
+    "alignment",
+    "tolerance",
+    "dimensions",
+    "sketches",
+    "features",
+    "regions",
+    "forbidden"
+  ],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "units": { "const": "mm" },
+    "input_stl": { "type": "string" },
+    "body": { "type": "string" },
+    "class": { "enum": ["parametric", "analytic", "organic", "failed"] },
+    "alignment": {
+      "type": "object",
+      "required": ["method", "translation_mm", "rotation_rpy_deg"]
+    },
+    "tolerance": {
+      "type": "object",
+      "required": ["fit_mm", "max_deviation_mm", "snap_mm"]
+    },
+    "dimensions": { "type": "array" },
+    "sketches": { "type": "array" },
+    "features": { "type": "array" },
+    "regions": { "type": "object" },
+    "forbidden": {
+      "type": "object",
+      "required": ["triangle_wrapped_step"]
+    }
+  }
+}

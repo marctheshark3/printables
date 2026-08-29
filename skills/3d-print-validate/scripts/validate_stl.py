@@ -16,6 +16,7 @@ from dfm import (
 )
 from overlap import count_overlapping_shell_pairs
 from stl_io import bbox_and_volume, load_binary_stl
+from thickness import THIN_WALL_AREA_FRAC, thickness_audit
 from topology import topology_metrics
 
 
@@ -28,7 +29,9 @@ def audit_mesh(
     orientation: str = "Z-up",
     up_axis: str = "Z",
     min_feature_mm: float = 1.6,
+    min_wall_mm: float = 1.6,
     max_overhang_deg: float = 45.0,
+    thin_wall_area_frac: float = THIN_WALL_AREA_FRAC,
     weld_tolerance_mm: float = 1e-5,
     skip_overhang: bool = False,
     skip_open_under: bool = False,
@@ -144,6 +147,18 @@ def audit_mesh(
                 f"short STL chords do not prove a thin wall. Verify CAD/slicer wall ≥ {min_feature_mm} mm"
             )
 
+    if tris:
+        t_hard, t_warn, t_info = thickness_audit(
+            tris,
+            normals,
+            min_wall_mm=min_wall_mm,
+            min_feature_mm=min_feature_mm,
+            thin_wall_area_frac=thin_wall_area_frac,
+        )
+        info.extend(t_info)
+        warn.extend(t_warn)
+        hard.extend(t_hard)
+
     if not skip_open_under and klass in OPEN_FRAME and tris and dz > 5.0:
         frac, under_lo, under_hi = open_under_fill_frac(tris, mn, dx, dy, dz)
         info.append(
@@ -184,6 +199,8 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--print-orientation", default="Z-up")
     p.add_argument("--print-up-axis", default="Z", choices=["X", "Y", "Z", "x", "y", "z"])
     p.add_argument("--min-feature-mm", type=float, default=1.6)
+    p.add_argument("--min-wall-mm", type=float, default=1.6)
+    p.add_argument("--thin-wall-area-frac", type=float, default=THIN_WALL_AREA_FRAC)
     p.add_argument("--overhang-max-deg", type=float, default=45.0)
     p.add_argument("--overhang-fail-area-frac", type=float, default=0.28)
     p.add_argument("--bed-support-mm", type=float, default=1.6)
@@ -216,7 +233,9 @@ def main() -> int:
         orientation=args.print_orientation,
         up_axis=args.print_up_axis,
         min_feature_mm=args.min_feature_mm,
+        min_wall_mm=args.min_wall_mm,
         max_overhang_deg=args.overhang_max_deg,
+        thin_wall_area_frac=args.thin_wall_area_frac,
         weld_tolerance_mm=args.weld_tolerance_mm,
         skip_overhang=args.skip_overhang,
         skip_open_under=args.skip_open_under,

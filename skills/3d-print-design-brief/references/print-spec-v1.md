@@ -23,8 +23,28 @@ An assembly is multiple independently manufactured bodies: one `geometry.stl_fil
 | dimensional mechanical part, exact fits, brackets, stands, enclosures | `openscad` |
 | organic skin, lattice, sculpted surface | `blender` |
 | separate declared dimensional and organic bodies | `hybrid` |
+| human is already in 10-X-eng/vibecad, or an explicit remake of a PRINT_SPEC part there | `vibecad` |
+| reverse-engineered analytic STEP via CadQuery Docker (OCC) | `cadquery` |
 
-If more than one row seems plausible, choose `openscad`.
+If more than one row seems plausible, choose `openscad`. `vibecad` is an optional third backend, not the default for a new bracket, and not the PyPI package named vibecad. `cadquery` is the same bar as `vibecad`: parametric Python source, millimetres, named parameters. `hybrid` still means separate bodies, not two kernels editing one body. VibeCAD chat, `.FCStd`, MJCF, and `DESIGN.md` cannot override this file.
+
+## Optional `pack`, `slice`, and `fit.measured_mm`
+
+Ignored when absent so existing examples stay valid.
+
+- `pack.required`: policy flag for agents that already demand a zip. The zip is produced by `3d-print-pack` after `validate_project.py` HARD=0. The zip file itself is not required for unit CI.
+- `slice.process_card` / `slice.three_mf`: project-relative paths. If named, `check_files` requires they exist. A process card is JSON from spec `print:` and `manufacturing:`. A 3MF is emitted only by a local slicer CLI (`ORCA_SLICER` / `BAMBU_STUDIO` / `PRUSA_SLICER`); never an empty or STL-renamed file. No printer IP field.
+- `fit.measured_mm`: mapping of CAD parameter → caliper millimetres written by `record_fit.py`. Never invent a measurement.
+
+`geometry.min_wall_mm` is also a mesh gate: sampled inward-ray thickness HARD-fails when more than `thin_wall_area_frac=0.02` of sampled area is below that value (0.05 mm tessellation slack). Split-for-bed repairs envelope HARD with two `geometry.stl_files[]` entries; it does not scale the part.
+
+Assumed insert OD (`insert_od` / `insert_od_mm` and heat-set aliases) is HARD when `fit.required: true`. Use `datasheet` or `measured`. Printed ISO metric thread is opt-in; default is heat-set (`references/heat-set-inserts-fdm.md`).
+
+Live printer control is the sibling `bambu-mcp` repo. This contract never stores printer identity.
+
+## Optional `reverse` block
+
+Ignored when absent so existing examples stay valid. When present it cannot invent CAD: `reverse.class` is `parametric`, `analytic`, `organic`, or `failed`. Reverse projects use `cad.backend: vibecad` or `cadquery` (organic is blender only). `reverse.input_stl` and `reverse.ir` are project-relative. `reverse.step_files` is optional and does not have to exist for unit CI. Markdown cannot override the IR.
 
 ## Tolerance vocabulary
 
@@ -74,6 +94,7 @@ The contract describes intent. It does not prove geometry. After export, `valida
 5. exported shells do not occupy the same space
 6. bounding box fits strictly inside the machine envelope
 7. overhang and class-specific DFM heuristics
+8. sampled wall thickness vs `geometry.min_wall_mm` (`thin_wall_area_frac=0.02`)
 
 When `assembly` is present, `validate_assembly.py` then places printed STLs and hardware envelopes at the declared poses and fail-closes on illegal occupancy, joint self-collision, and missing or assumed required loads. A render or simulator window is not proof.
 

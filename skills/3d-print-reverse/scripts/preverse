@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# preverse — reverse-engineer an STL to editable STEP + gated STL
+set -euo pipefail
+ROOT="$(cd "$(dirname "$0")" && pwd)"
+exec python3 "$ROOT/preverse_cli.py" "$@"

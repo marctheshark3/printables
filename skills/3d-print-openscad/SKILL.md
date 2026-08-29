@@ -19,7 +19,7 @@ Build dimensional mechanical FDM parts from a validated `docs/PRINT_SPEC.yaml`. 
 
 Use when `cad.backend: openscad`, or when the geometry is dimensional and no backend has been selected.
 
-Do not use for sculpted organic surfaces or decorative lattices; use `3d-print-blender`.
+Do not use for sculpted organic surfaces or decorative lattices; use `3d-print-blender`. A VibeCAD remake is `3d-print-vibecad` only when the human is already in VibeCAD or asked to remake there — not the default for a new bracket.
 
 ## Source Contract
 
@@ -55,6 +55,7 @@ docker run --rm -v "$PROJECT:/work" -w /work \
 - grow geometry from the bed face; avoid unsupported starts
 - screw and connector interfaces use measured or datasheet dimensions
 - connector window defaults live in `references/connector-keepouts-fdm.md`
+- heat-set insert OD/hole/boss defaults live in `references/heat-set-inserts-fdm.md`; printed thread is opt-in only
 - independent bodies do not touch or overlap in exported mode
 - no zero-thickness contact, coincident faces, or decorative internal geometry
 

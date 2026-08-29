@@ -12,9 +12,15 @@ VALIDATOR = ROOT / "scripts" / "validate_project.py"
 
 
 def cube_triangles(x0=0.0, size=10.0):
+    return box_triangles(sx=size, sy=size, sz=size, origin=(x0, 0.0, 0.0))
+
+
+def box_triangles(sx=10.0, sy=10.0, sz=10.0, origin=(0.0, 0.0, 0.0)):
+    x0, y0, z0 = origin
     p = [
-        (x0 + 0, 0, 0), (x0 + size, 0, 0), (x0 + size, size, 0), (x0 + 0, size, 0),
-        (x0 + 0, 0, size), (x0 + size, 0, size), (x0 + size, size, size), (x0 + 0, size, size),
+        (x0, y0, z0), (x0 + sx, y0, z0), (x0 + sx, y0 + sy, z0), (x0, y0 + sy, z0),
+        (x0, y0, z0 + sz), (x0 + sx, y0, z0 + sz), (x0 + sx, y0 + sy, z0 + sz),
+        (x0, y0 + sy, z0 + sz),
     ]
     faces = [
         (0, 2, 1), (0, 3, 2),
@@ -25,6 +31,37 @@ def cube_triangles(x0=0.0, size=10.0):
         (3, 0, 4), (3, 4, 7),
     ]
     return [(p[a], p[b], p[c]) for a, b, c in faces]
+
+
+def subdivided_cube(size=10.0, n=20):
+    """Thick cube with short face chords (tessellation, not a thin wall)."""
+    tris = []
+
+    def add(a, b):
+        return (a[0] + b[0], a[1] + b[1], a[2] + b[2])
+
+    def scale(v, s):
+        return (v[0] * s, v[1] * s, v[2] * s)
+
+    def fill(origin, u, v):
+        du = scale(u, size / n)
+        dv = scale(v, size / n)
+        for i in range(n):
+            for j in range(n):
+                a = add(origin, add(scale(du, i), scale(dv, j)))
+                b = add(origin, add(scale(du, i + 1), scale(dv, j)))
+                c = add(origin, add(scale(du, i + 1), scale(dv, j + 1)))
+                d = add(origin, add(scale(du, i), scale(dv, j + 1)))
+                tris.append((a, c, b))
+                tris.append((a, d, c))
+
+    fill((0, 0, 0), (1, 0, 0), (0, 1, 0))
+    fill((0, 0, size), (0, 1, 0), (1, 0, 0))
+    fill((0, 0, 0), (0, 0, 1), (1, 0, 0))
+    fill((0, size, 0), (1, 0, 0), (0, 0, 1))
+    fill((0, 0, 0), (0, 1, 0), (0, 0, 1))
+    fill((size, 0, 0), (0, 0, 1), (0, 1, 0))
+    return tris
 
 
 def write_binary_stl(path: Path, triangles):
@@ -163,6 +200,58 @@ def test_design_md_cannot_override_print_spec(tmp_path):
     )
     result = run(tmp_path)
     assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_five_solid_weld_claiming_one_shell_is_hard(tmp_path):
+    # Five overlapping cubes that never share vertices: a failed multiFuse.
+    triangles = []
+    for index in range(5):
+        triangles.extend(cube_triangles(x0=index * 3.0))
+    make_project(tmp_path, triangles, expected_shells=1)
+    result = run(tmp_path)
+    assert result.returncode == 1
+    assert "G-components" in result.stdout
+    assert "expected 1, found 5" in result.stdout
+    assert "RESULT: FAIL" in result.stdout
+
+
+def test_thin_tessellation_edges_remain_warning_only(tmp_path):
+    make_project(tmp_path, subdivided_cube(size=10.0, n=25))
+    result = run(tmp_path)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "RESULT: PASS" in result.stdout
+    assert "G-tessellation" in result.stdout
+    assert "HARD  G-tessellation" not in result.stdout
+    assert "WARN  G-tessellation" in result.stdout
+    assert "G-thickness" not in result.stdout or "HARD  G-thickness" not in result.stdout
+
+
+def test_thin_wall_plate_is_hard(tmp_path):
+    make_project(tmp_path, box_triangles(sx=20.0, sy=20.0, sz=0.4))
+    result = run(tmp_path)
+    assert result.returncode == 1
+    assert "G-thickness" in result.stdout
+    assert "HARD  G-thickness" in result.stdout
+    assert "thin_wall_area_frac" in result.stdout
+    assert "RESULT: FAIL" in result.stdout
+
+
+def test_validate_stl_does_not_import_numpy_at_module_top():
+    source = (ROOT / "scripts" / "validate_stl.py").read_text(encoding="utf-8")
+    for line in source.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("#"):
+            continue
+        assert not stripped.startswith("import numpy"), line
+        assert not stripped.startswith("from numpy"), line
+
+
+def test_gold_vibecad_coupon_project_passes():
+    project = Path(__file__).resolve().parents[3] / "examples/bracket-coupon-vibecad"
+    result = run(project)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "RESULT: PASS" in result.stdout
+    assert "HARD=" not in result.stdout or "HARD=0" in result.stdout
 
 
 def test_parameter_substring_is_not_a_declaration(tmp_path):

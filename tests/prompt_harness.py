@@ -299,6 +299,10 @@ def run_step(step: dict, catalog: dict[str, dict], scenario_id: str) -> str:
         validate_assembly(ROOT / step["path"])
         return f"validate_assembly {step['path']}"
 
+    if kind == "validate_project":
+        validate_project(ROOT / step["path"])
+        return f"validate_project {step['path']}"
+
     if kind == "export_openscad_project":
         src = ROOT / step["from"]
         try:

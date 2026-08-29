@@ -8,7 +8,7 @@ platforms: [linux]
 metadata:
   hermes:
     tags: [3d-print, enclosure, display, openscad, dfm]
-    related_skills: [3d-print-openscad, 3d-print-design-brief, 3d-print-validate, 3d-print-blender]
+    related_skills: [3d-print-openscad, 3d-print-design-brief, 3d-print-validate, 3d-print-blender, 3d-print-pack]
 ---
 
 # 3D Print Display Enclosure
@@ -32,7 +32,7 @@ Class skill for **board + screen** cases (lab COP, desk shell). CAD backend defa
 4. OpenSCAD two-piece: **base** + **bezel** (separate STLs)
 5. Docker export each → `3d-print-validate/scripts/validate_project.py`
 6. Separate stills → vision — **yikes = rewrite form, not tweak knobs**
-7. Package the deliverables as a zip
+7. Package the deliverables with `3d-print-pack`
 
 ## Geometry laws (session-hard)
 
@@ -79,4 +79,4 @@ A validated two-piece display-enclosure fixture should remain in downstream regr
 
 ## Done when
 
-Gated base+bezel + honest stills + zip + PRINT_SPEC keepout table.
+Gated base+bezel + honest stills + `3d-print-pack` zip + PRINT_SPEC keepout table.

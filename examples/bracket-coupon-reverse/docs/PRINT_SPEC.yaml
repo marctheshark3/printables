@@ -1,0 +1,85 @@
+schema_version: 1
+part:
+  name: bracket-coupon-reverse
+  revision: 0.1.0
+  product_class: bracket
+  purpose: Reverse-engineered bracket from reference STL (reconstruction, not conversion).
+manufacturing:
+  process: fdm
+  printer: generic-256mm
+  build_volume_mm:
+  - 256
+  - 256
+  - 256
+  material: PETG
+  nozzle_mm: 0.4
+  layer_height_mm: 0.2
+cad:
+  backend: cadquery
+  parametric: true
+  units: mm
+  source_files:
+  - src/bracket.py
+geometry:
+  min_wall_mm: 1.6
+  min_feature_mm: 1.6
+  overlapping_solids_allowed: false
+  stl_files:
+  - path: stl/bracket.stl
+    body: bracket
+    expected_shells: 1
+fit:
+  required: false
+  clearance_per_side_mm: 0.4
+  evidence: none
+  coupon: not-required
+dimensions:
+- name: depth
+  parameter: depth_mm
+  value_mm: 30.0
+  tolerance_mm: 0.2
+  source: measured
+- name: extrude_depth
+  parameter: extrude_depth_mm
+  value_mm: 12.0
+  tolerance_mm: 0.2
+  source: measured
+- name: height
+  parameter: height_mm
+  value_mm: 12.0
+  tolerance_mm: 0.2
+  source: measured
+- name: f2_diameter
+  parameter: hole_f2_d_mm
+  value_mm: 4.2
+  tolerance_mm: 0.2
+  source: measured
+- name: f3_diameter
+  parameter: hole_f3_d_mm
+  value_mm: 4.2
+  tolerance_mm: 0.2
+  source: measured
+- name: f4_diameter
+  parameter: hole_f4_d_mm
+  value_mm: 4.2
+  tolerance_mm: 0.2
+  source: measured
+- name: width
+  parameter: width_mm
+  value_mm: 40.0
+  tolerance_mm: 0.2
+  source: measured
+print:
+  orientation: base-on-bed
+  bed_face: bottom
+  up_axis: Z
+  supports: none
+  max_overhang_deg: 45
+service:
+  environment: dry
+  drainage: not-applicable
+reverse:
+  input_stl: source/bracket-coupon.stl
+  ir: reverse/bracket.ir.json
+  class: parametric
+  max_deviation_mm: 0.2
