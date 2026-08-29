@@ -36,6 +36,9 @@ run:
       - {name: pcb_x, parameter: pcb_x, value_mm: 88.3}
       - {name: pcb_y, parameter: pcb_y, value_mm: 64.3}
       - {name: bezel_z, parameter: bezel_z, value_mm: 2.4}
+      - {name: wall_h, parameter: wall_h, value_mm: 14.0}
+      - {name: stop, parameter: stop, value_mm: 1.6}
+      - {name: post_d, parameter: post_d, value_mm: 8.0}
       - {name: fit_clearance, parameter: fit_clearance, value_mm: 0.4}
       - {name: usb_w, parameter: usb_w, value_mm: 13.0}
       - {name: usb_h, parameter: usb_h, value_mm: 8.5}

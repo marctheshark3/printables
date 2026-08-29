@@ -34,6 +34,14 @@ def build_solid():
         raise RuntimeError(
             f"HARD: fuse left {len(fused.Solids)} solids; expected_shells is 1"
         )
+    # Match the OpenSCAD coupon: offset(r=1.2) on the L footprint (vertical edges).
+    vertical = [
+        edge
+        for edge in fused.Edges
+        if abs(edge.tangentAt(edge.FirstParameter).z) > 0.9
+    ]
+    if vertical:
+        fused = fused.makeFillet(1.2, vertical)
 
     z_hat = App.Vector(0, 0, 1)
     cylinders = [

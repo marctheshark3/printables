@@ -749,6 +749,7 @@ def test_gold_vibecad_coupon_spec_and_named_params():
     source = (project / parsed.source_files[0]).read_text(encoding="utf-8")
     for dim in parsed.dimensions:
         assert module.parameter_declared(dim.parameter, source)
+    assert "makeFillet(1.2" in source
 
 
 def _cadquery_spec(source_files):
