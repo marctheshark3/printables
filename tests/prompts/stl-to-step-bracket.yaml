@@ -1,0 +1,26 @@
+id: stl-to-step-bracket
+prompt: |
+  Reverse engineer this STL to STEP. Reconstruct the bracket as editable
+  B-rep with named millimetre parameters, not triangle conversion, then
+  gate the rebuilt STL.
+expect:
+  primary: 3d-print-reverse
+  skills:
+    - 3d-print-design-brief
+    - 3d-print-reverse
+    - 3d-print-validate
+  outrank:
+    - 3d-print-blender
+    - 3d-print-shop-fixture
+    - 3d-print-image-silhouette
+    - 3d-print-vibecad
+  skill_contains:
+    3d-print-reverse:
+      - PRINT_SPEC.yaml
+      - validate_project.py
+      - triangle-wrapped
+      - VIBECAD_CMD
+      - preverse
+run:
+  - kind: no_cad
+    reason: reverse STEP needs OCC; default unit CI does not invoke VibeCAD, CadQuery, Docker, or qemu

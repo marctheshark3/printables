@@ -55,6 +55,7 @@ docker run --rm -v "$PROJECT:/work" -w /work \
 - grow geometry from the bed face; avoid unsupported starts
 - screw and connector interfaces use measured or datasheet dimensions
 - connector window defaults live in `references/connector-keepouts-fdm.md`
+- heat-set insert OD/hole/boss defaults live in `references/heat-set-inserts-fdm.md`; printed thread is opt-in only
 - independent bodies do not touch or overlap in exported mode
 - no zero-thickness contact, coincident faces, or decorative internal geometry
 

@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """Extra extra: run the gold .py inside VibeCAD when VIBECAD_CMD is set.
 
-Default CI does not run VibeCAD, Docker, AppImage, GPU, or qemu.
+Writes stl/bracket-coupon.stl and step/bracket-coupon.step via Mesh.export
+and Part.export. Default CI does not run VibeCAD, Docker, AppImage, GPU, or qemu.
+ARM qemu-x86_64 AppImage is unsupported.
 """
 from __future__ import annotations
 

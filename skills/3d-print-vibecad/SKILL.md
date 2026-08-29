@@ -50,6 +50,21 @@ Three different channels — do not mix them up:
 
 Never commit the token. The agent must never type passwords or device codes; sign-in stays in VibeCAD Preferences.
 
+## Install / detect (10-X-eng AppImage)
+
+This pack does not vendor VibeCAD. Detect the upstream binary, then spawn it.
+
+```bash
+python3 scripts/find_vibecad.py status
+# optional: fetch latest x86_64 AppImage to ~/.local/opt/vibecad/
+python3 scripts/find_vibecad.py download
+export VIBECAD_CMD=...   # printed by status/download
+```
+
+Download only on x86_64. Linux ARM qemu-x86_64 AppImage is not a supported backend. Do not enable VibeCAD MCP. `status --probe-http` may GET `127.0.0.1:8766/v1/status`; it never prints the token.
+
+Manual: [10-X-eng/vibecad releases](https://github.com/10-X-eng/vibecad/releases/latest), `chmod +x VibeCAD*.AppImage`, export `VIBECAD_CMD`.
+
 ```bash
 # x86_64 AppImage / freecadcmd only. Linux ARM qemu-x86_64 AppImage is not a supported backend.
 export VIBECAD_CMD=/path/to/freecadcmd   # or the x86_64 AppImage console binary

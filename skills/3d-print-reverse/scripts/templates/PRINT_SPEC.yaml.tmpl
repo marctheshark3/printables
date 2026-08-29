@@ -1,0 +1,60 @@
+schema_version: 1
+part:
+  name: {{PART_NAME}}
+  revision: 0.1.0
+  product_class: bracket
+  purpose: Reverse-engineered body from a reference STL (reconstruction, not conversion).
+
+manufacturing:
+  process: fdm
+  printer: generic-256mm
+  build_volume_mm: [256, 256, 256]
+  material: PETG
+  nozzle_mm: 0.4
+  layer_height_mm: 0.2
+
+cad:
+  backend: cadquery
+  parametric: true
+  units: mm
+  source_files:
+    - src/{{BODY}}.py
+
+geometry:
+  min_wall_mm: 1.6
+  min_feature_mm: 1.6
+  overlapping_solids_allowed: false
+  stl_files:
+    - path: stl/{{BODY}}.stl
+      body: {{BODY}}
+      expected_shells: 1
+
+fit:
+  required: false
+  clearance_per_side_mm: 0.4
+  evidence: none
+  coupon: not-required
+
+dimensions:
+  - name: width
+    parameter: width_mm
+    value_mm: 0.0
+    tolerance_mm: 0.2
+    source: measured
+
+print:
+  orientation: base-on-bed
+  bed_face: bottom
+  up_axis: Z
+  supports: none
+  max_overhang_deg: 45
+
+service:
+  environment: dry
+  drainage: not-applicable
+
+reverse:
+  input_stl: source/original.stl
+  ir: reverse/{{BODY}}.ir.json
+  class: parametric
+  max_deviation_mm: 0.2

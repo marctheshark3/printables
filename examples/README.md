@@ -17,7 +17,7 @@ python3 skills/3d-print-validate/scripts/validate_project.py \
 
 CI sample prompts export this STL (and the other prompt STLs) as the `generated-stls` artifact.
 
-`bracket-coupon-vibecad` is the same 40×30×12 mm coupon with `cad.backend: vibecad` and a VibeScript/Part CSG `.py`. Default CI does not run VibeCAD: it checks the spec, named parameters, and the committed STL with `validate_project`. Live OCC export is extra extra when `VIBECAD_CMD` is set.
+`bracket-coupon-vibecad` is the same 40×30×12 mm coupon with `cad.backend: vibecad` and a VibeScript/Part CSG `.py`. Default CI does not run VibeCAD: it checks the spec, named parameters, and the committed STL with `validate_project`. Live OCC export (STL + analytic STEP via `Part.export`) is extra extra when `VIBECAD_CMD` is set.
 
 ```bash
 python3 skills/3d-print-design-brief/scripts/validate_print_spec.py \
@@ -25,6 +25,15 @@ python3 skills/3d-print-design-brief/scripts/validate_print_spec.py \
 
 python3 skills/3d-print-validate/scripts/validate_project.py \
   examples/bracket-coupon-vibecad
+```
+
+`bracket-coupon-reverse` rebuilds the same coupon STL as editable IR + CadQuery source + a gated STL. Default CI does not write STEP (needs OCC). `preverse gate` is the unit path.
+
+```bash
+python3 skills/3d-print-reverse/scripts/preverse_cli.py gate \
+  --project examples/bracket-coupon-reverse --body bracket
+
+python3 examples/bracket-coupon-reverse/scripts/export_if_cadquery.py
 ```
 
 `robot-kit-01-rover` is a numbered-01 two-wheel `robot-module` chassis (MCU on deck, LED head). Motors, MCU, battery, and driver are bought.

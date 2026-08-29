@@ -8,7 +8,7 @@ platforms: [linux]
 metadata:
   hermes:
     tags: [silhouette, stencil, image-trace, openscad, 3d-print, icon, fdm, bambu]
-    related_skills: [3d-print-openscad, 3d-print-validate, 3d-print-design-brief]
+    related_skills: [3d-print-openscad, 3d-print-validate, 3d-print-design-brief, 3d-print-pack]
 ---
 
 # Image → Silhouette → Print
@@ -41,7 +41,7 @@ Sibling to `3d-print-openscad` — not a merge. Hand off STL to `3d-print-valida
 5. HUMAN/agent QA gate — accept overlay BEFORE extrude
 6. scripts/scad_from_poly.py → OpenSCAD wrapper + Docker STL
 7. 3d-print-validate/scripts/validate_project.py
-8. Zip + print notes; optional compare pack vs CAD path
+8. `3d-print-pack` zip + print notes; optional compare pack vs CAD path
 ```
 
 **HARD: no STL claim until overlay accepted.**
@@ -145,7 +145,7 @@ When dogfooding against CAD sculpt: same plate envelope, side-by-side overlay + 
 - [ ] overlay.png reviewed and accepted
 - [ ] `validate_project.py` HARD=0
 - [ ] expected_shells=1 for filled toddler stencils
-- [ ] Deliverable is a zip, not a loose STL
+- [ ] Deliverable is a `3d-print-pack` zip, not a loose STL
 
 ## Done when
 

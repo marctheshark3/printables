@@ -749,3 +749,155 @@ def test_gold_vibecad_coupon_spec_and_named_params():
     source = (project / parsed.source_files[0]).read_text(encoding="utf-8")
     for dim in parsed.dimensions:
         assert module.parameter_declared(dim.parameter, source)
+
+
+def _cadquery_spec(source_files):
+    data = valid_spec()
+    data["cad"]["backend"] = "cadquery"
+    data["cad"]["parametric"] = True
+    data["cad"]["source_files"] = source_files
+    return data
+
+
+def test_gold_reverse_coupon_spec_and_named_params():
+    project = REPO / "examples/bracket-coupon-reverse"
+    path = project / "docs" / "PRINT_SPEC.yaml"
+    data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    assert module.validate(data) == []
+    assert data["cad"]["backend"] == "cadquery"
+    assert data["cad"]["parametric"] is True
+    assert data["reverse"]["class"] == "parametric"
+    parsed = module.parse_spec(data)
+    assert parsed.stl_files[0].expected_shells == 1
+    assert module.parameters_in_sources(parsed, project) == []
+    source = (project / parsed.source_files[0]).read_text(encoding="utf-8")
+    for dim in parsed.dimensions:
+        assert module.parameter_declared(dim.parameter, source)
+
+
+def test_cadquery_python_backend_is_accepted():
+    data = _cadquery_spec(["src/bracket.py"])
+    assert module.validate(data) == []
+    assert module.parse_spec(data).backend == "cadquery"
+
+
+def test_cadquery_scad_only_fail_closes():
+    data = _cadquery_spec(["src/bracket.scad"])
+    errors = module.validate(data)
+    assert any("cadquery" in error and ".py" in error for error in errors)
+
+
+def test_reverse_block_optional_on_existing_examples():
+    data = valid_spec()
+    assert "reverse" not in data
+    assert module.validate(data) == []
+
+
+def test_reverse_block_requires_occ_backend():
+    data = valid_spec()
+    data["reverse"] = {
+        "input_stl": "source/original.stl",
+        "ir": "reverse/bracket.ir.json",
+        "class": "parametric",
+        "max_deviation_mm": 0.2,
+    }
+    errors = module.validate(data)
+    assert any("vibecad or cadquery" in error for error in errors)
+    data["cad"]["backend"] = "cadquery"
+    data["cad"]["source_files"] = ["src/bracket.py"]
+    assert module.validate(data) == []
+
+
+def test_reverse_organic_requires_blender():
+    data = valid_spec()
+    data["cad"]["backend"] = "cadquery"
+    data["cad"]["source_files"] = ["src/part.py"]
+    data["reverse"] = {"class": "organic"}
+    errors = module.validate(data)
+    assert any("blender" in error for error in errors)
+
+
+def test_optional_pack_slice_measured_mm_absent_on_gold_examples():
+    for rel in (
+        "examples/bracket-coupon/docs/PRINT_SPEC.yaml",
+        "examples/bracket-coupon-vibecad/docs/PRINT_SPEC.yaml",
+        "examples/robot-kit-01-rover/docs/PRINT_SPEC.yaml",
+    ):
+        data = yaml.safe_load((REPO / rel).read_text(encoding="utf-8"))
+        assert "pack" not in data
+        assert "slice" not in data
+        assert "measured_mm" not in data.get("fit", {})
+        assert module.validate(data) == []
+
+
+def test_optional_pack_slice_and_measured_mm_roundtrip():
+    data = valid_spec()
+    data["pack"] = {"required": False}
+    data["slice"] = {
+        "process_card": "slice/bracket.process.json",
+        "three_mf": "slice/bracket.3mf",
+    }
+    data["fit"]["measured_mm"] = {"mounting_hole_diameter_mm": 4.18}
+    assert module.validate(data) == []
+    parsed = module.parse_spec(data)
+    assert parsed.pack_required is False
+    assert parsed.slice_process_card == "slice/bracket.process.json"
+    assert parsed.slice_three_mf == "slice/bracket.3mf"
+    assert parsed.fit_measured_mm == (("mounting_hole_diameter_mm", 4.18),)
+
+
+def test_assumed_insert_od_is_hard_when_fit_required():
+    data = valid_spec()
+    data["fit"]["required"] = True
+    data["fit"]["evidence"] = "datasheet"
+    data["fit"]["coupon"] = "fit/example-bracket-fit-coupon.stl"
+    data["dimensions"].append(
+        {
+            "name": "insert_od",
+            "parameter": "insert_od_mm",
+            "value_mm": 4.6,
+            "tolerance_mm": 0.1,
+            "source": "assumed",
+        }
+    )
+    errors = module.validate(data)
+    assert any("assumed insert OD" in error for error in errors)
+
+
+def test_datasheet_insert_od_passes_when_fit_required():
+    data = valid_spec()
+    data["fit"]["required"] = True
+    data["fit"]["evidence"] = "datasheet"
+    data["fit"]["coupon"] = "fit/example-bracket-fit-coupon.stl"
+    data["dimensions"].append(
+        {
+            "name": "insert_od",
+            "parameter": "insert_od_mm",
+            "value_mm": 4.6,
+            "tolerance_mm": 0.1,
+            "source": "datasheet",
+        }
+    )
+    assert module.validate(data) == []
+
+
+def test_manufacturing_printer_ip_is_rejected():
+    data = valid_spec()
+    data["manufacturing"]["printer_ip"] = "192.168.1.50"
+    errors = module.validate(data)
+    assert any("printer identity" in error for error in errors)
+
+
+def test_named_three_mf_must_exist_when_check_files(tmp_path):
+    data = valid_spec()
+    data["slice"] = {"three_mf": "slice/bracket.3mf"}
+    (tmp_path / "src").mkdir()
+    (tmp_path / "stl").mkdir()
+    (tmp_path / "fit").mkdir()
+    (tmp_path / "src/example-bracket.scad").write_text(
+        "device_width_mm = 40;\nmounting_hole_diameter_mm = 3.4;\n"
+    )
+    (tmp_path / "stl/example-bracket.stl").write_bytes(b"solid")
+    (tmp_path / "fit/example-bracket-fit-coupon.stl").write_bytes(b"coupon")
+    errors = module.validate(data, project=tmp_path, check_files=True)
+    assert any("slice/bracket.3mf" in error for error in errors)

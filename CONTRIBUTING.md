@@ -27,7 +27,7 @@ Edit this repository, run the complete checks, then install into local Hermes pr
 
 ```bash
 python3 -m pip install PyYAML pytest
-python3 -m pytest -q skills/3d-print-design-brief/tests skills/3d-print-validate/tests tests/test_prompt_scenarios.py
+python3 -m pytest -q skills/3d-print-design-brief/tests skills/3d-print-validate/tests skills/3d-print-reverse/scripts/tests skills/3d-print-vibecad/scripts/tests skills/3d-print-pack/scripts/tests skills/3d-print-slice/scripts/tests tests/test_prompt_scenarios.py tests/test_secret_scan.py
 python3 tests/prompt_harness.py   # OpenSCAD Docker + Blender; writes artifacts/stls/
 python3 -m unittest discover -s skills/3d-print-blender/scripts/tests -v
 python3 tests/test_skill_contract.py
@@ -37,6 +37,10 @@ python3 skills/3d-print-design-brief/scripts/validate_print_spec.py \
   examples/bracket-coupon-vibecad/docs/PRINT_SPEC.yaml
 python3 skills/3d-print-validate/scripts/validate_project.py \
   examples/bracket-coupon-vibecad
+python3 skills/3d-print-design-brief/scripts/validate_print_spec.py \
+  examples/bracket-coupon-reverse/docs/PRINT_SPEC.yaml
+python3 skills/3d-print-validate/scripts/validate_project.py \
+  examples/bracket-coupon-reverse
 python3 skills/3d-print-design-brief/scripts/validate_print_spec.py \
   examples/robot-kit-01-rover/docs/PRINT_SPEC.yaml
 python3 skills/3d-print-validate/scripts/validate_project.py \
@@ -76,4 +80,6 @@ Also run the private-path and secret scan from `.github/workflows/ci.yml`.
 - OpenSCAD remains the dimensional default.
 - Blender is an exception for organic or lattice bodies.
 - VibeCAD is an optional x86_64 remake path, not a required `/3d-print` skill.
+- Reverse (`3d-print-reverse`) is optional and is not in `/3d-print`. Do not vendor 10-X-eng/vibecad.
+- Pack and slice are optional and are not in `/3d-print`. Do not vendor `bambu-mcp`. Do not commit printer access codes, serials, or LAN IPs.
 - HARD validation failures block delivery.

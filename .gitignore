@@ -19,6 +19,7 @@ id_rsa*
 .vscode/
 *.stl
 !examples/**/*.stl
+!skills/3d-print-reverse/scripts/tests/fixtures/*.stl
 renders/
 *.zip
 userhome/

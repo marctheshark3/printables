@@ -3,6 +3,7 @@
 Named millimetre parameters match docs/PRINT_SPEC.yaml.
 Runs inside VibeCADCmd/freecadcmd or POST /v1/run. Host python3 has no FreeCAD.
 """
+from pathlib import Path
 
 # Named millimetre parameters (PRINT_SPEC.yaml dimensions).
 object_x = 40.0
@@ -64,11 +65,10 @@ def build_solid():
     return body
 
 
-def export_binary_stl(path):
+def _feature(doc_name):
     import FreeCAD as App
-    import Mesh
 
-    doc = App.newDocument("bracket_coupon")
+    doc = App.newDocument(doc_name)
     feat = doc.addObject("Part::Feature", "bracket")
     feat.Shape = build_solid()
     doc.recompute()
@@ -76,7 +76,22 @@ def export_binary_stl(path):
         raise RuntimeError(
             f"HARD: document solid count {len(feat.Shape.Solids)} != expected_shells 1"
         )
+    return feat
+
+
+def export_binary_stl(path):
+    import Mesh
+
+    feat = _feature("bracket_coupon")
     Mesh.export([feat], str(path))
+
+
+def export_step(path):
+    import Part
+
+    feat = _feature("bracket_coupon_step")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    Part.export([feat], str(path))
 
 
 def main():
@@ -99,7 +114,11 @@ def main():
     out.parent.mkdir(parents=True, exist_ok=True)
     export_binary_stl(out)
     print(f"exported {out}")
+    step = Path(os.environ.get("PRINTABLES_STEP", str(root / "step" / "bracket-coupon.step")))
+    export_step(step)
+    print(f"exported {step}")
 
 
-if __name__ == "__main__":
+# FreeCADCmd execs this file with __name__ == stem, not __main__.
+if __name__ in {"__main__", Path(__file__).stem}:
     main()

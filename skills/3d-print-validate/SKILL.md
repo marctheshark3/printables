@@ -33,7 +33,7 @@ That command:
 1. loads `docs/PRINT_SPEC.yaml` (fit, drainage, material, parameters, bodies)
 2. checks declared source/STL/coupon files exist
 3. checks each dimension maps to a CAD assignment
-4. audits each STL in-process (topology, occupancy, volume, envelope, DFM)
+4. audits each STL in-process (topology, occupancy, volume, envelope, DFM, sampled wall thickness)
 
 Never convert a HARD check into a warning to make a file pass.
 
@@ -72,6 +72,7 @@ Mesh:
 - overlapping exported solids are rejected
 - bounding box fits strictly inside the machine envelope
 - overhang and class-specific rules pass
+- sampled inward-ray thickness HARD if more than `thin_wall_area_frac=0.02` of sampled area is below `geometry.min_wall_mm` (0.05 mm tessellation slack). This is sampled, not an exact-kernel wall proof.
 
 Short STL chords are tessellation, not wall thickness. Chord density is warning-only.
 

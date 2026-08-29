@@ -1,0 +1,22 @@
+id: zip-gated-project
+prompt: |
+  Zip this gated project into a deliverable pack with PRINT_NOTES and a
+  SHA-256 manifest. Do not start a print.
+expect:
+  primary: 3d-print-pack
+  skills:
+    - 3d-print-pack
+    - 3d-print-validate
+  outrank:
+    - 3d-print-slice
+    - 3d-print-blender
+    - 3d-print-shop-fixture
+    - 3d-print-image-silhouette
+  skill_contains:
+    3d-print-pack:
+      - PRINT_SPEC.yaml
+      - validate_project.py
+      - MANIFEST.sha256
+run:
+  - kind: no_cad
+    reason: pack is a zip of an already-gated project; unit CI does not print

@@ -20,7 +20,7 @@ jobs:
       - name: Install test dependencies
         run: python3 -m pip install PyYAML pytest
       - name: Contract and STL tests
-        run: python3 -m pytest -q skills/3d-print-design-brief/tests skills/3d-print-validate/tests tests/test_prompt_scenarios.py
+        run: python3 -m pytest -q skills/3d-print-design-brief/tests skills/3d-print-validate/tests skills/3d-print-reverse/scripts/tests skills/3d-print-vibecad/scripts/tests skills/3d-print-pack/scripts/tests skills/3d-print-slice/scripts/tests tests/test_prompt_scenarios.py tests/test_secret_scan.py
       - name: Blender CLI tests
         run: python3 -m unittest discover -s skills/3d-print-blender/scripts/tests -v
       - name: Example contract
@@ -31,6 +31,10 @@ jobs:
             examples/bracket-coupon-vibecad/docs/PRINT_SPEC.yaml
           python3 skills/3d-print-validate/scripts/validate_project.py \
             examples/bracket-coupon-vibecad
+          python3 skills/3d-print-design-brief/scripts/validate_print_spec.py \
+            examples/bracket-coupon-reverse/docs/PRINT_SPEC.yaml
+          python3 skills/3d-print-validate/scripts/validate_project.py \
+            examples/bracket-coupon-reverse
           python3 skills/3d-print-design-brief/scripts/validate_print_spec.py \
             examples/robot-kit-01-rover/docs/PRINT_SPEC.yaml
           python3 skills/3d-print-validate/scripts/validate_project.py \
@@ -66,12 +70,16 @@ jobs:
             skills/3d-print-validate/scripts/*.py \
             skills/3d-print-sim/scripts/*.py \
             skills/3d-print-blender/scripts/pblend_cli.py \
-            skills/3d-print-image-silhouette/scripts/*.py
+            skills/3d-print-image-silhouette/scripts/*.py \
+            skills/3d-print-reverse/scripts/*.py \
+            skills/3d-print-pack/scripts/*.py \
+            skills/3d-print-slice/scripts/*.py \
+            skills/3d-print-vibecad/scripts/find_vibecad.py
       - name: Skill frontmatter and routing
         run: python3 tests/test_skill_contract.py
       - name: Secret and private-path scan
         run: |
-          if grep -RInE 'spark-adb4|tailf9bab6|\.ts\.net|/home/[A-Za-z0-9._-]+|~/Documents/the-grid|BEGIN (RSA|OPENSSH) PRIVATE|[[:space:]]gho_[A-Za-z0-9]+|[[:space:]]ghp_[A-Za-z0-9]+' \
+          if grep -RInE 'BAMBU_ACCESS_CODE=|spark-adb4|tailf9bab6|\.ts\.net|/home/[A-Za-z0-9._-]+|~/Documents/the-grid|BEGIN (RSA|OPENSSH) PRIVATE|[[:space:]]gho_[A-Za-z0-9]+|[[:space:]]ghp_[A-Za-z0-9]+|access_code.{0,48}([0-9]{1,3}\.){3}[0-9]{1,3}|([0-9]{1,3}\.){3}[0-9]{1,3}.{0,48}access_code' \
             --exclude-dir=.git skills examples install.sh; then
             echo "private path or secret-like value found" >&2
             exit 1

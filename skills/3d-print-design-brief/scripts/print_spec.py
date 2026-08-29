@@ -14,9 +14,12 @@ except ImportError as exc:
     raise SystemExit("HARD: PyYAML is required: python3 -m pip install PyYAML") from exc
 
 
-BACKENDS = {"openscad", "blender", "hybrid", "vibecad"}
+BACKENDS = {"openscad", "blender", "hybrid", "vibecad", "cadquery"}
 VIBECAD_PARAMETRIC_SUFFIXES = {".py", ".vibescript"}
 VIBECAD_NON_PARAMETRIC_SUFFIXES = {".fcstd", ".md", ".markdown"}
+CADQUERY_PARAMETRIC_SUFFIXES = {".py"}
+REVERSE_CLASSES = {"parametric", "analytic", "organic", "failed"}
+REVERSE_KERNEL_BACKENDS = {"vibecad", "cadquery"}
 PRODUCT_CLASSES = {
     "bracket", "mount", "stand", "tray", "enclosure", "equipment-open-frame",
     "wet-fixture", "pip-hinge", "silhouette", "robot-module", "other",
@@ -42,6 +45,14 @@ POSITIVE_DRAINAGE = {
     "slots",
 }
 COUPON_SUFFIXES = {".stl", ".scad", ".py", ".yaml", ".yml", ".md"}
+PRINTER_IDENTITY_KEYS = {
+    "ip", "printer_ip", "lan_ip", "access_code", "serial", "host", "mqtt_password",
+}
+_INSERT_OD = re.compile(
+    r"(insert|heat_set|heatset).*(od|outer|diameter|dia)|"
+    r"(od|outer|diameter|dia).*(insert|heat_set|heatset)",
+    re.I,
+)
 CRITICAL_HARDWARE_ROLES = {"mcu", "servo", "motor", "drive"}
 VOLT_ALIASES = {
     "3V3": 3.3, "3.3V": 3.3, "3.3": 3.3, "+3V3": 3.3,
@@ -191,6 +202,10 @@ class PrintSpec:
     sim2real: bool
     calibration: tuple[CalibrationCoupon, ...]
     sim_roll: SimRoll | None
+    pack_required: bool = False
+    slice_process_card: str | None = None
+    slice_three_mf: str | None = None
+    fit_measured_mm: tuple[tuple[str, float], ...] = ()
 
 
 @dataclass(frozen=True)
@@ -292,6 +307,11 @@ def vibecad_has_parametric_source(source_files: Any) -> bool:
     if all(suffix in VIBECAD_NON_PARAMETRIC_SUFFIXES for suffix in suffixes):
         return False
     return any(suffix in VIBECAD_PARAMETRIC_SUFFIXES for suffix in suffixes)
+
+
+def is_insert_od_dimension(name: str, parameter: str) -> bool:
+    blob = f"{name} {parameter}".replace("-", "_")
+    return _INSERT_OD.search(blob) is not None
 
 
 def extra_cad_parameters(data: dict[str, Any]) -> tuple[str, ...]:
@@ -547,12 +567,150 @@ def validate_wiring(data: dict[str, Any], errors: list[str]) -> None:
         )
 
 
+def validate_reverse(data: dict[str, Any], errors: list[str]) -> None:
+    reverse = data.get("reverse")
+    if reverse is None:
+        return
+    if not isinstance(reverse, dict):
+        errors.append("reverse must be a mapping")
+        return
+    klass = reverse.get("class")
+    if klass is not None and klass not in REVERSE_CLASSES:
+        errors.append(f"reverse.class must be one of {sorted(REVERSE_CLASSES)}")
+    backend = nested(data, "cad.backend")
+    if klass == "organic":
+        if backend != "blender":
+            errors.append("reverse.class organic requires cad.backend blender")
+    elif backend not in REVERSE_KERNEL_BACKENDS:
+        errors.append(
+            "reverse projects require cad.backend vibecad or cadquery; never openscad"
+        )
+    for key in ("input_stl", "ir"):
+        rel = reverse.get(key)
+        if rel is None:
+            continue
+        if not isinstance(rel, str) or not safe_relative_path(rel):
+            errors.append(f"reverse.{key} must be a project-relative path without '..'")
+    max_dev = reverse.get("max_deviation_mm")
+    if max_dev is not None and (not finite_number(max_dev) or float(max_dev) < 0):
+        errors.append("reverse.max_deviation_mm must be a finite non-negative number")
+    step_files = reverse.get("step_files")
+    if step_files is None:
+        return
+    if not isinstance(step_files, list):
+        errors.append("reverse.step_files must be a list")
+        return
+    for index, item in enumerate(step_files):
+        label = f"reverse.step_files[{index}]"
+        if not isinstance(item, dict):
+            errors.append(f"{label} must be a mapping")
+            continue
+        path = item.get("path")
+        if not isinstance(path, str) or not safe_relative_path(path):
+            errors.append(f"{label}.path must be project-relative and cannot contain '..'")
+        if "body" in item and (not isinstance(item.get("body"), str) or not item.get("body")):
+            errors.append(f"{label}.body must be non-empty")
+
+
 from print_spec_assembly import (  # noqa: E402
     parse_optional_blocks,
     validate_assembly,
     validate_loads,
     validate_sim,
 )
+
+
+def validate_printer_identity(data: dict[str, Any], errors: list[str]) -> None:
+    manufacturing = data.get("manufacturing")
+    if not isinstance(manufacturing, dict):
+        return
+    for key in manufacturing:
+        if str(key).lower() in PRINTER_IDENTITY_KEYS:
+            errors.append(
+                "manufacturing must not contain printer identity "
+                "(IP, serial, access_code, host)"
+            )
+            return
+
+
+def validate_pack_slice(data: dict[str, Any], errors: list[str]) -> None:
+    pack = data.get("pack")
+    if pack is not None:
+        if not isinstance(pack, dict):
+            errors.append("pack must be a mapping")
+        else:
+            required = pack.get("required")
+            if required is not None and required not in (True, False):
+                errors.append("pack.required must be true or false")
+    slice_block = data.get("slice")
+    if slice_block is None:
+        return
+    if not isinstance(slice_block, dict):
+        errors.append("slice must be a mapping")
+        return
+    for key in ("process_card", "three_mf"):
+        rel = slice_block.get(key)
+        if rel is None:
+            continue
+        if not isinstance(rel, str) or not safe_relative_path(rel):
+            errors.append(f"slice.{key} must be a project-relative path without '..'")
+
+
+def validate_fit_measured(data: dict[str, Any], errors: list[str]) -> None:
+    fit = data.get("fit")
+    if not isinstance(fit, dict):
+        return
+    measured = fit.get("measured_mm")
+    if measured is None:
+        return
+    if not isinstance(measured, dict):
+        errors.append("fit.measured_mm must be a mapping of parameter to millimetres")
+        return
+    for key, value in measured.items():
+        if not isinstance(key, str) or not key.isidentifier():
+            errors.append("fit.measured_mm keys must be CAD parameter identifiers")
+        if not finite_number(value) or float(value) < 0:
+            errors.append(f"fit.measured_mm.{key} must be a finite non-negative number")
+
+
+def validate_insert_od(data: dict[str, Any], errors: list[str]) -> None:
+    try:
+        fit_required = nested(data, "fit.required") is True
+    except KeyError:
+        return
+    if not fit_required:
+        return
+    dimensions = data.get("dimensions")
+    if isinstance(dimensions, list):
+        for index, dim in enumerate(dimensions):
+            if not isinstance(dim, dict):
+                continue
+            name = dim.get("name") if isinstance(dim.get("name"), str) else ""
+            parameter = dim.get("parameter") if isinstance(dim.get("parameter"), str) else ""
+            if dim.get("source") == "assumed" and is_insert_od_dimension(name, parameter):
+                errors.append(
+                    f"assumed insert OD cannot ship when fit.required: dimensions[{index}]"
+                )
+    hardware = data.get("hardware")
+    components = hardware.get("components") if isinstance(hardware, dict) else None
+    if not isinstance(components, list):
+        return
+    for c_index, comp in enumerate(components):
+        if not isinstance(comp, dict):
+            continue
+        interfaces = comp.get("interfaces")
+        if not isinstance(interfaces, list):
+            continue
+        for i_index, iface in enumerate(interfaces):
+            if not isinstance(iface, dict):
+                continue
+            name = iface.get("name") if isinstance(iface.get("name"), str) else ""
+            parameter = iface.get("parameter") if isinstance(iface.get("parameter"), str) else ""
+            if iface.get("source") == "assumed" and is_insert_od_dimension(name, parameter):
+                errors.append(
+                    "assumed insert OD cannot ship when fit.required: "
+                    f"hardware.components[{c_index}].interfaces[{i_index}]"
+                )
 
 
 def validate(data: Any, project: Path | None = None, check_files: bool = False) -> list[str]:
@@ -635,6 +793,14 @@ def validate(data: Any, project: Path | None = None, check_files: bool = False) 
             "cad.backend vibecad requires project-relative Python/VibeScript "
             "(.py or .vibescript); .FCStd and Markdown cannot be the only sources"
         )
+    elif nested(data, "cad.backend") == "cadquery":
+        suffixes = [
+            vibecad_source_suffix(item) for item in source_files if isinstance(item, str)
+        ]
+        if not any(suffix in CADQUERY_PARAMETRIC_SUFFIXES for suffix in suffixes):
+            errors.append(
+                "cad.backend cadquery requires project-relative Python (.py) source"
+            )
 
     stl_files = nested(data, "geometry.stl_files")
     if not isinstance(stl_files, list) or not stl_files:
@@ -687,6 +853,11 @@ def validate(data: Any, project: Path | None = None, check_files: bool = False) 
     validate_assembly(data, errors)
     validate_loads(data, errors)
     validate_sim(data, errors)
+    validate_reverse(data, errors)
+    validate_printer_identity(data, errors)
+    validate_pack_slice(data, errors)
+    validate_fit_measured(data, errors)
+    validate_insert_od(data, errors)
 
     if nested(data, "service.environment") == "wet":
         if nested(data, "service.drainage") not in POSITIVE_DRAINAGE:
@@ -706,6 +877,18 @@ def validate(data: Any, project: Path | None = None, check_files: bool = False) 
                         paths.append(rel)
         if isinstance(coupon, str) and coupon and safe_relative_path(coupon) and coupon_is_path(coupon):
             paths.append(coupon)
+        slice_block = data.get("slice")
+        if isinstance(slice_block, dict):
+            for key in ("process_card", "three_mf"):
+                rel = slice_block.get(key)
+                if isinstance(rel, str) and safe_relative_path(rel):
+                    paths.append(rel)
+        reverse = data.get("reverse")
+        if isinstance(reverse, dict):
+            for key in ("input_stl", "ir"):
+                rel = reverse.get(key)
+                if isinstance(rel, str) and safe_relative_path(rel):
+                    paths.append(rel)
         for rel in paths:
             if not safe_relative_path(rel):
                 continue
@@ -734,6 +917,16 @@ def parse_spec(data: dict[str, Any]) -> PrintSpec:
         for dim in data["dimensions"]
     )
     extra = parse_optional_blocks(data)
+    pack = data.get("pack") if isinstance(data.get("pack"), dict) else {}
+    slice_block = data.get("slice") if isinstance(data.get("slice"), dict) else {}
+    measured_raw = data.get("fit", {}).get("measured_mm") if isinstance(data.get("fit"), dict) else None
+    measured: tuple[tuple[str, float], ...] = ()
+    if isinstance(measured_raw, dict):
+        measured = tuple(
+            (str(key), float(value))
+            for key, value in measured_raw.items()
+            if isinstance(key, str) and finite_number(value)
+        )
     return PrintSpec(
         schema_version=int(data["schema_version"]),
         part_name=nested(data, "part.name"),
@@ -773,6 +966,14 @@ def parse_spec(data: dict[str, Any]) -> PrintSpec:
         sim2real=extra.sim2real,
         calibration=extra.calibration,
         sim_roll=extra.sim_roll,
+        pack_required=bool(pack.get("required", False)),
+        slice_process_card=slice_block.get("process_card")
+        if isinstance(slice_block.get("process_card"), str)
+        else None,
+        slice_three_mf=slice_block.get("three_mf")
+        if isinstance(slice_block.get("three_mf"), str)
+        else None,
+        fit_measured_mm=measured,
     )
 
 

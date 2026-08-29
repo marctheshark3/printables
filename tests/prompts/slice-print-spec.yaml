@@ -1,0 +1,22 @@
+id: slice-print-spec
+prompt: |
+  Slice this PRINT_SPEC. Emit a slicer process card and optional 3MF.
+  Do not start a print on a machine.
+expect:
+  primary: 3d-print-slice
+  skills:
+    - 3d-print-slice
+    - 3d-print-design-brief
+  outrank:
+    - 3d-print-pack
+    - 3d-print-blender
+    - 3d-print-shop-fixture
+    - 3d-print-image-silhouette
+  skill_contains:
+    3d-print-slice:
+      - PRINT_SPEC.yaml
+      - "SKIP: no slicer CLI"
+      - process.json
+run:
+  - kind: no_cad
+    reason: process card is spec-only; unit CI has no slicer CLI

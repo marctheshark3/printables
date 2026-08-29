@@ -44,6 +44,7 @@ def main() -> int:
             orientation=spec.orientation,
             up_axis=spec.up_axis,
             min_feature_mm=spec.min_feature_mm,
+            min_wall_mm=spec.min_wall_mm,
             max_overhang_deg=spec.max_overhang_deg,
         )
         report(hard, warn, info)
