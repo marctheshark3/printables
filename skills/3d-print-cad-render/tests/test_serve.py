@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sys
+import socket
 from http.client import HTTPConnection
 from pathlib import Path
 from threading import Thread
@@ -34,6 +35,16 @@ def test_serves_viewer_and_hides_step(tmp_path):
         assert b"ok" in body
         conn.request("GET", "/secret.step")
         assert conn.getresponse().status == 404
+        (tmp_path / "part.scene.json").write_text('{"step_path":"/tmp/hidden.step"}')
+        (tmp_path / "catalog.json").write_text("{}")
+        (tmp_path / "models").mkdir()
+        (tmp_path / "models" / "box.json").write_text("{}")
+        conn.request("GET", "/part.scene.json")
+        assert conn.getresponse().status == 404
+        conn.request("GET", "/catalog.json")
+        assert conn.getresponse().status == 200
+        conn.request("GET", "/models/box.json")
+        assert conn.getresponse().status == 200
         conn.request("GET", "/../viewer.template.html")
         # path traversal must 404
         assert conn.getresponse().status == 404
@@ -41,3 +52,13 @@ def test_serves_viewer_and_hides_step(tmp_path):
     finally:
         server.shutdown()
         server.server_close()
+
+
+def test_bind_ipv6_loopback(tmp_path):
+    (tmp_path / "viewer.html").write_text("ok")
+    try:
+        server = make_server(tmp_path, 0, "::1")
+    except OSError as exc:
+        pytest.skip(f"no ipv6 loopback: {exc}")
+    server.server_close()
+    assert server.address_family == socket.AF_INET6

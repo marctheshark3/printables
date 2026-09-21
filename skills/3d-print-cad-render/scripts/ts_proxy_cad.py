@@ -3,17 +3,33 @@
 from __future__ import annotations
 
 import argparse
+import ipaddress
 import select
 import socket
 import subprocess
 import threading
+
+CGNAT = ipaddress.ip_network("100.64.0.0/10")
+
+
+def is_tailscale_ipv4(value: str) -> bool:
+    try:
+        return ipaddress.ip_address(value) in CGNAT
+    except ValueError:
+        return False
+
+
+def require_tailscale_ipv4(value: str) -> str:
+    if not is_tailscale_ipv4(value):
+        raise SystemExit("HARD: Tailscale IPv4 only — not 0.0.0.0 / LAN")
+    return value
 
 
 def tailscale_ipv4() -> str:
     try:
         out = subprocess.check_output(["tailscale", "ip", "-4"], text=True, timeout=5).strip()
         ip = out.splitlines()[0].strip()
-        if ip.startswith("100."):
+        if is_tailscale_ipv4(ip):
             return ip
     except (OSError, subprocess.CalledProcessError, IndexError):
         pass
@@ -50,8 +66,7 @@ def main(argv=None) -> int:
     parser.add_argument("--upstream-host", default="127.0.0.1")
     args = parser.parse_args(argv)
     listen_ip = args.listen or tailscale_ipv4()
-    if listen_ip in {"0.0.0.0", "::", "*"} or listen_ip.startswith("192.168."):
-        raise SystemExit("HARD: Tailscale IPv4 only — not 0.0.0.0 / LAN")
+    listen_ip = require_tailscale_ipv4(listen_ip)
     listen = (listen_ip, args.port)
     upstream = (args.upstream_host, args.port)
     srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

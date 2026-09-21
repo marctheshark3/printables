@@ -7,6 +7,7 @@ import json
 import os
 import subprocess
 import sys
+from html import escape
 from pathlib import Path
 
 from cad_pack import CadPackError, load_dump, study_from_dump
@@ -15,6 +16,37 @@ SKILL_DIR = Path(__file__).resolve().parents[1]
 DUMP_SCRIPT = Path(__file__).resolve().parent / "dump_cad_scene.py"
 TEMPLATE = SKILL_DIR / "viewer" / "viewer.template.html"
 BUNDLE = SKILL_DIR / "viewer" / "viewer.bundle.js"
+
+
+def spec_step_rels(text: str) -> list[str]:
+    """Read reverse.step_files, including `- path: exports/part.step` mappings."""
+    rels: list[str] = []
+    lines = text.splitlines()
+    i = 0
+    while i < len(lines):
+        if lines[i].strip().startswith("step_files:"):
+            base = len(lines[i]) - len(lines[i].lstrip())
+            i += 1
+            while i < len(lines):
+                raw = lines[i]
+                stripped = raw.strip()
+                if stripped and not stripped.startswith("#"):
+                    indent = len(raw) - len(raw.lstrip())
+                    if indent <= base:
+                        break
+                rest = ""
+                if stripped.startswith("- "):
+                    rest = stripped[2:].strip().strip("'\"")
+                    if rest.lower().startswith("path:"):
+                        rest = rest.split(":", 1)[1].strip().strip("'\"")
+                elif stripped.lower().startswith("path:"):
+                    rest = stripped.split(":", 1)[1].strip().strip("'\"")
+                if rest.lower().endswith((".step", ".stp")) and ".." not in Path(rest).parts:
+                    rels.append(rest)
+                i += 1
+            continue
+        i += 1
+    return rels
 
 
 def find_steps(project: Path, explicit: Path | None) -> list[Path]:
@@ -30,14 +62,10 @@ def find_steps(project: Path, explicit: Path | None) -> list[Path]:
             found.extend(sorted(folder.glob("*.stp")))
     spec = project / "docs" / "PRINT_SPEC.yaml"
     if spec.is_file():
-        text = spec.read_text()
-        for line in text.splitlines():
-            stripped = line.strip()
-            if stripped.startswith("- ") and stripped.lower().endswith((".step", ".stp")):
-                rel = stripped[2:].strip().strip("'\"")
-                cand = project / rel
-                if cand.is_file():
-                    found.append(cand)
+        for rel in spec_step_rels(spec.read_text()):
+            cand = project / rel
+            if cand.is_file():
+                found.append(cand)
     # unique preserve order
     out, seen = [], set()
     for p in found:
@@ -111,8 +139,8 @@ def build_html(study: dict, dest: Path) -> Path:
         TEMPLATE.read_text()
         .replace("/* STUDY_DATA */", payload)
         .replace("/* VIEWER_RUNTIME */", runtime)
-        .replace("<!-- TITLE -->", study.get("title") or "CAD inspector")
-        .replace("<!-- BRAND -->", study.get("brand") or "RAGE INDUSTRIES / CAD INSPECTOR")
+        .replace("<!-- TITLE -->", escape(study.get("title") or "CAD inspector", quote=True))
+        .replace("<!-- BRAND -->", escape(study.get("brand") or "RAGE INDUSTRIES / CAD INSPECTOR", quote=True))
     )
     dest.mkdir(parents=True, exist_ok=True)
     out = dest / "viewer.html"
@@ -149,7 +177,7 @@ def main(argv=None) -> int:
             steps = find_steps(project, args.step)
             cmd = vibecad_cmd()
             dumps = []
-            raw_dir = project / "renders" / "cad-inspector"
+            raw_dir = project / "renders" / "cad-scene"
             for step in steps:
                 dumps.append(dump_step(step, raw_dir / (step.stem + ".scene.json"), cmd))
             dump = merge_dumps(dumps, args.title or project.name)

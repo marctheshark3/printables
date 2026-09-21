@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import re
+from html import escape
 from pathlib import Path
 
 from cad_pack import CadPackError
@@ -161,8 +162,8 @@ def build_shell(root: Path, *, title: str = "Rage CAD inspector") -> Path:
         TEMPLATE.read_text()
         .replace("/* STUDY_DATA */", "null")
         .replace("/* VIEWER_RUNTIME */", runtime)
-        .replace("<!-- TITLE -->", title)
-        .replace("<!-- BRAND -->", "RAGE INDUSTRIES / CAD INSPECTOR")
+        .replace("<!-- TITLE -->", escape(title, quote=True))
+        .replace("<!-- BRAND -->", escape("RAGE INDUSTRIES / CAD INSPECTOR", quote=True))
     )
     if "catalog.json" not in BUNDLE.read_text():
         raise CadPackError("viewer bundle has no catalog loader — rebuild viewer.bundle.js")

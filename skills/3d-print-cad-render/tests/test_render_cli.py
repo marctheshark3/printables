@@ -50,3 +50,23 @@ def test_cli_rejects_public_bind(tmp_path):
     scene.write_text(json.dumps(box_dump()))
     rc = main(["--scene", str(scene), "--out-dir", str(tmp_path / "o"), "--bind", "0.0.0.0"])
     assert rc == 2
+
+
+def test_mapped_print_spec_step(tmp_path):
+    docs = tmp_path / "docs"
+    docs.mkdir()
+    exports = tmp_path / "exports"
+    exports.mkdir()
+    step = exports / "widget.step"
+    step.write_text("ISO-10303-21;")
+    (docs / "PRINT_SPEC.yaml").write_text(
+        "reverse:\n  step_files:\n    - path: exports/widget.step\n      body: widget\n"
+    )
+    assert find_steps(tmp_path, None) == [step]
+
+
+def test_title_is_html_escaped(tmp_path):
+    study = study_from_dump(box_dump(), title="</title><script>alert(1)</script>")
+    html = build_html(study, tmp_path / "out").read_text()
+    assert "</title><script>" not in html
+    assert "&lt;/title&gt;&lt;script&gt;" in html
