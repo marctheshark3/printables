@@ -1,0 +1,9 @@
+{
+  "name": "cad-inspector",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "build": "esbuild app.js --bundle --minify --format=iife --legal-comments=inline --outfile=viewer.bundle.js"
+  }
+}

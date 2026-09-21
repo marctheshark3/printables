@@ -20,6 +20,7 @@ EXPECTED = {
     "3d-print-reverse",
     "3d-print-pack",
     "3d-print-slice",
+    "3d-print-cad-render",
 }
 FORBIDDEN = {
     "printables-part-brief",

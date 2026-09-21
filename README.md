@@ -25,6 +25,7 @@ All tools use the same prefix, followed by one obvious job:
 - `3d-print-reverse` — rebuild an existing STL as editable STEP and a gated STL
 - `3d-print-pack` — zip a gated project (spec, source, STLs, print notes, manifest)
 - `3d-print-slice` — process card from PRINT_SPEC; optional 3MF if a slicer CLI is present
+- `3d-print-cad-render` — loopback STEP inspector (parts tree, measure). Not a mill backend. Not in `./install.sh`, so a local profile copy is not overwritten.
 
 The `/3d-print` bundle loads the brief, OpenSCAD, Blender, and validator. Use OpenSCAD for dimensional work and Blender only for organic or lattice bodies. `3d-print-vibecad`, `3d-print-reverse`, `3d-print-pack`, and `3d-print-slice` are optional and are not required by `/3d-print`. Live printer control is the sibling `bambu-mcp` repo; this pack never stores access codes, serials, or LAN IPs.
 
