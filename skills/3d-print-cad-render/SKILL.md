@@ -23,7 +23,7 @@ This pack does not ship FreeCAD. A STEP dump needs a host `FreeCADCmd` via `FREE
 - several STEP studies in one viewer (parts tree)
 - after a mill, before a still
 
-**Don't:** bind `0.0.0.0`, treat an STL as CAD, pack every model into one HTML, or commit a private hub URL, Tailscale hostname, or home path.
+**Don't:** bind `0.0.0.0`, treat an STL as CAD, pack every model into one HTML, or commit a private hub URL, hostname, or home path.
 
 ## How to Run
 
@@ -33,13 +33,7 @@ export FREECAD_CMD=/path/to/FreeCADCmd
 python3 scripts/render_cad_project.py --project "$PROJECT" --serve --port 8107
 ```
 
-Loopback only: `http://127.0.0.1:8107/?view=solid`.
-
-Optional Tailscale proxy. It reads `tailscale ip -4` and exits if that is not a `100.x` address. Never hardcode an address. Never `0.0.0.0`.
-
-```bash
-python3 scripts/ts_proxy_cad.py --port 8107
-```
+Loopback only: `http://127.0.0.1:8107/?view=solid`. This pack does not ship a network proxy.
 
 Skip the binary when you already have an OCC dump:
 
@@ -65,7 +59,7 @@ Orthographic Z-up. Parts tree when `catalog.json` is present (`path` is `folder/
 
 1. STL / trimesh as the CAD view.
 2. Triangle `EdgesGeometry` instead of OCC edge discretization.
-3. Binding `0.0.0.0` or baking a Tailscale hostname into the repo.
+3. Binding `0.0.0.0`, or adding a network proxy or hostname to this repo.
 4. Host `python3` dump — no FreeCAD.
 5. Treating the inspector as a STEP editor or print approval.
 6. Packing every model into one `viewer.html`. A bad id (`../`, uppercase) is a hard fail.
