@@ -45,6 +45,36 @@ def median_nearest_gap(
     return (gaps[mid - 1] + gaps[mid]) / 2.0
 
 
+def parse_span(text: str) -> tuple[float, float, float, float]:
+    parts = [part.strip() for part in text.split(",")]
+    if len(parts) != 4:
+        raise ValueError("span needs x1,y1,x2,y2")
+    return tuple(float(part) for part in parts)  # type: ignore[return-value]
+
+
+def apply_homography(h: list[list[float]], x: float, y: float) -> tuple[float, float]:
+    den = h[2][0] * x + h[2][1] * y + h[2][2]
+    if abs(den) < 1e-12:
+        raise ValueError("homography degenerate")
+    return (
+        (h[0][0] * x + h[0][1] * y + h[0][2]) / den,
+        (h[1][0] * x + h[1][1] * y + h[1][2]) / den,
+    )
+
+
+def span_mm(
+    h: list[list[float]],
+    x1: float,
+    y1: float,
+    x2: float,
+    y2: float,
+) -> float:
+    """Board-plane distance. Valid only if both points lie on the paper."""
+    u1, v1 = apply_homography(h, x1, y1)
+    u2, v2 = apply_homography(h, x2, y2)
+    return ((u1 - u2) ** 2 + (v1 - v2) ** 2) ** 0.5
+
+
 def square_within_tol(
     recovered: float | None,
     nominal: float = SQUARE_MM,
@@ -100,7 +130,7 @@ p {{ max-width: 180mm; }}
 </head>
 <body>
 <img src="charuco-15mm.png" alt="ChArUco board, 15 mm squares">
-<p>Print at 100%. No fit-to-page. One square must measure <b>15.0 mm</b> with a ruler before any photo counts. Part in the middle, board visible on all four sides. A top photo gives XY only. Thickness needs a second photo on the same board, or a drawing.</p>
+<p>Print at 100%. No fit-to-page. One square must measure <b>15.0 mm</b> with a ruler before any photo counts. Part in the middle, board visible on all four sides. This page checks the board. It does not measure a face raised above the paper.</p>
 </body>
 </html>
 """
@@ -109,7 +139,7 @@ p {{ max-width: 180mm; }}
     print(f"WROTE {html.name}")
 
 
-def measure(photo: Path, out_dir: Path) -> int:
+def measure(photo: Path, out_dir: Path, span: tuple[float, float, float, float] | None = None) -> int:
     cv2, np = require_cv()
     image = cv2.imread(str(photo))
     if image is None:
@@ -166,8 +196,18 @@ def measure(photo: Path, out_dir: Path) -> int:
         "mm_per_px": round(1.0 / PX_PER_MM, 5),
         "board_mm": [SQUARES_X * SQUARE_MM, SQUARES_Y * SQUARE_MM],
         "plane": "Board plane only. Raised faces are not metric. Z is not in this photo.",
+        "part_px_are_metric": False,
+        "part_dimensions_emitted": False,
+        "coplanar_asserted": False,
+        "coplanar_verified": False,
         "print_check": "Ruler must read 15.0 mm on one printed square or every length is wrong.",
     }
+    if span is not None and ok:
+        dist = span_mm(homography.tolist(), *span)
+        report["span_mm"] = round(dist, 3)
+        report["part_dimensions_emitted"] = True
+        report["coplanar_asserted"] = True
+        report["span_note"] = "operator-asserted board-plane span; not verified; not a raised face"
     if not ok:
         report["reason"] = "recovered square outside 0.15 mm"
     meta = out_dir / f"{stem}-measure.json"
@@ -181,15 +221,26 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("photo", nargs="?", help="photo that contains the printed board")
     parser.add_argument("--out", required=True, help="directory for the board or the measure files")
     parser.add_argument("--board", action="store_true", help="write the printable board")
+    parser.add_argument(
+        "--coplanar-span",
+        help="x1,y1,x2,y2 in original photo pixels, both on the paper. Not a raised face.",
+    )
     args = parser.parse_args(argv)
     out = Path(args.out)
     if args.board:
         write_board(out)
         return 0
+    span = None
+    if args.coplanar_span:
+        try:
+            span = parse_span(args.coplanar_span)
+        except ValueError as exc:
+            print(str(exc), file=sys.stderr)
+            return 2
     if not args.photo:
         print("photo required unless --board", file=sys.stderr)
         return 2
-    return measure(Path(args.photo), out)
+    return measure(Path(args.photo), out, span)
 
 
 if __name__ == "__main__":

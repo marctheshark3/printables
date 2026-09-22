@@ -39,6 +39,23 @@ def test_report_plane_is_board_only():
     assert "Raised faces are not metric" in text
 
 
+def test_identity_span_is_15mm():
+    mod = load()
+    eye = [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]
+    assert mod.span_mm(eye, 0, 0, 15, 0) == 15.0
+
+
+def test_bad_span_exits_2():
+    result = subprocess.run(
+        [sys.executable, str(SCRIPT), "photo.jpg", "--out", "unused", "--coplanar-span", "1,2"],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 2
+    assert "span needs" in result.stderr
+
+
 def test_photo_required_without_opencv():
     result = subprocess.run(
         [sys.executable, str(SCRIPT), "--out", "unused"],

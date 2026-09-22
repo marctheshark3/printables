@@ -158,6 +158,7 @@ def main() -> int:
         "photo-derived",
         "XY only",
         "board plane",
+        "part_px_are_metric",
         "opencv-python",
     ):
         assert needle in photo, f"3d-print-photo-cad missing {needle!r}"
