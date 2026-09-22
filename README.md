@@ -24,6 +24,7 @@ All tools use the same prefix, followed by one obvious job:
 - `3d-print-robotics` — numbered FDM micro-robotics kit modules
 - `3d-print-sim` — assembled occupancy, joint sweep, and load section check
 - `3d-print-image-silhouette` — image-derived stencils and silhouettes
+- `3d-print-photo-cad` — millimetres from a printed ChArUco photo. Not a caliper. Not in `./install.sh`.
 - `3d-print-shop-fixture` — decide whether a shop fixture should be printed or bought
 - `3d-print-reverse` — rebuild an existing STL as editable STEP and a gated STL
 - `3d-print-pack` — zip a gated project (spec, source, STLs, print notes, manifest)
@@ -161,7 +162,7 @@ After HARD=0, `3d-print-pack` writes a deliverable zip. `3d-print-slice` always 
 ## Tests
 
 ```bash
-python3 -m pytest -q skills/3d-print-design-brief/tests skills/3d-print-validate/tests skills/3d-print-reverse/scripts/tests skills/3d-print-vibecad/scripts/tests skills/3d-print-pack/scripts/tests skills/3d-print-slice/scripts/tests skills/3d-print-cad-render/tests skills/3d-print-image-silhouette/tests tests/test_prompt_scenarios.py tests/test_secret_scan.py
+python3 -m pytest -q skills/3d-print-design-brief/tests skills/3d-print-validate/tests skills/3d-print-reverse/scripts/tests skills/3d-print-vibecad/scripts/tests skills/3d-print-pack/scripts/tests skills/3d-print-slice/scripts/tests skills/3d-print-cad-render/tests skills/3d-print-image-silhouette/tests skills/3d-print-photo-cad/tests tests/test_prompt_scenarios.py tests/test_secret_scan.py
 python3 tests/test_skill_contract.py
 python3 tests/prompt_harness.py
 python3 -m unittest discover -s skills/3d-print-blender/scripts/tests -v
@@ -175,7 +176,8 @@ python3 -m py_compile \
   skills/3d-print-pack/scripts/*.py \
   skills/3d-print-slice/scripts/*.py \
   skills/3d-print-vibecad/scripts/find_vibecad.py \
-  skills/3d-print-cad-render/scripts/*.py
+  skills/3d-print-cad-render/scripts/*.py \
+  skills/3d-print-photo-cad/scripts/*.py
 ```
 
 `tests/prompts/` holds sample user prompts. CI ranks them onto skills, then the `generate-stls` job exports real STLs with OpenSCAD/Blender and uploads them as the `generated-stls` artifact. That job is the portable export path, not the dimensional kernel. Shop-fixture prompts stop at buy-vs-print. Inspector and VibeCAD binary steps are not invoked unless `FREECAD_CMD` or `VIBECAD_CMD` is set. No live model.
