@@ -14,6 +14,7 @@ EXPECTED = {
     "3d-print-validate",
     "3d-print-display-enclosure",
     "3d-print-image-silhouette",
+    "3d-print-photo-cad",
     "3d-print-shop-fixture",
     "3d-print-robotics",
     "3d-print-sim",
@@ -83,6 +84,8 @@ def main() -> int:
     assert "3d-print-pack" in install
     assert "3d-print-slice" in install
     assert "3d-print-cad-render" not in install
+    assert "3d-print-photo-cad" in install
+    assert "3d-print-photo-cad" not in bundle["skills"]
 
     vibecad = (SKILLS / "3d-print-vibecad" / "SKILL.md").read_text(encoding="utf-8")
     host = (SKILLS / "3d-print-vibecad" / "references" / "vibecad-host.md").read_text(
@@ -147,13 +150,26 @@ def main() -> int:
     ):
         assert needle in render, f"3d-print-cad-render missing {needle!r}"
 
+    photo = (SKILLS / "3d-print-photo-cad" / "SKILL.md").read_text(encoding="utf-8")
+    for needle in (
+        "charuco_photo.py",
+        "15.0 mm",
+        "0.15",
+        "photo-derived",
+        "XY only",
+        "board plane",
+        "part_px_are_metric",
+        "opencv-python",
+    ):
+        assert needle in photo, f"3d-print-photo-cad missing {needle!r}"
+
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
     status = (ROOT / "STATUS.md").read_text(encoding="utf-8")
     contributing = (ROOT / "CONTRIBUTING.md").read_text(encoding="utf-8")
     ci = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
     pytest_paths = (
         "skills/3d-print-cad-render/tests skills/3d-print-image-silhouette/tests "
-        "tests/test_prompt_scenarios.py tests/test_secret_scan.py"
+        "skills/3d-print-photo-cad/tests tests/test_prompt_scenarios.py tests/test_secret_scan.py"
     )
     for label, text in (("README", readme), ("CONTRIBUTING", contributing), ("ci", ci)):
         assert pytest_paths in text, f"{label} test command is missing inspector or silhouette tests"

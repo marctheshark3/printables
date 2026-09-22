@@ -26,6 +26,7 @@ SKILLS=(
   3d-print-validate
   3d-print-display-enclosure
   3d-print-image-silhouette
+  3d-print-photo-cad
   3d-print-shop-fixture
   3d-print-robotics
   3d-print-sim
@@ -83,6 +84,7 @@ else
       chmod +x "$profile_root/skills/creative/3d-print-validate/scripts/"*.py 2>/dev/null || true
       chmod +x "$profile_root/skills/creative/3d-print-blender/scripts/pblend" 2>/dev/null || true
       chmod +x "$profile_root/skills/creative/3d-print-image-silhouette/scripts/"*.py 2>/dev/null || true
+      chmod +x "$profile_root/skills/creative/3d-print-photo-cad/scripts/"*.py 2>/dev/null || true
       chmod +x "$profile_root/skills/creative/3d-print-reverse/scripts/preverse" 2>/dev/null || true
       chmod +x "$profile_root/skills/creative/3d-print-pack/scripts/"*.py 2>/dev/null || true
       chmod +x "$profile_root/skills/creative/3d-print-slice/scripts/"*.py 2>/dev/null || true

@@ -27,7 +27,7 @@ Edit this repository, run the complete checks, then install into local Hermes pr
 
 ```bash
 python3 -m pip install PyYAML pytest
-python3 -m pytest -q skills/3d-print-design-brief/tests skills/3d-print-validate/tests skills/3d-print-reverse/scripts/tests skills/3d-print-vibecad/scripts/tests skills/3d-print-pack/scripts/tests skills/3d-print-slice/scripts/tests skills/3d-print-cad-render/tests skills/3d-print-image-silhouette/tests tests/test_prompt_scenarios.py tests/test_secret_scan.py
+python3 -m pytest -q skills/3d-print-design-brief/tests skills/3d-print-validate/tests skills/3d-print-reverse/scripts/tests skills/3d-print-vibecad/scripts/tests skills/3d-print-pack/scripts/tests skills/3d-print-slice/scripts/tests skills/3d-print-cad-render/tests skills/3d-print-image-silhouette/tests skills/3d-print-photo-cad/tests tests/test_prompt_scenarios.py tests/test_secret_scan.py
 python3 tests/prompt_harness.py   # OpenSCAD Docker + Blender; writes artifacts/stls/
 python3 -m unittest discover -s skills/3d-print-blender/scripts/tests -v
 python3 tests/test_skill_contract.py
