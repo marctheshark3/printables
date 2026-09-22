@@ -31,10 +31,10 @@ Label the solid `photo-derived`. Do not mill from it. Do not cut a hole whose di
 2. No drawing? Print the board at **100%**. No fit-to-page. One square must measure **15.0 mm** with a ruler. Markers do not encode size.
 3. Part in the middle, board visible on all four sides.
 4. Run the measure script. Exit 0 and `"ok": true` before any CAD number is written. Corners must be at least 12. `recovered_square_mm` must be within **0.15** of 15.0. Else stop.
-5. On the rectified PNG, pixel distance / 10 = mm. Cite the json. Provenance `measured`. Source `photo-derived`.
-6. A top photo is **XY only**. Thickness is a second photo of the part on its side on the same board, a drawing, or a caliper. Do not invent Z.
+5. The rectified PNG is metric **only on the board plane**. Pixel distance / 10 = mm for the footprint where the part meets the paper. Cite the json. Provenance `measured`. Source `photo-derived`. A face raised above the board is enlarged by parallax. Do not take edge lengths or hole diameters from that face.
+6. A top photo is **XY only**, and only on that plane. Thickness is a second photo of the part on its side on the same board, a drawing, or a caliper. Do not invent Z.
 7. VibeCAD parameters are those numbers only (`3d-print-vibecad`). Inspector entry is one model (`3d-print-cad-render`).
-8. Cut a hole only if its diameter was measured on the rectified image, or it is on a drawing. No other holes.
+8. Cut a hole only if its diameter was measured on the board plane, or it is on a drawing. No other holes.
 
 ## How to Run
 
@@ -52,7 +52,7 @@ python3 skills/3d-print-photo-cad/scripts/charuco_photo.py photo.jpg --out ./cha
 - Reading millimetres off a vision description
 - Fit-to-page, or trusting the PNG without the ruler check
 - Calling a product-page box or a community STEP the model
-- A side or raised face used as the scale check
+- A side or raised face used as the scale check, or as an XY length. It reads large. Measure the contact footprint on the board plane.
 - Dark-blob or line guesses on the checkerboard. An overlay has to sit on the plastic before a length is real
 - A hole without a measured diameter
 

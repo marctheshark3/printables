@@ -33,6 +33,12 @@ def test_square_tolerance_edges():
     assert not mod.square_within_tol(None)
 
 
+def test_report_plane_is_board_only():
+    text = SCRIPT.read_text(encoding="utf-8")
+    assert "Board plane only" in text
+    assert "Raised faces are not metric" in text
+
+
 def test_photo_required_without_opencv():
     result = subprocess.run(
         [sys.executable, str(SCRIPT), "--out", "unused"],

@@ -84,7 +84,7 @@ def main() -> int:
     assert "3d-print-pack" in install
     assert "3d-print-slice" in install
     assert "3d-print-cad-render" not in install
-    assert "3d-print-photo-cad" not in install
+    assert "3d-print-photo-cad" in install
     assert "3d-print-photo-cad" not in bundle["skills"]
 
     vibecad = (SKILLS / "3d-print-vibecad" / "SKILL.md").read_text(encoding="utf-8")
@@ -157,6 +157,7 @@ def main() -> int:
         "0.15",
         "photo-derived",
         "XY only",
+        "board plane",
         "opencv-python",
     ):
         assert needle in photo, f"3d-print-photo-cad missing {needle!r}"

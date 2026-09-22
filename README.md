@@ -24,7 +24,7 @@ All tools use the same prefix, followed by one obvious job:
 - `3d-print-robotics` — numbered FDM micro-robotics kit modules
 - `3d-print-sim` — assembled occupancy, joint sweep, and load section check
 - `3d-print-image-silhouette` — image-derived stencils and silhouettes
-- `3d-print-photo-cad` — millimetres from a printed ChArUco photo. Not a caliper. Not in `./install.sh`.
+- `3d-print-photo-cad` — millimetres from a printed ChArUco photo, board plane only. Not a caliper. Installed by `./install.sh`. Not in `/3d-print`.
 - `3d-print-shop-fixture` — decide whether a shop fixture should be printed or bought
 - `3d-print-reverse` — rebuild an existing STL as editable STEP and a gated STL
 - `3d-print-pack` — zip a gated project (spec, source, STLs, print notes, manifest)

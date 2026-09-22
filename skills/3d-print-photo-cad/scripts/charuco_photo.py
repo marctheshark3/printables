@@ -140,6 +140,7 @@ def measure(photo: Path, out_dir: Path) -> int:
     width = int(SQUARES_X * SQUARE_MM * PX_PER_MM)
     height = int(SQUARES_Y * SQUARE_MM * PX_PER_MM)
     flat = cv2.warpPerspective(image, scale @ homography, (width, height), borderValue=255)
+    # Homography is the paper plane. A raised face is enlarged; do not treat those pixels as mm.
     out_dir.mkdir(parents=True, exist_ok=True)
     stem = photo.stem
     rectified = out_dir / f"{stem}-board-plane.png"
@@ -164,7 +165,7 @@ def measure(photo: Path, out_dir: Path) -> int:
         "px_per_mm": PX_PER_MM,
         "mm_per_px": round(1.0 / PX_PER_MM, 5),
         "board_mm": [SQUARES_X * SQUARE_MM, SQUARES_Y * SQUARE_MM],
-        "plane": "XY only. Z is not in this photo.",
+        "plane": "Board plane only. Raised faces are not metric. Z is not in this photo.",
         "print_check": "Ruler must read 15.0 mm on one printed square or every length is wrong.",
     }
     if not ok:
