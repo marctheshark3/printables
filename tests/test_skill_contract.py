@@ -20,6 +20,7 @@ EXPECTED = {
     "3d-print-reverse",
     "3d-print-pack",
     "3d-print-slice",
+    "3d-print-cad-render",
 }
 FORBIDDEN = {
     "printables-part-brief",
@@ -62,7 +63,9 @@ def main() -> int:
     bundle = yaml.safe_load((ROOT / "skill-bundles" / "3d-print.yaml").read_text(encoding="utf-8"))
     assert bundle["name"] == "3d-print"
     assert all(item in EXPECTED for item in bundle["skills"])
-    assert "3d-print-vibecad" not in bundle["skills"]
+    assert "3d-print-vibecad" in bundle["skills"]
+    assert "3d-print-openscad" in bundle["skills"]
+    assert "3d-print-cad-render" not in bundle["skills"]
     assert "3d-print-reverse" not in bundle["skills"]
     assert "3d-print-pack" not in bundle["skills"]
     assert "3d-print-slice" not in bundle["skills"]
@@ -79,6 +82,7 @@ def main() -> int:
     assert "3d-print-reverse" in install
     assert "3d-print-pack" in install
     assert "3d-print-slice" in install
+    assert "3d-print-cad-render" not in install
 
     vibecad = (SKILLS / "3d-print-vibecad" / "SKILL.md").read_text(encoding="utf-8")
     host = (SKILLS / "3d-print-vibecad" / "references" / "vibecad-host.md").read_text(
@@ -99,7 +103,7 @@ def main() -> int:
         "freecadcmd",
         "PRINT_SPEC.yaml",
         "preview is not printable",
-        "OpenSCAD remains the dimensional default",
+        "OpenSCAD is not the dimensional default when VibeCAD resolves",
         "find_vibecad.py",
         "10-X-eng/vibecad/releases",
     ):
@@ -132,6 +136,37 @@ def main() -> int:
         "ORCA_SLICER",
     ):
         assert needle in slice_skill, f"3d-print-slice missing {needle!r}"
+
+    render = (SKILLS / "3d-print-cad-render" / "SKILL.md").read_text(encoding="utf-8")
+    for needle in (
+        "127.0.0.1",
+        "viewer.html",
+        "Not a trimesh STL preview",
+        "does not ship a network proxy",
+        "FREECAD_CMD",
+    ):
+        assert needle in render, f"3d-print-cad-render missing {needle!r}"
+
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    status = (ROOT / "STATUS.md").read_text(encoding="utf-8")
+    contributing = (ROOT / "CONTRIBUTING.md").read_text(encoding="utf-8")
+    ci = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    pytest_paths = (
+        "skills/3d-print-cad-render/tests skills/3d-print-image-silhouette/tests "
+        "tests/test_prompt_scenarios.py tests/test_secret_scan.py"
+    )
+    for label, text in (("README", readme), ("CONTRIBUTING", contributing), ("ci", ci)):
+        assert pytest_paths in text, f"{label} test command is missing inspector or silhouette tests"
+    for label, text in (("README", readme), ("STATUS", status), ("CONTRIBUTING", contributing)):
+        assert "VibeCAD is the dimensional kernel" in text, label
+        assert "3d-print-cad-render" in text, label
+        assert "upstream FreeCAD" in text, label
+        assert "/home/" not in text and "spark-adb4" not in text, label
+    assert "not the dimensional kernel" in readme
+    assert "not the dimensional default" in status or "not the dimensional kernel" in status
+    assert "not the dimensional default" in contributing or "not the dimensional kernel" in contributing
+    assert "default backend" not in readme
+    assert "not the default kernel" not in readme
     print("RESULT: PASS")
     return 0
 

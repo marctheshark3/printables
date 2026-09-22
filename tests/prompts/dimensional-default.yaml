@@ -1,0 +1,19 @@
+id: dimensional-default
+prompt: |
+  Make a PETG FDM bracket for a measured 40 mm device on a flat surface.
+  Lock a PRINT_SPEC first. Parametric millimetres, named parameters,
+  fail-closed STL validation.
+expect:
+  primary: 3d-print-vibecad
+  skills:
+    - 3d-print-design-brief
+    - 3d-print-vibecad
+    - 3d-print-validate
+  bundle: 3d-print
+  outrank:
+    - 3d-print-openscad
+    - 3d-print-blender
+    - 3d-print-cad-render
+run:
+  - kind: validate_spec
+    path: examples/bracket-coupon-vibecad/docs/PRINT_SPEC.yaml
