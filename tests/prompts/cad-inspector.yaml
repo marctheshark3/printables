@@ -1,0 +1,19 @@
+id: cad-inspector
+prompt: |
+  Render this mill STEP in the loopback CAD inspector. I want the parts
+  tree and measure. Do not treat the STL as the CAD view.
+expect:
+  primary: 3d-print-cad-render
+  skills:
+    - 3d-print-cad-render
+  outrank:
+    - 3d-print-blender
+    - 3d-print-openscad
+    - 3d-print-vibecad
+  skill_contains:
+    3d-print-cad-render:
+      - 127.0.0.1
+      - viewer.html
+run:
+  - kind: no_cad
+    reason: inspector does not export an STL

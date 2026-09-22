@@ -8,18 +8,18 @@ platforms: [linux]
 metadata:
   hermes:
     tags: [3d-print, fdm, openscad, parametric, mechanical-cad]
-    related_skills: [3d-print-design-brief, 3d-print-validate]
+    related_skills: [3d-print-design-brief, 3d-print-validate, 3d-print-vibecad]
 ---
 
 # 3D Print OpenSCAD
 
-Build dimensional mechanical FDM parts from a validated `docs/PRINT_SPEC.yaml`. OpenSCAD is the default backend for brackets, mounts, stands, trays, enclosures, and exact interfaces.
+Portable and CI export path for a validated `docs/PRINT_SPEC.yaml`. OpenSCAD is not the dimensional kernel. VibeCAD is.
 
 ## When to Use
 
-Use when `cad.backend: openscad`, or when the geometry is dimensional and no backend has been selected.
+Use when `cad.backend: openscad`, when the prompt names OpenSCAD, or when VibeCAD cannot run.
 
-Do not use for sculpted organic surfaces or decorative lattices; use `3d-print-blender`. A VibeCAD remake is `3d-print-vibecad` only when the human is already in VibeCAD or asked to remake there — not the default for a new bracket.
+Do not use for a new dimensional part when `VIBECAD_CMD` resolves; that is `3d-print-vibecad`. Do not use for sculpted organic surfaces or decorative lattices; use `3d-print-blender`.
 
 ## Source Contract
 

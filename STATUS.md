@@ -1,14 +1,15 @@
 # Status
 
-Last reviewed 2026-08-28.
+Last reviewed 2026-09-21.
 
 ## Supported path
 
 - `docs/PRINT_SPEC.yaml` is the only machine source of truth. DESIGN.md is never parsed.
 - An assembly is multiple independently manufactured bodies in `geometry.stl_files`.
-- OpenSCAD is the default for dimensional mechanical parts.
+- VibeCAD is the dimensional kernel (10-X-eng/vibecad, `cad.backend: vibecad`). Not the PyPI package. Not upstream FreeCAD.
+- OpenSCAD is not the dimensional kernel. It remains for CI sample exports, a prompt that names OpenSCAD, and hosts where VibeCAD cannot run.
 - Blender is allowed only for organic or lattice bodies.
-- VibeCAD (10-X-eng/vibecad) is an optional x86_64 backend (`cad.backend: vibecad`) using the same validators; it is not the default kernel and is not required by `/3d-print`.
+- `3d-print-cad-render` is the loopback STEP inspector (parts tree, measure, OCC faces and BREP edges). Not a mill. Not print approval. Not in `./install.sh` and not in `/3d-print`.
 - Hybrid means separate declared bodies owned by separate backends—not two kernels editing one body.
 - `3d-print-validate` is backend-neutral and mandatory after every export.
 - `3d-print-robotics` is the class skill for numbered `robot-module` kit bodies.
@@ -47,7 +48,7 @@ Last reviewed 2026-08-28.
 - Assembled occupancy is in-process mesh placement plus a handbook hub-section check, not FEA.
 - The installer is additive. It does not remove old user-local skill directories.
 - Blender still depends on Blender's boolean and modifier behavior; malformed output must fail the shared validator.
-- VibeCAD on Linux ARM qemu-x86_64 AppImage is not a supported backend. Boolean welding of overlapping solids remains a known limit until a live coupon exports one solid through VibeCADCmd/freecadcmd.
+- VibeCAD on Linux ARM qemu-x86_64 AppImage is not a supported backend. Boolean welding of overlapping solids remains a known limit until a live coupon exports one solid through VibeCADCmd/freecadcmd. Upstream FreeCAD is not a substitute kernel.
 - Reverse engineering needs OCC. OpenSCAD and Blender cannot emit editable STEP. 10-X-eng/vibecad `mesh.to_shape` is faceted, not parametric; reconstruction is a separate modeling task (fork `mesh.reconstruct_parametric` upstream). Default CI does not invoke VibeCAD, CadQuery, Docker, or OCC. ARM qemu-x86_64 AppImage is unsupported. v1 feature vocab is prismatic FDM; organic scans may only reach `analytic`/`organic`. Proof is mesh deviation vs the input STL, not “this was the original CAD.” Fillet recovery is best-effort. Short STL chords stay warning-only.
 
 ## Removed

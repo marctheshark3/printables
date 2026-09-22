@@ -65,6 +65,18 @@ def test_mapped_print_spec_step(tmp_path):
     assert find_steps(tmp_path, None) == [step]
 
 
+def test_spec_step_rels_rejects_parent(tmp_path):
+    docs = tmp_path / "docs"
+    docs.mkdir()
+    spec = "reverse:\n  step_files:\n    - path: ../secret.step\n"
+    (docs / "PRINT_SPEC.yaml").write_text(spec)
+    from render_cad_project import spec_step_rels
+
+    assert spec_step_rels(spec) == []
+    with pytest.raises(Exception, match="No STEP"):
+        find_steps(tmp_path, None)
+
+
 def test_title_is_html_escaped(tmp_path):
     study = study_from_dump(box_dump(), title="</title><script>alert(1)</script>")
     html = build_html(study, tmp_path / "out").read_text()

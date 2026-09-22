@@ -1,27 +1,27 @@
 ---
 name: 3d-print-vibecad
-description: Remake a PRINT_SPEC part in VibeCAD.
+description: Build parametric dimensional FDM parts in VibeCAD.
 version: 1.0.0
 author: Marc Mailloux, Hermes Agent
 license: MIT
 platforms: [linux]
 metadata:
   hermes:
-    tags: [3d-print, fdm, vibecad, vibescript, remake]
-    related_skills: [3d-print-design-brief, 3d-print-validate, 3d-print-openscad]
+    tags: [3d-print, fdm, vibecad, parametric, dimensional]
+    related_skills: [3d-print-design-brief, 3d-print-validate, 3d-print-openscad, 3d-print-cad-render]
 ---
 
 # 3D Print VibeCAD
 
-Optional remake path for a validated `docs/PRINT_SPEC.yaml` inside **10-X-eng/vibecad** (FreeCAD fork, VibeScript/Native, in-app Grok Assistant). Not the PyPI package named vibecad. Not the default CAD kernel.
+Dimensional kernel for a validated `docs/PRINT_SPEC.yaml`: **10-X-eng/vibecad** (VibeScript/Native, in-app Grok Assistant). Not the PyPI package named vibecad. Not upstream FreeCAD. Not OpenSCAD when `VIBECAD_CMD` resolves.
 
 Point the in-app Assistant at `references/vibecad-host.md`.
 
 ## When to Use
 
-Use when the human is already in VibeCAD, or explicitly asks to remake a PRINT_SPEC part in VibeCAD.
+Use for a new dimensional part: a bracket, mount, stand, tray, enclosure, or exact interface. Set `cad.backend: vibecad`.
 
-Do not use for a new dimensional bracket; that is `3d-print-openscad`. If VibeCAD is down, stay on OpenSCAD. Do not enable VibeCAD MCP.
+OpenSCAD is not the dimensional default when VibeCAD resolves. If VibeCAD cannot run, use `3d-print-openscad`. Do not enable VibeCAD MCP. After a mill STEP exists, look at it with `3d-print-cad-render`. A render is not print approval.
 
 ## Hard sequence
 
@@ -93,7 +93,7 @@ python3 3d-print-validate/scripts/validate_project.py "$PROJECT"
 - Running the geometry script with host python3
 - Enabling MCP and losing the in-app Assistant
 - Using Linux ARM qemu-x86_64 AppImage
-- Making VibeCAD the default for a new bracket
+- Treating upstream FreeCAD or OpenSCAD as the kernel when `VIBECAD_CMD` resolves
 
 ## Verification
 
