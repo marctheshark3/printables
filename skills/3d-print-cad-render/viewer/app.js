@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { gunzipSync } from 'fflate';
+import { NOTE, fingerprint, planInstructionSteps } from './instructions.js';
 
 const MODEL_ID = /^[a-z0-9][a-z0-9-]{0,63}$/;
 function readEmbedded() {
@@ -435,6 +436,159 @@ function readSection() {
   $('#error').style.display = 'none'; section.axis = axis; section.normal = normal; section.enabled = $('#section-enabled').checked; section.flip = $('#section-flip').checked; section.helper = $('#plane-visible').checked;
   $('#custom-normal').hidden = axis !== 'custom'; sectionRange(); syncURL(); markSceneChanged();
 }
+function meanPosition(array) {
+  let x = 0, y = 0, z = 0;
+  const n = array.length / 3;
+  if (!n) return [0, 0, 0];
+  for (let i = 0; i < array.length; i += 3) {
+    x += array[i]; y += array[i + 1]; z += array[i + 2];
+  }
+  return [x / n, y / n, z / n];
+}
+function instructionRows() {
+  return concept().items.filter(r => r.kind !== 'reservation').flatMap(r => {
+    const obj = objects.get(r.instance);
+    if (!obj) return [];
+    const pos = obj.mesh.geometry.attributes.position;
+    return [{
+      id: r.instance,
+      centroid: meanPosition(pos.array),
+      fingerprint: fingerprint({ bbox_mm: r.bbox_mm, color: r.color, vertexCount: pos.count }),
+    }];
+  });
+}
+function snapshotInstructionView() {
+  return {
+    view, shell, selected: selected.slice(),
+    hidden: new Set(hidden),
+    isolated: isolated ? new Set(isolated) : null,
+    edges: $('#edges').checked,
+    axes: $('#axes').checked,
+    sectionEnabled: section.enabled,
+    bg: scene.background.clone(),
+    cam: camera.position.clone(),
+    target: controls.target.clone(),
+    zoom: camera.zoom,
+    top: camera.top, bottom: camera.bottom, left: camera.left, right: camera.right,
+    up: camera.up.clone(),
+    measure: measureLine.visible,
+  };
+}
+function restoreInstructionView(saved) {
+  view = saved.view; shell = saved.shell; selected = saved.selected;
+  hidden = saved.hidden; isolated = saved.isolated;
+  $('#edges').checked = saved.edges; $('#axes').checked = saved.axes;
+  section.enabled = saved.sectionEnabled;
+  scene.background.copy(saved.bg);
+  camera.position.copy(saved.cam);
+  controls.target.copy(saved.target);
+  camera.zoom = saved.zoom;
+  camera.top = saved.top; camera.bottom = saved.bottom; camera.left = saved.left; camera.right = saved.right;
+  camera.up.copy(saved.up);
+  camera.updateProjectionMatrix();
+  controls.update();
+  measureLine.visible = saved.measure;
+  chrome();
+  markSceneChanged();
+}
+function captureInstruction(step, mode) {
+  hidden.clear();
+  isolated = null;
+  selected = [];
+  view = 'solid';
+  shell = 1;
+  section.enabled = false;
+  sectionLine.visible = false;
+  planeHelper.visible = false;
+  measureLine.visible = false;
+  $('#edges').checked = true;
+  $('#axes').checked = false;
+  scene.background = new THREE.Color('#ffffff');
+  if (mode === 'pli') {
+    isolated = new Set(step.new_ids);
+  } else {
+    const placed = new Set(step.placed_ids);
+    for (const row of concept().items) {
+      if (!placed.has(row.instance)) hidden.add(row.instance);
+    }
+    selected = step.new_ids.slice();
+  }
+  dirty = true;
+  updateObjects();
+  $('#standard-view').value = 'iso';
+  standardView('iso');
+  renderer.render(scene, camera);
+  return renderer.domElement.toDataURL('image/png');
+}
+function showBooklet(pages) {
+  const root = $('#booklet');
+  if (!root) return;
+  root.hidden = false;
+  root.replaceChildren();
+  const bar = document.createElement('div');
+  bar.className = 'booklet-bar no-print';
+  const printBtn = document.createElement('button');
+  printBtn.type = 'button'; printBtn.textContent = 'Print';
+  printBtn.onclick = () => window.print();
+  const closeBtn = document.createElement('button');
+  closeBtn.type = 'button'; closeBtn.textContent = 'Close';
+  closeBtn.onclick = () => { root.hidden = true; root.replaceChildren(); };
+  bar.append(printBtn, closeBtn);
+  const note = document.createElement('p');
+  note.className = 'booklet-note no-print';
+  note.textContent = NOTE;
+  root.append(bar, note);
+  for (const page of pages) {
+    const sheet = document.createElement('section');
+    sheet.className = 'sheet';
+    sheet.dataset.step = String(page.number);
+    const num = document.createElement('div');
+    num.className = 'step-no';
+    num.textContent = String(page.number);
+    const csi = document.createElement('img');
+    csi.className = 'csi';
+    csi.alt = 'Step ' + page.number;
+    csi.src = page.csi;
+    const pli = document.createElement('aside');
+    pli.className = 'pli';
+    const pliImg = document.createElement('img');
+    pliImg.alt = page.label;
+    pliImg.src = page.pli;
+    const qty = document.createElement('div');
+    qty.className = 'qty';
+    qty.textContent = page.quantity + '\u00d7';
+    const name = document.createElement('div');
+    name.className = 'pli-name';
+    name.textContent = page.label;
+    pli.append(pliImg, qty, name);
+    sheet.append(num, csi, pli);
+    root.append(sheet);
+  }
+  root.scrollTop = 0;
+}
+function openInstructions() {
+  const btn = $('#instructions');
+  if (!btn || !STUDY || contextLost || !renderer) return;
+  btn.disabled = true;
+  const saved = snapshotInstructionView();
+  try {
+    if (loadedConcept !== current) loadConcept();
+    const steps = planInstructionSteps(instructionRows());
+    if (!steps.length) { fail('No solids to instruct.'); return; }
+    const pages = [];
+    for (const step of steps) {
+      $('#scene-status').textContent = 'Instructions ' + step.number + '/' + steps.length;
+      pages.push({ ...step, csi: captureInstruction(step, 'csi'), pli: captureInstruction(step, 'pli') });
+    }
+    showBooklet(pages);
+  } catch (e) {
+    fail('Instructions failed: ' + (e.message || e));
+  } finally {
+    restoreInstructionView(saved);
+    $('#scene-status').textContent = '';
+    btn.disabled = false;
+  }
+}
 function initUI() {
   fillConcepts();
   const views = concept().views || ['solid', 'translucent', 'exploded', 'installed'];
@@ -473,6 +627,8 @@ function initUI() {
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     }, 'image/png');
   };
+  const instructionsBtn = $('#instructions');
+  if (instructionsBtn) instructionsBtn.onclick = () => openInstructions();
   const measureBtn = $('#measure');
   if (measureBtn) measureBtn.onclick = () => {
     measureOn = !measureOn;
@@ -492,7 +648,7 @@ function initUI() {
   });
 }
 function initRenderer() {
-  try { renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'low-power' }); }
+  try { renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'low-power', preserveDrawingBuffer: true }); }
   catch (e) {
     $('#loading').hidden = true;
     fail('Interactive inspection needs WebGL 2.');

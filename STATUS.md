@@ -1,6 +1,6 @@
 # Status
 
-Last reviewed 2026-09-21.
+Last reviewed 2026-09-28.
 
 ## Supported path
 
@@ -10,6 +10,7 @@ Last reviewed 2026-09-21.
 - OpenSCAD is not the dimensional kernel. It remains for CI sample exports, a prompt that names OpenSCAD, and hosts where VibeCAD cannot run.
 - Blender is allowed only for organic or lattice bodies.
 - `3d-print-cad-render` is the loopback STEP inspector (parts tree, measure, OCC faces and BREP edges). Not a mill. Not print approval. Not in `./install.sh` and not in `/3d-print`.
+- `3d-print-lego-instructions` writes a printable step sheet from an OCC dump and from the inspector Instructions button. Order is centroid z, then y, then x, then name. Not an LDraw export. Not print approval. In `./install.sh`, not in `/3d-print`.
 - Hybrid means separate declared bodies owned by separate backends—not two kernels editing one body.
 - `3d-print-validate` is backend-neutral and mandatory after every export.
 - `3d-print-robotics` is the class skill for numbered `robot-module` kit bodies.
@@ -39,6 +40,7 @@ Last reviewed 2026-09-21.
 ## Known limits
 
 - Thickness audit is sampled inward-ray, not an exact-kernel wall proof. HARD uses `thin_wall_area_frac=0.02` and 0.05 mm tessellation slack.
+- Instruction order is centroid height, not a fastener or mate planner. A 2 mm Z band groups identical fingerprints. Mirrors can share a callout. One solid is one sheet.
 - Pack zip is not a slicer project unless `3d-print-slice` ran.
 - 3MF emission needs a local slicer CLI; CI does not ship one. Missing slicer prints `SKIP: no slicer CLI` and writes no fake 3MF.
 - Live Bambu control is the sibling `bambu-mcp` repo. This pack never stores printer secrets (access code, serial, LAN IP).

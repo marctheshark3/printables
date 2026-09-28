@@ -76,6 +76,18 @@ aside h1{font-size:22px;letter-spacing:-.04em;margin:0 0 6px}
 button:disabled{opacity:.45;cursor:default}
 #measure-readout{font:700 12px ui-monospace,monospace;color:var(--red)}
 footer{padding:8px 22px 28px;font:11px ui-monospace,monospace;color:var(--muted)}
+#booklet[hidden]{display:none}
+#booklet{position:fixed;inset:0;z-index:30;overflow:auto;background:#fff;color:var(--ink)}
+.booklet-bar{position:sticky;top:0;display:flex;gap:8px;padding:10px 16px;background:var(--chassis);z-index:2}
+.booklet-bar button{color:#f4f1ea;background:transparent;border-color:#f4f1ea}
+.booklet-note{padding:8px 16px;font:12px ui-monospace,monospace;color:var(--muted)}
+#booklet .sheet{page-break-after:always;min-height:240mm;padding:16mm;position:relative;background:#fff}
+#booklet .step-no{width:42px;height:42px;background:var(--chassis);color:#fff;display:flex;align-items:center;justify-content:center;font:700 20px ui-monospace,monospace}
+#booklet .csi{display:block;width:min(100%,720px);height:auto;margin-top:12px;background:#fff}
+#booklet .pli{position:absolute;top:16mm;right:16mm;width:200px;border:2px solid var(--ink);padding:8px;background:#fff}
+#booklet .qty{font:700 22px ui-monospace,monospace;margin-top:6px}
+#booklet .pli img{width:100%;height:auto;background:#fff}
+@media print{body>*:not(#booklet){display:none!important}#booklet{position:static;overflow:visible}.no-print{display:none!important}}
 @media(max-width:760px){#plot{height:480px}.grid{grid-template-columns:1fr}header{align-items:flex-start;flex-direction:column}}
 </style>
 </head>
@@ -110,6 +122,7 @@ footer{padding:8px 22px 28px;font:11px ui-monospace,monospace;color:var(--muted)
     <button id="measure" aria-pressed="false">Measure</button>
     <span id="measure-readout"></span>
     <button id="save-image">Save image</button>
+    <button id="instructions" type="button">Instructions</button>
     <button id="copy-link">Copy link</button>
     <label class="slider">Shells <input id="opacity" type="range" min="0" max="100" value="20" aria-label="Shell opacity"><output id="opacity-label">20%</output></label>
     <button id="reset">Reset view</button>
@@ -166,6 +179,7 @@ footer{padding:8px 22px 28px;font:11px ui-monospace,monospace;color:var(--muted)
 </aside>
 </main>
 <footer>Rage Industries · OCC faces + BREP edges · loopback inspector · not print-approved · not :4178</footer>
+<div id="booklet" hidden></div>
 <script id="study-data" type="application/json">/* STUDY_DATA */</script>
 <script>/* VIEWER_RUNTIME */</script>
 </body>

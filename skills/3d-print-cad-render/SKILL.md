@@ -8,7 +8,7 @@ platforms: [linux]
 metadata:
   hermes:
     tags: [3d-print, cad, step, viewer, inspector]
-    related_skills: [3d-print-design-brief, 3d-print-validate, 3d-print-vibecad]
+    related_skills: [3d-print-design-brief, 3d-print-validate, 3d-print-vibecad, 3d-print-lego-instructions]
 ---
 
 # 3D Print CAD Render
@@ -45,7 +45,7 @@ python3 scripts/render_cad_project.py --scene scene.json --out-dir "$PROJECT/ren
 
 ## Inspector
 
-Orthographic Z-up. Parts tree when `catalog.json` is present (`path` is `folder/file`, `?model=<id>`). Installed / solid / translucent / exploded. Measure two face clicks (world mm + delta). CAD edges on by default. Section plane leaves cuts open. Assembly XYZ from the loaded mesh. Copy link keeps the model query. No directory listing.
+Orthographic Z-up. Parts tree when `catalog.json` is present (`path` is `folder/file`, `?model=<id>`). Installed / solid / translucent / exploded. Measure two face clicks (world mm + delta). CAD edges on by default. Section plane leaves cuts open. Assembly XYZ from the loaded mesh. Copy link keeps the model query. Toolbar Instructions opens a step sheet for the loaded solids. No directory listing.
 
 ## Procedure
 

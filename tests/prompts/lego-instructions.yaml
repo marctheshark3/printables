@@ -1,0 +1,20 @@
+id: lego-instructions
+prompt: |
+  The CAD is done. Generate Lego-style building instructions from this
+  mill STEP. I want a printable step sheet.
+expect:
+  primary: 3d-print-lego-instructions
+  skills:
+    - 3d-print-lego-instructions
+  outrank:
+    - 3d-print-cad-render
+    - 3d-print-pack
+    - 3d-print-slice
+    - 3d-print-vibecad
+  skill_contains:
+    3d-print-lego-instructions:
+      - instructions.html
+      - "centroid z, then y, then x, then name"
+run:
+  - kind: no_cad
+    reason: instruction sheets do not export an STL

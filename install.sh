@@ -32,6 +32,7 @@ SKILLS=(
   3d-print-reverse
   3d-print-pack
   3d-print-slice
+  3d-print-lego-instructions
 )
 BUNDLES=(3d-print.yaml)
 

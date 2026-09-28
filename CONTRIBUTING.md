@@ -27,7 +27,7 @@ Edit this repository, run the complete checks, then install into local Hermes pr
 
 ```bash
 python3 -m pip install PyYAML pytest
-python3 -m pytest -q skills/3d-print-design-brief/tests skills/3d-print-validate/tests skills/3d-print-reverse/scripts/tests skills/3d-print-vibecad/scripts/tests skills/3d-print-pack/scripts/tests skills/3d-print-slice/scripts/tests skills/3d-print-cad-render/tests skills/3d-print-image-silhouette/tests tests/test_prompt_scenarios.py tests/test_secret_scan.py
+python3 -m pytest -q skills/3d-print-design-brief/tests skills/3d-print-validate/tests skills/3d-print-reverse/scripts/tests skills/3d-print-vibecad/scripts/tests skills/3d-print-pack/scripts/tests skills/3d-print-slice/scripts/tests skills/3d-print-cad-render/tests skills/3d-print-lego-instructions/tests skills/3d-print-image-silhouette/tests tests/test_prompt_scenarios.py tests/test_secret_scan.py
 python3 tests/prompt_harness.py   # OpenSCAD Docker + Blender; writes artifacts/stls/
 python3 -m unittest discover -s skills/3d-print-blender/scripts/tests -v
 python3 tests/test_skill_contract.py
@@ -80,6 +80,7 @@ Also run the private-path and secret scan from `.github/workflows/ci.yml`.
 - VibeCAD is the dimensional kernel (10-X-eng/vibecad). Not upstream FreeCAD. Not the PyPI package.
 - OpenSCAD is not the dimensional kernel. Keep it for CI sample exports, a named OpenSCAD prompt, and hosts where VibeCAD cannot run.
 - `3d-print-cad-render` is the loopback STEP inspector. It is not in `/3d-print` and not in `./install.sh`.
+- `3d-print-lego-instructions` is the step-sheet skill. It is in `./install.sh` and not in `/3d-print`.
 - Blender is an exception for organic or lattice bodies.
 - Reverse (`3d-print-reverse`) is optional and is not in `/3d-print`. Do not vendor 10-X-eng/vibecad.
 - Pack and slice are optional and are not in `/3d-print`. Do not vendor `bambu-mcp`. Do not commit printer access codes, serials, or LAN IPs.
