@@ -132,15 +132,23 @@ def apply_order(rows: list[dict], order: list[str]) -> list[dict]:
     return picked
 
 
-def _span_x(rows: list[dict]) -> float:
-    xs = []
-    for row in rows:
-        for seg in row["edges"]:
-            for p in seg:
-                xs.append(float(p[0]))
-    if not xs:
-        return 20.0
-    return max(max(xs) - min(xs), 10.0)
+def _xs(edges: list) -> list[float]:
+    return [float(p[0]) for seg in edges for p in seg]
+
+
+def explode_dx(part_edges: list, placed: list[dict], gap: float = 8.0) -> float:
+    """+X shift that clears this part's seat and every part already placed."""
+    pxs = _xs(part_edges)
+    if not pxs:
+        return gap
+    part_min = min(pxs)
+    need = (max(pxs) - part_min) + gap
+    placed_xs = []
+    for row in placed:
+        placed_xs.extend(_xs(row["edges"]))
+    if placed_xs:
+        need = max(need, max(placed_xs) - part_min + gap)
+    return need
 
 
 def _svg(groups: list[tuple[list, str, float, str]], arrow: tuple | None, *, width: int, height: int) -> str:
@@ -187,8 +195,8 @@ def booklet_html(dump: dict, *, title: str = "", order: list[str] | None = None)
     rows = _rows(parts)
     if order:
         rows = apply_order(rows, order)
-    dx = _span_x(rows) * 0.45 + 8.0
-    safe_title = html.escape(title or str(dump.get("name") or "Assembly"))
+    page_title = title or dump.get("step") or "Assembly"
+    safe_title = html.escape(str(page_title), quote=True)
     sheets = [
         "<section class=\"sheet\" data-step=\"0\">"
         f"<h1>{safe_title}</h1>"
@@ -203,6 +211,7 @@ def booklet_html(dump: dict, *, title: str = "", order: list[str] | None = None)
     ]
     for index, row in enumerate(rows, start=1):
         placed = rows[: index - 1]
+        dx = explode_dx(row["edges"], placed)
         groups = [(prev["edges"], OLD_STROKE, 1.2, "") for prev in placed]
         groups.append((row["edges"], GHOST_STROKE, 1.1, "4 3"))
         groups.append((_shift(row["edges"], dx), OLD_STROKE, 2.2, ""))
@@ -280,6 +289,23 @@ def self_check() -> None:
         pass
     else:
         raise PlanError("mesh source should fail")
+    wide = [
+        [[0, 0, 0], [100, 0, 0]],
+        [[0, 0, 0], [0, 8, 0]],
+        [[0, 0, 0], [0, 0, 6]],
+    ]
+    if explode_dx(wide, []) < 108:
+        raise PlanError("exploded offset overlaps a wide seat")
+    narrow = [[[0, 0, 0], [20, 0, 0]], [[0, 0, 0], [0, 8, 0]]]
+    placed = [{"edges": [[[0, 0, 0], [80, 0, 0]]]}]
+    if explode_dx(narrow, placed) < 88:
+        raise PlanError("exploded offset overlaps placed parts")
+    titled = booklet_html(
+        {"source": "occ-step", "step": "habitat.step", "name": "ignored", "parts": [_box("a", (0, 0, 0))]},
+        title="",
+    )
+    if "<h1>habitat.step</h1>" not in titled or "<h1>ignored</h1>" in titled or "<h1>Assembly</h1>" in titled:
+        raise PlanError("title did not fall back to dump.step")
 
 
 def main(argv=None) -> int:
