@@ -78,4 +78,6 @@ python3 skills/3d-print-validate/scripts/validate_assembly.py \
 python3 examples/robot-kit-01-rover-kid/scripts/render_assembly.py
 ```
 
+Inspector and instruction stills are in the repository README. The geometry is the public [butterfly habitat](https://github.com/marctheshark3/butterfly-habitat) kit. It is not copied into `examples/`.
+
 

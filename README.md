@@ -5,6 +5,7 @@ Deterministic CAD/CAM for FDM: agents write one contract, build the part, export
 ```text
 PRINT_SPEC.yaml → VibeCAD → one STL per body → validate_project.py → validate_assembly.py
                          ↘ STEP → 3d-print-cad-render (loopback inspector)
+                                    ↘ Instructions → 3d-print-lego-instructions
 ```
 
 Markdown is narrative only. `docs/DESIGN.md` is never parsed. An assembly is multiple `geometry.stl_files` entries.
@@ -125,6 +126,21 @@ python3 skills/3d-print-cad-render/scripts/render_cad_project.py \
 ```
 
 Loopback only: `http://127.0.0.1:8107/?view=solid`. This pack does not ship a network proxy or a FreeCAD binary. An STL is not a CAD view. The inspector is not a mill and not print approval. `./install.sh` does not copy this skill. The toolbar Instructions button opens a step sheet; the sheet procedure is `3d-print-lego-instructions`.
+
+Printable edge-art from an OCC dump, same order as the button:
+
+```bash
+python3 skills/3d-print-lego-instructions/scripts/render_booklet.py \
+  scene.json --out instructions.html --title "Butterfly habitat"
+```
+
+## Sample
+
+The stills are the public [butterfly habitat](https://github.com/marctheshark3/butterfly-habitat) kit, placed the way that repo's viewer compound places the panels. This pack does not vendor that project. Steps 1, 4, and 10 are shown. Step 4 is two side frames. Order is centroid height, not a fastener plan. Not an LDraw model. Not print approval.
+
+![CAD inspector, butterfly habitat](docs/images/butterfly-inspector.png)
+
+![Step sheet, butterfly habitat](docs/images/butterfly-instructions.png)
 
 For Blender:
 
