@@ -22,7 +22,8 @@ export function planInstructionSteps(rows, zBandMm = Z_BAND_MM) {
   if (!rows.length) return [];
   const sorted = rows.slice().sort((a, b) => {
     const c = a.centroid, d = b.centroid;
-    return c[2] - d[2] || c[1] - d[1] || c[0] - d[0] || String(a.id).localeCompare(String(b.id));
+    const an = String(a.id), bn = String(b.id);
+    return c[2] - d[2] || c[1] - d[1] || c[0] - d[0] || (an < bn ? -1 : an > bn ? 1 : 0);
   });
   const steps = [];
   let i = 0;

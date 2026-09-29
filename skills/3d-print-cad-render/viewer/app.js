@@ -505,7 +505,7 @@ function captureInstruction(step, mode) {
   $('#axes').checked = false;
   scene.background = new THREE.Color('#ffffff');
   if (mode === 'pli') {
-    isolated = new Set(step.new_ids);
+    isolated = new Set([step.new_ids[0]]);
   } else {
     const placed = new Set(step.placed_ids);
     for (const row of concept().items) {

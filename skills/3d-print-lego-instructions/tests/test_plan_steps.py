@@ -99,6 +99,8 @@ def test_booklet_hides_later_solids_and_escapes():
     html_text = booklet_html(two_box_dump(), title="</title><script>alert(1)</script>")
     assert "centroid z, then y, then x, then name" in html_text
     assert "Not an LDraw" in html_text
+    assert "box-sizing: border-box" in html_text
+    assert "min-height: 273mm" in html_text
     assert NOTE in html_text
     assert "<script>alert" not in html_text
     assert "&lt;script&gt;" in html_text
@@ -140,6 +142,9 @@ def test_viewer_button_uses_the_same_rule():
     html_text = (viewer / "viewer.template.html").read_text(encoding="utf-8")
     assert ORDER_RULE in js
     assert "Z_BAND_MM = 2" in js
+    assert "localeCompare" not in js
+    assert "new_ids[0]" in app
+    assert "box-sizing:border-box" in html_text
     assert "instructions.js" in app
     assert 'id="instructions"' in html_text
     bundle = (viewer / "viewer.bundle.js").read_text(encoding="utf-8")

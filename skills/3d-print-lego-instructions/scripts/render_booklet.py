@@ -147,7 +147,7 @@ def booklet_html(dump: dict, *, title: str = "", z_band_mm: float = 2.0) -> str:
     style = """
     @page { size: A4; margin: 12mm; }
     body { margin: 0; background: #fff; color: #1c1b18; font: 14px Arial, sans-serif; }
-    .sheet { page-break-after: always; min-height: 250mm; padding: 14mm 16mm; position: relative; }
+    .sheet { box-sizing: border-box; page-break-after: always; min-height: 273mm; padding: 14mm 16mm; position: relative; }
     .step-no { width: 42px; height: 42px; background: #171714; color: #fff; display: flex;
       align-items: center; justify-content: center; font: 700 20px ui-monospace, monospace; }
     .csi { width: min(100%, 640px); height: auto; margin-top: 12px; }
