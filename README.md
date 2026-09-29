@@ -5,6 +5,7 @@ Deterministic CAD/CAM for FDM: agents write one contract, build the part, export
 ```text
 PRINT_SPEC.yaml → VibeCAD → one STL per body → validate_project.py → validate_assembly.py
                          ↘ STEP → 3d-print-cad-render (loopback inspector)
+                                    ↘ Instructions → 3d-print-lego-instructions
 ```
 
 Markdown is narrative only. `docs/DESIGN.md` is never parsed. An assembly is multiple `geometry.stl_files` entries.
@@ -29,8 +30,9 @@ All tools use the same prefix, followed by one obvious job:
 - `3d-print-pack` — zip a gated project (spec, source, STLs, print notes, manifest)
 - `3d-print-slice` — process card from PRINT_SPEC; optional 3MF if a slicer CLI is present
 - `3d-print-cad-render` — loopback STEP inspector (parts tree, measure, OCC faces and BREP edges). Not a mill. Not in `./install.sh`, so a profile-local copy is not overwritten.
+- `3d-print-lego-instructions` — Lego-style step sheets from a mill STEP. Optional. In `./install.sh`, not in `/3d-print`. Not an LDraw export.
 
-The `/3d-print` bundle loads the brief, VibeCAD, OpenSCAD, Blender, and the validator. Dimensional work uses VibeCAD. Use OpenSCAD only when the prompt names it, for CI sample STL export, or when VibeCAD cannot run. Blender is organic or lattice only. `3d-print-cad-render`, `3d-print-reverse`, `3d-print-pack`, and `3d-print-slice` are not required by `/3d-print`. Live printer control is the sibling `bambu-mcp` repo; this pack never stores access codes, serials, or LAN IPs.
+The `/3d-print` bundle loads the brief, VibeCAD, OpenSCAD, Blender, and the validator. Dimensional work uses VibeCAD. Use OpenSCAD only when the prompt names it, for CI sample STL export, or when VibeCAD cannot run. Blender is organic or lattice only. `3d-print-cad-render`, `3d-print-lego-instructions`, `3d-print-reverse`, `3d-print-pack`, and `3d-print-slice` are not required by `/3d-print`. Live printer control is the sibling `bambu-mcp` repo; this pack never stores access codes, serials, or LAN IPs.
 
 VibeCAD (10-X-eng/vibecad, not the PyPI package) uses the same PRINT_SPEC and `validate_project` gates. This pack does not vendor it. Linux ARM qemu-x86_64 AppImage is not supported. Boolean welding of overlapping solids stays a known limit until a live one-solid export. Set `VIBECAD_CMD` or `FREECAD_CMD` to the host `FreeCADCmd`. Do not point that variable at upstream FreeCAD.
 
@@ -123,7 +125,22 @@ python3 skills/3d-print-cad-render/scripts/render_cad_project.py \
   --project "$PROJECT" --serve --port 8107
 ```
 
-Loopback only: `http://127.0.0.1:8107/?view=solid`. This pack does not ship a network proxy or a FreeCAD binary. An STL is not a CAD view. The inspector is not a mill and not print approval. `./install.sh` does not copy this skill.
+Loopback only: `http://127.0.0.1:8107/?view=solid`. This pack does not ship a network proxy or a FreeCAD binary. An STL is not a CAD view. The inspector is not a mill and not print approval. `./install.sh` does not copy this skill. The toolbar Instructions button opens a step sheet; the sheet procedure is `3d-print-lego-instructions`.
+
+Printable edge-art from an OCC dump, same order as the button:
+
+```bash
+python3 skills/3d-print-lego-instructions/scripts/render_booklet.py \
+  scene.json --out instructions.html --title "Butterfly habitat"
+```
+
+## Sample
+
+The stills are the public [butterfly habitat](https://github.com/marctheshark3/butterfly-habitat) kit, placed the way that repo's viewer compound places the panels. This pack does not vendor that project. Steps 1, 4, and 10 are shown. Step 4 is two side frames. Order is centroid height, not a fastener plan. Not an LDraw model. Not print approval.
+
+![CAD inspector, butterfly habitat](docs/images/butterfly-inspector.png)
+
+![Step sheet, butterfly habitat](docs/images/butterfly-instructions.png)
 
 For Blender:
 
@@ -161,7 +178,7 @@ After HARD=0, `3d-print-pack` writes a deliverable zip. `3d-print-slice` always 
 ## Tests
 
 ```bash
-python3 -m pytest -q skills/3d-print-design-brief/tests skills/3d-print-validate/tests skills/3d-print-reverse/scripts/tests skills/3d-print-vibecad/scripts/tests skills/3d-print-pack/scripts/tests skills/3d-print-slice/scripts/tests skills/3d-print-cad-render/tests skills/3d-print-image-silhouette/tests tests/test_prompt_scenarios.py tests/test_secret_scan.py
+python3 -m pytest -q skills/3d-print-design-brief/tests skills/3d-print-validate/tests skills/3d-print-reverse/scripts/tests skills/3d-print-vibecad/scripts/tests skills/3d-print-pack/scripts/tests skills/3d-print-slice/scripts/tests skills/3d-print-cad-render/tests skills/3d-print-lego-instructions/tests skills/3d-print-image-silhouette/tests tests/test_prompt_scenarios.py tests/test_secret_scan.py
 python3 tests/test_skill_contract.py
 python3 tests/prompt_harness.py
 python3 -m unittest discover -s skills/3d-print-blender/scripts/tests -v
@@ -175,7 +192,8 @@ python3 -m py_compile \
   skills/3d-print-pack/scripts/*.py \
   skills/3d-print-slice/scripts/*.py \
   skills/3d-print-vibecad/scripts/find_vibecad.py \
-  skills/3d-print-cad-render/scripts/*.py
+  skills/3d-print-cad-render/scripts/*.py \
+  skills/3d-print-lego-instructions/scripts/*.py
 ```
 
 `tests/prompts/` holds sample user prompts. CI ranks them onto skills, then the `generate-stls` job exports real STLs with OpenSCAD/Blender and uploads them as the `generated-stls` artifact. That job is the portable export path, not the dimensional kernel. Shop-fixture prompts stop at buy-vs-print. Inspector and VibeCAD binary steps are not invoked unless `FREECAD_CMD` or `VIBECAD_CMD` is set. No live model.
