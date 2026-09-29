@@ -33,6 +33,7 @@ SKILLS=(
   3d-print-pack
   3d-print-slice
   3d-print-lego-instructions
+  3d-print-ikea-instructions
 )
 BUNDLES=(3d-print.yaml)
 

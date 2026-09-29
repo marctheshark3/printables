@@ -1,17 +1,16 @@
-id: lego-instructions
+id: blueprint-picture
 prompt: |
-  The CAD is done. Generate Lego-style building instructions from this
+  This is a construction blueprint. Perfect order is not as important as
+  the visual picture. Generate Lego-style building instructions from this
   mill STEP. I want a printable step sheet.
 expect:
   primary: 3d-print-lego-instructions
   skills:
     - 3d-print-lego-instructions
   outrank:
-    - 3d-print-cad-render
     - 3d-print-ikea-instructions
+    - 3d-print-cad-render
     - 3d-print-pack
-    - 3d-print-slice
-    - 3d-print-vibecad
   skill_contains:
     3d-print-lego-instructions:
       - instructions.html

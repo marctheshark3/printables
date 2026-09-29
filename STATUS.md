@@ -10,7 +10,8 @@ Last reviewed 2026-09-28.
 - OpenSCAD is not the dimensional kernel. It remains for CI sample exports, a prompt that names OpenSCAD, and hosts where VibeCAD cannot run.
 - Blender is allowed only for organic or lattice bodies.
 - `3d-print-cad-render` is the loopback STEP inspector (parts tree, measure, OCC faces and BREP edges). Not a mill. Not print approval. Not in `./install.sh` and not in `/3d-print`.
-- `3d-print-lego-instructions` writes a printable step sheet from an OCC dump and from the inspector Instructions button. Order is centroid z, then y, then x, then name. Not an LDraw export. Not print approval. In `./install.sh`, not in `/3d-print`.
+- `3d-print-lego-instructions` writes a printable step sheet from an OCC dump and from the inspector Instructions button. Order is centroid z, then y, then x, then name. Not an LDraw export. Not print approval. In `./install.sh`, not in `/3d-print`. Use it when the picture matters more than a single legal order.
+- `3d-print-ikea-instructions` writes a required-sequence sheet from an OCC dump. One solid per step. Not an IKEA manual. Not print approval. In `./install.sh`, not in `/3d-print`. A named style wins.
 - Hybrid means separate declared bodies owned by separate backends—not two kernels editing one body.
 - `3d-print-validate` is backend-neutral and mandatory after every export.
 - `3d-print-robotics` is the class skill for numbered `robot-module` kit bodies.

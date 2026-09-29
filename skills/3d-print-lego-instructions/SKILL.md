@@ -8,7 +8,7 @@ platforms: [linux]
 metadata:
   hermes:
     tags: [lego, instructions, booklet]
-    related_skills: [3d-print-cad-render, 3d-print-vibecad]
+    related_skills: [3d-print-cad-render, 3d-print-vibecad, 3d-print-ikea-instructions]
 ---
 
 # Lego-style assembly sheets
@@ -20,10 +20,13 @@ The planner and the SVG booklet are stdlib Python. The inspector Instructions bu
 ## When to Use
 
 - "Lego instructions" / "building instructions from the CAD" / "step sheet"
+- the picture matters more than a single legal order (construction blueprints, kits, identical copies)
 - the mill STEP is done and you want a printable assembly sequence
 - the CAD inspector is open and the sheet should come from the loaded solids
 
-**Don't:** approve a print, slice, convert solids into bricks, or treat one solid as a multi-step brick build.
+A named style wins. If the user says IKEA, or the assembly must go one way only, use `3d-print-ikea-instructions`. If they say Lego or blueprint, stay here.
+
+**Don't:** approve a print, slice, convert solids into bricks, or treat one solid as a multi-step brick build. Don't use this when a required one-way sequence is the product.
 
 ## Prerequisites
 
