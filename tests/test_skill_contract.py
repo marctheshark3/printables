@@ -22,6 +22,7 @@ EXPECTED = {
     "3d-print-slice",
     "3d-print-cad-render",
     "3d-print-lego-instructions",
+    "3d-print-ikea-instructions",
 }
 FORBIDDEN = {
     "printables-part-brief",
@@ -68,6 +69,7 @@ def main() -> int:
     assert "3d-print-openscad" in bundle["skills"]
     assert "3d-print-cad-render" not in bundle["skills"]
     assert "3d-print-lego-instructions" not in bundle["skills"]
+    assert "3d-print-ikea-instructions" not in bundle["skills"]
     assert "3d-print-reverse" not in bundle["skills"]
     assert "3d-print-pack" not in bundle["skills"]
     assert "3d-print-slice" not in bundle["skills"]
@@ -86,6 +88,7 @@ def main() -> int:
     assert "3d-print-slice" in install
     assert "3d-print-cad-render" not in install
     assert "3d-print-lego-instructions" in install
+    assert "3d-print-ikea-instructions" in install
 
     vibecad = (SKILLS / "3d-print-vibecad" / "SKILL.md").read_text(encoding="utf-8")
     host = (SKILLS / "3d-print-vibecad" / "references" / "vibecad-host.md").read_text(
@@ -160,12 +163,22 @@ def main() -> int:
     ):
         assert needle in lego, f"3d-print-lego-instructions missing {needle!r}"
 
+    ikea = (SKILLS / "3d-print-ikea-instructions" / "SKILL.md").read_text(encoding="utf-8")
+    for needle in (
+        "ikea.html",
+        "This sequence is required",
+        "one way only",
+        "Not an IKEA manual",
+        "3d-print-lego-instructions",
+    ):
+        assert needle in ikea, f"3d-print-ikea-instructions missing {needle!r}"
+
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
     status = (ROOT / "STATUS.md").read_text(encoding="utf-8")
     contributing = (ROOT / "CONTRIBUTING.md").read_text(encoding="utf-8")
     ci = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
     pytest_paths = (
-        "skills/3d-print-cad-render/tests skills/3d-print-lego-instructions/tests skills/3d-print-image-silhouette/tests "
+        "skills/3d-print-cad-render/tests skills/3d-print-lego-instructions/tests skills/3d-print-ikea-instructions/tests skills/3d-print-image-silhouette/tests "
         "tests/test_prompt_scenarios.py tests/test_secret_scan.py"
     )
     for label, text in (("README", readme), ("CONTRIBUTING", contributing), ("ci", ci)):

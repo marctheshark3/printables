@@ -1,0 +1,22 @@
+id: ikea-instructions
+prompt: |
+  This assembly must be put together in one way only to ensure the final
+  result. Generate IKEA-style required-sequence sheets from this mill STEP.
+expect:
+  primary: 3d-print-ikea-instructions
+  skills:
+    - 3d-print-ikea-instructions
+  outrank:
+    - 3d-print-lego-instructions
+    - 3d-print-cad-render
+    - 3d-print-pack
+    - 3d-print-slice
+    - 3d-print-vibecad
+  skill_contains:
+    3d-print-ikea-instructions:
+      - ikea.html
+      - "This sequence is required"
+      - "one way only"
+run:
+  - kind: no_cad
+    reason: instruction sheets do not export an STL
