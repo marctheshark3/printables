@@ -1,6 +1,10 @@
 # Printables
 
-Deterministic CAD/CAM for FDM: agents write one contract, build the part, export one STL per independently manufactured body, then fail closed. VibeCAD is the dimensional kernel. A loopback STEP inspector ships in this repo. A render is not print approval.
+An agent writes one manufacturing contract, builds the part, and exports one STL per body. The run fails closed. VibeCAD is the dimensional kernel. The only CAD inspector is `3d-print-cad-render`. A render is not print approval.
+
+OpenSCAD is not the dimensional kernel. It stays in the tree for CI sample exports, a prompt that names OpenSCAD, and hosts where VibeCAD cannot run. Upstream FreeCAD is not a supported kernel. Blender is organic or lattice only.
+
+## How it fits
 
 ```text
 ChArUco photo → 3d-print-photo-cad (board plane only) → named millimetres in PRINT_SPEC
@@ -8,11 +12,137 @@ PRINT_SPEC.yaml → VibeCAD → one STL per body → validate_project.py → val
                          ↘ STEP → 3d-print-cad-render (the only CAD inspector)
                                     ↘ Instructions → 3d-print-lego-instructions
                                     ↘ required sequence → 3d-print-ikea-instructions
+                         ↘ HARD=0 → 3d-print-pack → 3d-print-slice
 ```
 
 Markdown is narrative only. `docs/DESIGN.md` is never parsed. An assembly is multiple `geometry.stl_files` entries.
 
-OpenSCAD is not the dimensional kernel. It stays in the tree for CI sample exports, a prompt that names OpenSCAD, and hosts where VibeCAD cannot run. Upstream FreeCAD is not a supported kernel. Blender is organic or lattice only.
+Also in the pack, on the same contract and the same validator: two-piece display enclosures, image silhouettes, and a shop-fixture decision to print or buy. Printer upload lives in the sibling `bambu-mcp` repo. This pack never stores an access code, a serial, or a LAN IP.
+
+## How-to
+
+Each block is the command, what done looks like, and the limit that sits beside the claim.
+
+### Contract
+
+Write `docs/PRINT_SPEC.yaml` before any CAD. Every critical dimension has a name, a millimetre value, a tolerance, and a provenance.
+
+```bash
+python3 skills/3d-print-design-brief/scripts/validate_print_spec.py \
+  docs/PRINT_SPEC.yaml
+```
+
+Done: the validator exits 0. An assembly is several `geometry.stl_files` entries, one STL per body that is printed on its own.
+
+Limit: `docs/DESIGN.md` is never parsed. An assumed critical fit cannot ship.
+
+### VibeCAD
+
+Dimensional mechanical geometry uses [10-X-eng/vibecad](https://github.com/10-X-eng/vibecad). That is the dimensional kernel. It is not the PyPI package named vibecad.
+
+```bash
+python3 skills/3d-print-vibecad/scripts/find_vibecad.py status
+python3 skills/3d-print-vibecad/scripts/find_vibecad.py download   # x86_64 only
+export VIBECAD_CMD=...   # printed by the status command
+```
+
+Done: one STL per independently printed body, then `validate_project.py` reports HARD=0.
+
+Limit: this pack does not vendor VibeCAD. The Linux ARM qemu-x86_64 AppImage is unsupported. Boolean welding of overlapping solids stays open until a live one-solid export. Do not point `VIBECAD_CMD` at upstream FreeCAD.
+
+### Inspector
+
+`3d-print-cad-render` is the Rage CAD inspector: parts tree, measure, OCC faces, and BREP edges. The butterfly habitat stills below were packed with this skill.
+
+```bash
+export QT_QPA_PLATFORM=offscreen
+export FREECAD_CMD=/path/to/FreeCADCmd
+python3 skills/3d-print-cad-render/scripts/render_cad_project.py \
+  --project "$PROJECT" --serve --port 8107
+```
+
+Open `http://127.0.0.1:8107/?view=solid`.
+
+Done: the page loads on loopback, the parts tree lists the study, and measure reports world millimetres.
+
+Limit: loopback only. This pack does not ship a network proxy or a FreeCAD binary. An STL is not a CAD view. `./install.sh` does not copy this skill, so a profile-local copy is not overwritten. The inspector is not a mill and not print approval.
+
+### Lego or IKEA
+
+A named style wins. Say Lego or blueprint when the picture matters more than a single legal order. Say IKEA or one way only when the piece has to go together in one sequence. If both are true, ask before printing a required booklet.
+
+Picture sheet, same order as the inspector Instructions button:
+
+```bash
+python3 skills/3d-print-lego-instructions/scripts/render_booklet.py \
+  scene.json --out instructions.html --title "Butterfly habitat"
+```
+
+Required sequence, one solid per step. This is not the inspector button:
+
+```bash
+python3 skills/3d-print-ikea-instructions/scripts/render_ikea_booklet.py \
+  scene.json --out ikea.html --title "Assembly"
+```
+
+Done: `instructions.html` contains the order rule `centroid z, then y, then x, then name`. `ikea.html` contains `This sequence is required` and one step per solid.
+
+Limit: that order is centroid height. It is not a fastener or mate plan. Identical parts inside a 2 mm Z band share a Lego callout. IKEA never batches them. An IKEA sheet presents one sequence as required. It does not prove another order fails. The public stills show steps 1, 4, and 10 of the butterfly habitat. Step 4 is two side frames.
+
+### ChArUco photo
+
+Use this when a bought part has no drawing and a printed scale board is in the frame. Print the board at 100%. One square must measure 15.0 mm with a ruler.
+
+```bash
+python3 skills/3d-print-photo-cad/scripts/charuco_photo.py --board --out ./charuco
+python3 skills/3d-print-photo-cad/scripts/charuco_photo.py photo.jpg --out ./charuco
+```
+
+Done: `ok: true` means the board square recovered within 0.15 mm. `part_px_are_metric` is false. The solid is then one model in `3d-print-cad-render`, labeled `photo-derived`.
+
+Limit: this is not a caliper. Lengths and hole diameters are not read off the rectified PNG. A raised face is not metric. An official drawing wins and skips the board. OpenCV is required for a real photo and is not installed in unit CI.
+
+### Reverse an STL
+
+Rebuild an existing STL as an editable STEP plus a gated STL. Reconstruction, not triangle conversion.
+
+```bash
+skills/3d-print-reverse/scripts/preverse run --stl in.stl --project "$PROJECT"
+```
+
+Done: `docs/PRINT_SPEC.yaml` passes, `step/<body>.step` is analytic B-rep, the STL from that solid passes `validate_project.py` with HARD=0, and `reports/<body>.deviation.json` is within `max_deviation_mm`.
+
+Limit: a triangle-wrapped STEP is refused. OpenSCAD and Blender cannot emit editable STEP. Missing OCC (`VIBECAD_CMD` or a pinned `PREVERSE_STEP_IMAGE`) exits 2 and writes no fake STEP. Fillet recovery is best-effort. Proof is mesh deviation against the input STL.
+
+### Pack and slice
+
+After HARD=0, zip the project, then write a process card.
+
+```bash
+python3 skills/3d-print-pack/scripts/pack_project.py "$PROJECT"
+python3 skills/3d-print-slice/scripts/slice_project.py "$PROJECT"
+```
+
+Done: `pack/<part>.zip` holds the spec, source, STLs, `docs/PRINT_NOTES.md`, and `MANIFEST.sha256`. `slice/<body>.process.json` matches the spec. A 3MF appears only when `ORCA_SLICER`, `BAMBU_STUDIO`, or `PRUSA_SLICER` is set.
+
+Limit: the zip is not a slicer project unless slice ran. A missing slicer prints `SKIP: no slicer CLI` and writes no fake 3MF. A validated STL is not permission to print. Live printer control stays in `bambu-mcp`.
+
+### Robotics
+
+The examples in this repo are the 01 rover family: `examples/robot-kit-01-rover`, `examples/robot-kit-01-rover-v2`, and `examples/robot-kit-01-rover-kid`.
+
+```bash
+python3 skills/3d-print-validate/scripts/validate_project.py \
+  examples/robot-kit-01-rover
+python3 skills/3d-print-validate/scripts/validate_assembly.py \
+  examples/robot-kit-01-rover
+python3 skills/3d-print-sim/scripts/roll_table_flat.py \
+  examples/robot-kit-01-rover
+```
+
+Done: `validate_project.py` and `validate_assembly.py` both report HARD=0. The same pair passes for v2 and the kid hull.
+
+Limit: print the chassis, wheels, and brackets. Buy the motors, board, and servos. `sim2real: true` needs mass, friction, and actuator coupons from a measurement or a datasheet. A MuJoCo window is not the contract. Modules 02 and 03 are described by the robotics skill and are not in this tree.
 
 ## Skill names
 
@@ -32,7 +162,7 @@ All tools use the same prefix, followed by one obvious job:
 - `3d-print-reverse` — rebuild an existing STL as editable STEP and a gated STL
 - `3d-print-pack` — zip a gated project (spec, source, STLs, print notes, manifest)
 - `3d-print-slice` — process card from PRINT_SPEC; optional 3MF if a slicer CLI is present
-- `3d-print-cad-render` — the only CAD inspector (parts tree, measure, OCC faces and BREP edges). Habitat kits, lamp studies, brackets, and photo-derived solids are viewed here. Not a mill. Not in `./install.sh`, so a profile-local copy is not overwritten.
+- `3d-print-cad-render` — the only CAD inspector (parts tree, measure, OCC faces and BREP edges). Habitat kits, brackets, and photo-derived solids are viewed here. Not a mill. Not in `./install.sh`, so a profile-local copy is not overwritten.
 - `3d-print-lego-instructions` — Lego-style step sheets from a mill STEP. Optional. In `./install.sh`, not in `/3d-print`. Not an LDraw export. Use this when the picture matters more than a single legal order.
 - `3d-print-ikea-instructions` — required-sequence sheets from a mill STEP. Optional. In `./install.sh`, not in `/3d-print`. Not an IKEA manual. One solid per step. A named style wins.
 
