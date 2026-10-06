@@ -8,12 +8,14 @@ platforms: [linux]
 metadata:
   hermes:
     tags: [3d-print, cad, step, viewer, inspector]
-    related_skills: [3d-print-design-brief, 3d-print-validate, 3d-print-vibecad, 3d-print-lego-instructions]
+    related_skills: [3d-print-design-brief, 3d-print-validate, 3d-print-vibecad, 3d-print-lego-instructions, 3d-print-ikea-instructions, 3d-print-photo-cad]
 ---
 
 # 3D Print CAD Render
 
 Loopback web view of a mill STEP: OCC face tessellation plus BREP edges. Rage atlas chrome (paper `#e8e4da`, ink `#1c1b18`, one red `#c42b23`, charcoal bar `#171714`). Not a trimesh STL preview, not a mill backend, and not print approval.
+
+This is the only CAD inspector in the pack. A habitat kit, a lamp study, a bracket, and a photo-derived solid are all viewed here. Pack `viewer.html` with this skill. Do not keep a second viewer source in a product repo. `3d-print-photo-cad` stops at the board plane, then the solid is one model in this inspector. The toolbar Instructions button is `3d-print-lego-instructions`. A required sequence is `3d-print-ikea-instructions`, not a second viewer.
 
 This pack does not ship FreeCAD. A STEP dump needs a host `FreeCADCmd` via `FREECAD_CMD` or `VIBECAD_CMD`. Packing an existing scene JSON does not. Do not bake a home-directory binary path into this repo.
 

@@ -3,8 +3,9 @@
 Deterministic CAD/CAM for FDM: agents write one contract, build the part, export one STL per independently manufactured body, then fail closed. VibeCAD is the dimensional kernel. A loopback STEP inspector ships in this repo. A render is not print approval.
 
 ```text
+ChArUco photo → 3d-print-photo-cad (board plane only) → named millimetres in PRINT_SPEC
 PRINT_SPEC.yaml → VibeCAD → one STL per body → validate_project.py → validate_assembly.py
-                         ↘ STEP → 3d-print-cad-render (loopback inspector)
+                         ↘ STEP → 3d-print-cad-render (the only CAD inspector)
                                     ↘ Instructions → 3d-print-lego-instructions
                                     ↘ required sequence → 3d-print-ikea-instructions
 ```
@@ -26,15 +27,16 @@ All tools use the same prefix, followed by one obvious job:
 - `3d-print-robotics` — numbered FDM micro-robotics kit modules
 - `3d-print-sim` — assembled occupancy, joint sweep, and load section check
 - `3d-print-image-silhouette` — image-derived stencils and silhouettes
+- `3d-print-photo-cad` — millimetres from a printed ChArUco photo, board plane only. Not a caliper. Installed by `./install.sh`. Not in `/3d-print`.
 - `3d-print-shop-fixture` — decide whether a shop fixture should be printed or bought
 - `3d-print-reverse` — rebuild an existing STL as editable STEP and a gated STL
 - `3d-print-pack` — zip a gated project (spec, source, STLs, print notes, manifest)
 - `3d-print-slice` — process card from PRINT_SPEC; optional 3MF if a slicer CLI is present
-- `3d-print-cad-render` — loopback STEP inspector (parts tree, measure, OCC faces and BREP edges). Not a mill. Not in `./install.sh`, so a profile-local copy is not overwritten.
+- `3d-print-cad-render` — the only CAD inspector (parts tree, measure, OCC faces and BREP edges). Habitat kits, lamp studies, brackets, and photo-derived solids are viewed here. Not a mill. Not in `./install.sh`, so a profile-local copy is not overwritten.
 - `3d-print-lego-instructions` — Lego-style step sheets from a mill STEP. Optional. In `./install.sh`, not in `/3d-print`. Not an LDraw export. Use this when the picture matters more than a single legal order.
 - `3d-print-ikea-instructions` — required-sequence sheets from a mill STEP. Optional. In `./install.sh`, not in `/3d-print`. Not an IKEA manual. One solid per step. A named style wins.
 
-The `/3d-print` bundle loads the brief, VibeCAD, OpenSCAD, Blender, and the validator. Dimensional work uses VibeCAD. Use OpenSCAD only when the prompt names it, for CI sample STL export, or when VibeCAD cannot run. Blender is organic or lattice only. `3d-print-cad-render`, `3d-print-lego-instructions`, `3d-print-ikea-instructions`, `3d-print-reverse`, `3d-print-pack`, and `3d-print-slice` are not required by `/3d-print`. Live printer control is the sibling `bambu-mcp` repo; this pack never stores access codes, serials, or LAN IPs.
+The `/3d-print` bundle loads the brief, VibeCAD, OpenSCAD, Blender, and the validator. Dimensional work uses VibeCAD. Use OpenSCAD only when the prompt names it, for CI sample STL export, or when VibeCAD cannot run. Blender is organic or lattice only. `3d-print-cad-render`, `3d-print-lego-instructions`, `3d-print-ikea-instructions`, `3d-print-photo-cad`, `3d-print-reverse`, `3d-print-pack`, and `3d-print-slice` are not required by `/3d-print`. Live printer control is the sibling `bambu-mcp` repo; this pack never stores access codes, serials, or LAN IPs.
 
 VibeCAD (10-X-eng/vibecad, not the PyPI package) uses the same PRINT_SPEC and `validate_project` gates. This pack does not vendor it. Linux ARM qemu-x86_64 AppImage is not supported. Boolean welding of overlapping solids stays a known limit until a live one-solid export. Set `VIBECAD_CMD` or `FREECAD_CMD` to the host `FreeCADCmd`. Do not point that variable at upstream FreeCAD.
 
@@ -187,7 +189,7 @@ After HARD=0, `3d-print-pack` writes a deliverable zip. `3d-print-slice` always 
 ## Tests
 
 ```bash
-python3 -m pytest -q skills/3d-print-design-brief/tests skills/3d-print-validate/tests skills/3d-print-reverse/scripts/tests skills/3d-print-vibecad/scripts/tests skills/3d-print-pack/scripts/tests skills/3d-print-slice/scripts/tests skills/3d-print-cad-render/tests skills/3d-print-lego-instructions/tests skills/3d-print-ikea-instructions/tests skills/3d-print-image-silhouette/tests tests/test_prompt_scenarios.py tests/test_secret_scan.py
+python3 -m pytest -q skills/3d-print-design-brief/tests skills/3d-print-validate/tests skills/3d-print-reverse/scripts/tests skills/3d-print-vibecad/scripts/tests skills/3d-print-pack/scripts/tests skills/3d-print-slice/scripts/tests skills/3d-print-cad-render/tests skills/3d-print-lego-instructions/tests skills/3d-print-ikea-instructions/tests skills/3d-print-image-silhouette/tests skills/3d-print-photo-cad/tests tests/test_prompt_scenarios.py tests/test_secret_scan.py
 python3 tests/test_skill_contract.py
 python3 tests/prompt_harness.py
 python3 -m unittest discover -s skills/3d-print-blender/scripts/tests -v
@@ -203,7 +205,8 @@ python3 -m py_compile \
   skills/3d-print-vibecad/scripts/find_vibecad.py \
   skills/3d-print-cad-render/scripts/*.py \
   skills/3d-print-lego-instructions/scripts/*.py \
-  skills/3d-print-ikea-instructions/scripts/*.py
+  skills/3d-print-ikea-instructions/scripts/*.py \
+  skills/3d-print-photo-cad/scripts/*.py
 ```
 
 `tests/prompts/` holds sample user prompts. CI ranks them onto skills, then the `generate-stls` job exports real STLs with OpenSCAD/Blender and uploads them as the `generated-stls` artifact. That job is the portable export path, not the dimensional kernel. Shop-fixture prompts stop at buy-vs-print. Inspector and VibeCAD binary steps are not invoked unless `FREECAD_CMD` or `VIBECAD_CMD` is set. No live model.

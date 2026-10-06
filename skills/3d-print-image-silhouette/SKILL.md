@@ -28,7 +28,7 @@ Sibling to `3d-print-openscad` — not a merge. Hand off STL to `3d-print-valida
 - Compare/contrast vs pure CAD sculpt
 - User provides PNG/SVG or asks to generate a silhouette
 
-**Don’t use for:** mechanical brackets, equipment stands, anything whose source of truth is calipers (use 3d-print-design-brief + 3d-print-openscad).
+**Don’t use for:** mechanical brackets, equipment stands, anything whose source of truth is calipers (use 3d-print-design-brief + 3d-print-openscad), or a metric length from a printed scale board (`3d-print-photo-cad`).
 
 ## Hard sequence
 

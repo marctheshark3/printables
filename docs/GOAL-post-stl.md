@@ -1,13 +1,13 @@
 # Goal: finish the manufacturing side of Printables
 
-**Status:** ready to implement. Sibling of `docs/GOAL-stl-to-step.md` (CAD-side hole). This is the **after-STL** hole.
-**Handoff:** execute this file as the full brief. Do not rediscover the gap list.
+**Status:** implemented. Thickness audit, pack, fit coupons, slice, and split-for-bed are in the pack. This file is the method record. Do not rebuild them.
+**Handoff:** do not execute this file as new work.
 **This repo:** Printables. Follow `CONTRIBUTING.md`. PRINT_SPEC.yaml stays the only machine contract.
 **Printer control:** lives in the sibling repo **`bambu-mcp`**, not here. Do not vendor MQTT, FTPS, access codes, or a live printer client into this pack.
 
 Paste for the next agent:
 
-> Execute `docs/GOAL-post-stl.md`. Gated STL is not a finished print. Add thickness audit, deliverable pack, fit-coupon loop, insert/thread library, slicer/3MF process card, and split-for-bed. Do not put Bambu LAN control in printables — consume the sibling `bambu-mcp` repo. Secrets stay in env / user config and must fail the existing CI secret scan if committed. Unit CI stays free of slicers and printers. Start at thickness + pack tests, not a live print.
+> `docs/GOAL-post-stl.md` is already implemented (thickness audit, pack, fit coupons, slice, split-for-bed). Do not rebuild those tools. Printer control stays in the sibling `bambu-mcp` repo. Unit CI stays free of slicers and printers.
 
 ---
 

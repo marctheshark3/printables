@@ -1,14 +1,14 @@
 # Goal: reverse-engineer STL → editable STEP → gated STL
 
-**Status:** ready to implement.
-**Handoff:** execute this file as the full brief. Do not rediscover the method.
+**Status:** implemented in `3d-print-reverse`. This file is the method record. Do not rebuild the skill.
+**Handoff:** do not execute this file as new work.
 **Method:** [STL to STEP — the proper way](https://www.youtube.com/watch?v=wEN89D1w4JA&t=61s) (Kanrog Creations). Reconstruction from a reference mesh, not triangle conversion.
 **Product kernel:** [10-X-eng/vibecad](https://github.com/10-X-eng/vibecad) (OCC FreeCAD fork, LGPL-2.1). Not the PyPI package `vibecad`.
 **This repo:** Printables. Follow `CONTRIBUTING.md`. Do not invent a second manufacturing contract.
 
 Paste for the next agent:
 
-> Execute `docs/GOAL-stl-to-step.md`. Build skill `3d-print-reverse` and CLI `preverse` in this pack. Reconstruction, not conversion. Triangle-wrapped STEP is HARD. Product kernel is 10-X-eng/vibecad (fork/PR there, do not vendor LGPL here). CadQuery Docker is the CI STEP path when VibeCAD is absent. Unit CI stays free of OCC. Start at analyze/segment tests, not STEP export.
+> `docs/GOAL-stl-to-step.md` is already implemented as `3d-print-reverse` / `preverse`. Do not rebuild it. Read the file only to check a reverse run against the method. Triangle-wrapped STEP stays HARD.
 
 ---
 
