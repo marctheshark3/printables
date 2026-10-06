@@ -1,5 +1,7 @@
 # Status
 
+[Documentation](README.md) · [Design and validation](guides/design-and-validation.md)
+
 Last reviewed 2026-10-06.
 
 ## Supported path

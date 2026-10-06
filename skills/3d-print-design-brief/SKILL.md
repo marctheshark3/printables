@@ -19,7 +19,7 @@ Create `docs/PRINT_SPEC.yaml` before CAD. This file is the sole machine-readable
 
 - Any new or redesigned FDM part
 - A part derived from a photo, sketch, existing STL, or measured object
-- Before selecting OpenSCAD, Blender, or an optional VibeCAD remake
+- Before selecting VibeCAD, OpenSCAD, or Blender
 
 Do not write CAD in this skill.
 
@@ -27,17 +27,18 @@ Do not write CAD in this skill.
 
 Choose exactly one:
 
-- `openscad`: dimensional mechanical parts, exact fits, brackets, stands, mounts, enclosures
+- `vibecad`: dimensional mechanical parts, exact fits, brackets, stands, mounts, enclosures using 10-X-eng/vibecad
+- `openscad`: a request naming OpenSCAD, CI sample exports, or a host where VibeCAD cannot run
 - `blender`: organic skins, sculpted surfaces, or lattices
 - `hybrid`: separate declared dimensional and organic bodies; never two backends editing the same body
-- `vibecad`: optional 10-X-eng/vibecad remake when the human is already in VibeCAD or asked to remake there; not the default for a new bracket
+- `cadquery`: optional analytic STEP reconstruction through `3d-print-reverse`
 
-If uncertain, choose `openscad`.
+VibeCAD is the dimensional kernel. Honor an explicit OpenSCAD request. Blender remains for organic or lattice bodies. Use the 10-X-eng project, not the PyPI package named vibecad or upstream FreeCAD.
 
 ## Procedure
 
 1. Copy `templates/PRINT_SPEC.yaml` to `<project>/docs/PRINT_SPEC.yaml`.
-2. Replace every example value. No placeholder may remain.
+2. Replace every example value, including the backend and source paths when another backend is selected. No placeholder may remain.
 3. Record each critical dimension with:
    - stable parameter name
    - nominal `value_mm`

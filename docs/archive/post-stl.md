@@ -1,5 +1,7 @@
 # Goal: finish the manufacturing side of Printables
 
+Archived implementation plan. See [current status](../status.md) and the [pack-and-slice guide](../guides/pack-and-slice.md) for present behavior. [Documentation index](../README.md#archive).
+
 **Status:** implemented. Thickness audit, pack, fit coupons, slice, and split-for-bed are in the pack. This file is the method record. Do not rebuild them.
 **Handoff:** do not execute this file as new work.
 **This repo:** Printables. Follow `CONTRIBUTING.md`. PRINT_SPEC.yaml stays the only machine contract.
@@ -7,7 +9,7 @@
 
 Paste for the next agent:
 
-> `docs/GOAL-post-stl.md` is already implemented (thickness audit, pack, fit coupons, slice, split-for-bed). Do not rebuild those tools. Printer control stays in the sibling `bambu-mcp` repo. Unit CI stays free of slicers and printers.
+> `docs/archive/post-stl.md` is already implemented (thickness audit, pack, fit coupons, slice, split-for-bed). Do not rebuild those tools. Printer control stays in the sibling `bambu-mcp` repo. Unit CI stays free of slicers and printers.
 
 ---
 
@@ -271,7 +273,7 @@ Each step leaves tests green. Do not start at a live print.
 
 ---
 
-## STATUS.md limits to record
+## Status limits to record
 
 - Thickness audit is sampled, not an exact-kernel wall proof.
 - Pack zip is not a slicer project unless `3d-print-slice` ran.
@@ -283,7 +285,7 @@ Each step leaves tests green. Do not start at a live print.
 
 ## Working rules
 
-Read this file, `docs/GOAL-stl-to-step.md` (do not reopen CAD reverse here), `CONTRIBUTING.md`, `SECURITY.md`, `skills/3d-print-validate/`, `skills/3d-print-design-brief/`. Stdlib first. Short factual comments. No `__pycache__`.
+Read this file, `docs/archive/stl-to-step.md` (do not reopen CAD reverse here), `CONTRIBUTING.md`, `SECURITY.md`, `skills/3d-print-validate/`, `skills/3d-print-design-brief/`. Stdlib first. Short factual comments. No `__pycache__`.
 
 ```bash
 python3 -m pytest -q \

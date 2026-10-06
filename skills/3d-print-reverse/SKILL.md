@@ -25,7 +25,7 @@ This skill is not in `/3d-print`. Reverse is a skill; the kernel is OCC (10-X-en
 - An existing mesh must become parametric millimetre CAD plus a gated STL
 - Brackets, mounts, enclosures whose design intent is planes, cylinders, holes, fillets
 
-**Don’t use for:** a new dimensional part from calipers (`3d-print-openscad`); organic lattice that would already be `cad.backend: blender` unless the organic flag is explicit.
+**Don’t use for:** a new dimensional part from calipers (`3d-print-design-brief` selects the backend); organic lattice that would already be `cad.backend: blender` unless the organic flag is explicit.
 
 ## Hard sequence
 

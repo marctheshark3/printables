@@ -8,7 +8,7 @@ platforms: [linux]
 metadata:
   hermes:
     tags: [silhouette, stencil, image-trace, openscad, 3d-print, icon, fdm, bambu]
-    related_skills: [3d-print-openscad, 3d-print-validate, 3d-print-design-brief, 3d-print-pack]
+    related_skills: [3d-print-openscad, 3d-print-validate, 3d-print-design-brief, 3d-print-vibecad, 3d-print-pack]
 ---
 
 # Image → Silhouette → Print
@@ -28,7 +28,7 @@ Sibling to `3d-print-openscad` — not a merge. Hand off STL to `3d-print-valida
 - Compare/contrast vs pure CAD sculpt
 - User provides PNG/SVG or asks to generate a silhouette
 
-**Don’t use for:** mechanical brackets, equipment stands, anything whose source of truth is calipers (use 3d-print-design-brief + 3d-print-openscad), or a metric length from a printed scale board (`3d-print-photo-cad`).
+**Don’t use for:** mechanical brackets, equipment stands, anything whose source of truth is calipers (use `3d-print-design-brief` to select the dimensional backend), or a metric length from a printed scale board (`3d-print-photo-cad`).
 
 ## Hard sequence
 
@@ -81,7 +81,7 @@ When generating:
 ## Scripts (this skill)
 
 ```bash
-SKILL=~/.hermes/profiles/tron/skills/creative/3d-print-image-silhouette
+SKILL=skills/3d-print-image-silhouette   # from the repository root
 
 # 1) Trace PNG → poly JSON + binary PNG + SVG
 python3 "$SKILL/scripts/trace_silhouette.py" \

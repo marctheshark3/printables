@@ -14,11 +14,11 @@ manufacturing:
   layer_height_mm: 0.2
 
 cad:
-  backend: openscad
+  backend: vibecad
   parametric: true
   units: mm
   source_files:
-    - src/example-bracket.scad
+    - src/example-bracket.py
 
 geometry:
   min_wall_mm: 1.6

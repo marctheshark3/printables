@@ -8,12 +8,12 @@ platforms: [linux, macos, windows]
 metadata:
   hermes:
     tags: [3d-print, assembly, sim, joints, occupancy, loads, clearance, robot-module, kit, rover, validate, table-flat, mjcf, calibration, sim2real, mass, friction, actuator, roll]
-    related_skills: [3d-print-design-brief, 3d-print-robotics, 3d-print-openscad, 3d-print-validate]
+    related_skills: [3d-print-design-brief, 3d-print-robotics, 3d-print-vibecad, 3d-print-openscad, 3d-print-validate]
 ---
 
 # 3D Print Sim
 
-Fail-closed assembled occupancy for numbered `robot-module` kits. Simulation is a validator, not a CAD kernel. OpenSCAD remains the dimensional default. A MuJoCo window or screenshot is not proof.
+Fail-closed assembled occupancy for numbered `robot-module` kits. Simulation validates geometry from the backend selected by `3d-print-design-brief`. A MuJoCo window or screenshot is not proof.
 
 ## When to use
 
@@ -27,7 +27,7 @@ Fail-closed assembled occupancy for numbered `robot-module` kits. Simulation is 
 ## Hard sequence
 
 1. **3d-print-design-brief** — `docs/PRINT_SPEC.yaml` with assembly poses (mm/deg), joints, loads
-2. **3d-print-robotics / 3d-print-openscad** — one STL per independently manufactured body
+2. **3d-print-robotics / selected CAD backend** — one STL per independently manufactured body
 3. **`validate_project.py`** — mesh gates first; HARD still blocks delivery
 4. **`validate_assembly.py`** — L1 occupancy and mate clearance; L2 joint sweep; L3 handbook-style hub section vs PETG allowable × `safety_factor`
 

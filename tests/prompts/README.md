@@ -1,5 +1,7 @@
 # Sample skill prompts
 
+[Test commands and CI](../README.md)
+
 Each YAML file is a user prompt plus the skills and tools CI must exercise.
 
 Routing (fast, unit job): pytest `tests/test_prompt_scenarios.py`.

@@ -25,51 +25,16 @@ Edit this repository, run the complete checks, then install into local Hermes pr
 
 ## Checks before a PR
 
-```bash
-python3 -m pip install PyYAML pytest
-python3 -m pytest -q skills/3d-print-design-brief/tests skills/3d-print-validate/tests skills/3d-print-reverse/scripts/tests skills/3d-print-vibecad/scripts/tests skills/3d-print-pack/scripts/tests skills/3d-print-slice/scripts/tests skills/3d-print-cad-render/tests skills/3d-print-lego-instructions/tests skills/3d-print-ikea-instructions/tests skills/3d-print-image-silhouette/tests skills/3d-print-photo-cad/tests tests/test_prompt_scenarios.py tests/test_secret_scan.py
-python3 tests/prompt_harness.py   # OpenSCAD Docker + Blender; writes artifacts/stls/
-python3 -m unittest discover -s skills/3d-print-blender/scripts/tests -v
-python3 tests/test_skill_contract.py
-python3 skills/3d-print-design-brief/scripts/validate_print_spec.py \
-  examples/bracket-coupon/docs/PRINT_SPEC.yaml
-python3 skills/3d-print-design-brief/scripts/validate_print_spec.py \
-  examples/bracket-coupon-vibecad/docs/PRINT_SPEC.yaml
-python3 skills/3d-print-validate/scripts/validate_project.py \
-  examples/bracket-coupon-vibecad
-python3 skills/3d-print-design-brief/scripts/validate_print_spec.py \
-  examples/bracket-coupon-reverse/docs/PRINT_SPEC.yaml
-python3 skills/3d-print-validate/scripts/validate_project.py \
-  examples/bracket-coupon-reverse
-python3 skills/3d-print-design-brief/scripts/validate_print_spec.py \
-  examples/robot-kit-01-rover/docs/PRINT_SPEC.yaml
-python3 skills/3d-print-validate/scripts/validate_project.py \
-  examples/robot-kit-01-rover
-python3 skills/3d-print-validate/scripts/validate_assembly.py \
-  examples/robot-kit-01-rover
-python3 skills/3d-print-design-brief/scripts/validate_print_spec.py \
-  examples/robot-kit-01-rover-v2/docs/PRINT_SPEC.yaml
-python3 skills/3d-print-validate/scripts/validate_project.py \
-  examples/robot-kit-01-rover-v2
-python3 skills/3d-print-validate/scripts/validate_assembly.py \
-  examples/robot-kit-01-rover-v2
-python3 skills/3d-print-sim/scripts/roll_table_flat.py \
-  examples/robot-kit-01-rover
-python3 skills/3d-print-sim/scripts/roll_table_flat.py \
-  examples/robot-kit-01-rover-v2
-python3 skills/3d-print-design-brief/scripts/validate_print_spec.py \
-  examples/robot-kit-01-rover-kid/docs/PRINT_SPEC.yaml
-python3 skills/3d-print-validate/scripts/validate_project.py \
-  examples/robot-kit-01-rover-kid
-python3 skills/3d-print-validate/scripts/validate_assembly.py \
-  examples/robot-kit-01-rover-kid
-python3 skills/3d-print-sim/scripts/roll_table_flat.py \
-  examples/robot-kit-01-rover-kid
-```
+Run the [unit checks, example validation, compilation, and CAD prompt harness](tests/README.md), plus the private-path and secret scan from [CI](.github/workflows/ci.yml). The testing guide separates checks that need only Python from those that need CAD tools.
 
+## Where things belong
 
-
-Also run the private-path and secret scan from `.github/workflows/ci.yml`.
+- Keep the [README](README.md) focused on the introduction, quick start, and navigation.
+- Put shared walkthroughs in `docs/guides/` and link them from the [documentation index](docs/README.md).
+- Keep supported behavior and known limits in [project status](docs/status.md). Completed implementation plans belong in `docs/archive/`.
+- Keep each skill's instructions, scripts, tests, templates, and references together under `skills/3d-print-*/`. The installer and scripts depend on these paths.
+- Update the [skill catalog](skills/README.md) when a skill is added or its purpose changes.
+- Put runnable sample projects in `examples/` and development commands in [tests](tests/README.md).
 
 ## Change rules
 

@@ -195,21 +195,24 @@ def main() -> int:
         assert needle in photo, f"3d-print-photo-cad missing {needle!r}"
 
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
-    status = (ROOT / "STATUS.md").read_text(encoding="utf-8")
+    status = (ROOT / "docs" / "status.md").read_text(encoding="utf-8")
+    workflow = (ROOT / "docs" / "guides" / "design-and-validation.md").read_text(encoding="utf-8")
+    testing = (ROOT / "tests" / "README.md").read_text(encoding="utf-8")
     contributing = (ROOT / "CONTRIBUTING.md").read_text(encoding="utf-8")
     ci = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
     pytest_paths = (
         "skills/3d-print-cad-render/tests skills/3d-print-lego-instructions/tests skills/3d-print-ikea-instructions/tests skills/3d-print-image-silhouette/tests "
         "skills/3d-print-photo-cad/tests tests/test_prompt_scenarios.py tests/test_secret_scan.py"
     )
-    for label, text in (("README", readme), ("CONTRIBUTING", contributing), ("ci", ci)):
-        assert pytest_paths in text, f"{label} test command is missing inspector or silhouette tests"
-    for label, text in (("README", readme), ("STATUS", status), ("CONTRIBUTING", contributing)):
+    for label, text in (("tests/README", testing), ("ci", ci)):
+        normalized = " ".join(text.replace("\\\n", " ").split())
+        assert pytest_paths in normalized, f"{label} test command is missing inspector or silhouette tests"
+    for label, text in (("workflow", workflow), ("status", status), ("CONTRIBUTING", contributing)):
         assert "VibeCAD is the dimensional kernel" in text, label
         assert "3d-print-cad-render" in text, label
         assert "upstream FreeCAD" in text, label
         assert "/home/" not in text and "spark-adb4" not in text, label
-    assert "not the dimensional kernel" in readme
+    assert "not the dimensional kernel" in workflow
     assert "not the dimensional default" in status or "not the dimensional kernel" in status
     assert "not the dimensional default" in contributing or "not the dimensional kernel" in contributing
     assert "default backend" not in readme
