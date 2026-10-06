@@ -1,0 +1,25 @@
+id: photo-charuco-part
+prompt: |
+  Model this bought part from a photo. A ChArUco board is in the frame.
+  No vendor drawing. Ruler-check the printed square before any millimetre
+  is written. Do not extrude a flat outline.
+expect:
+  primary: 3d-print-photo-cad
+  skills:
+    - 3d-print-photo-cad
+    - 3d-print-vibecad
+    - 3d-print-design-brief
+  outrank:
+    - 3d-print-image-silhouette
+    - 3d-print-vibecad
+    - 3d-print-reverse
+    - 3d-print-blender
+  skill_contains:
+    3d-print-photo-cad:
+      - charuco_photo.py
+      - "15.0 mm"
+      - photo-derived
+      - XY only
+run:
+  - kind: no_cad
+    reason: metrology stops until a printed square measures 15.0 mm; OpenCV is not in unit CI
