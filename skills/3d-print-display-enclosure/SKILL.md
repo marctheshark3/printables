@@ -8,12 +8,12 @@ platforms: [linux]
 metadata:
   hermes:
     tags: [3d-print, enclosure, display, openscad, dfm]
-    related_skills: [3d-print-openscad, 3d-print-design-brief, 3d-print-validate, 3d-print-blender, 3d-print-pack]
+    related_skills: [3d-print-vibecad, 3d-print-openscad, 3d-print-design-brief, 3d-print-validate, 3d-print-blender, 3d-print-pack]
 ---
 
 # 3D Print Display Enclosure
 
-Class skill for **board + screen** cases (lab COP, desk shell). CAD backend default = **OpenSCAD**. Lattice lids only via hybrid/Blender policy.
+Class skill for **board + screen** cases (lab COP, desk shell). Use VibeCAD for dimensional bodies; OpenSCAD when explicitly requested, for CI samples, or when VibeCAD cannot run. Lattice lids only via hybrid/Blender policy.
 
 ## When to use
 
@@ -29,8 +29,8 @@ Class skill for **board + screen** cases (lab COP, desk shell). CAD backend defa
 1. **3d-print-design-brief** → `docs/PRINT_SPEC.yaml` (`product_class: enclosure`) with one STL entry each for **base** and **bezel**
 2. **vision_analyze** board **front + back** → I/O edge map
 3. Dims table: PCB outer from datasheet; I/O from connector standards or calipers
-4. OpenSCAD two-piece: **base** + **bezel** (separate STLs)
-5. Docker export each → `3d-print-validate/scripts/validate_project.py`
+4. Build the two-piece **base** + **bezel** with the selected backend (separate STLs)
+5. Export each body → `3d-print-validate/scripts/validate_project.py`; the OpenSCAD path uses Docker export
 6. Separate stills → vision — **yikes = rewrite form, not tweak knobs**
 7. Package the deliverables with `3d-print-pack`
 
@@ -44,7 +44,7 @@ Class skill for **board + screen** cases (lab COP, desk shell). CAD backend defa
 | Bezel shape | Face + stop ring + window + button. **No** side cube gouges |
 | I/O on base walls | Rectangular keepouts at correct z0 |
 | Tilt | Off by default; separate stand if needed |
-| Hybrid | OpenSCAD owns shell; Blender only organic/hex lid half |
+| Hybrid | The dimensional backend owns the shell; Blender only organic/hex lid half |
 
 ## Connector keepouts
 

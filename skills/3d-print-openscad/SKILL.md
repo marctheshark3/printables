@@ -19,7 +19,7 @@ Portable and CI export path for a validated `docs/PRINT_SPEC.yaml`. OpenSCAD is 
 
 Use when `cad.backend: openscad`, when the prompt names OpenSCAD, or when VibeCAD cannot run.
 
-Do not use for a new dimensional part when `VIBECAD_CMD` resolves; that is `3d-print-vibecad`. Do not use for sculpted organic surfaces or decorative lattices; use `3d-print-blender`.
+For a new dimensional part without an explicit OpenSCAD request, use `3d-print-vibecad` when it can run. Do not use for sculpted organic surfaces or decorative lattices; use `3d-print-blender`.
 
 ## Source Contract
 

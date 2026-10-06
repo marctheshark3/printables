@@ -119,7 +119,7 @@ def test_missing_coupon_file_fails(tmp_path):
     data = valid_spec()
     (tmp_path / "src").mkdir()
     (tmp_path / "stl").mkdir()
-    (tmp_path / "src/example-bracket.scad").write_text("device_width_mm = 40;\n")
+    (tmp_path / data["cad"]["source_files"][0]).write_text("device_width_mm = 40\n")
     (tmp_path / "stl/example-bracket.stl").write_bytes(b"solid")
     errors = module.validate(data, project=tmp_path, check_files=True)
     assert any("fit/example-bracket-fit-coupon.stl" in error for error in errors)
@@ -127,7 +127,7 @@ def test_missing_coupon_file_fails(tmp_path):
 
 def test_parse_spec_roundtrip():
     parsed = module.parse_spec(valid_spec())
-    assert parsed.backend == "openscad"
+    assert parsed.backend == "vibecad"
     assert parsed.stl_files[0].expected_shells == 1
     assert parsed.up_axis == "Z"
     assert parsed.extra_parameters == ()
@@ -297,6 +297,7 @@ def assembled_robot_spec():
         {"path": "stl/chassis.stl", "body": "chassis", "expected_shells": 1},
         {"path": "stl/wheel.stl", "body": "wheel", "expected_shells": 1},
     ]
+    data["cad"]["backend"] = "openscad"
     data["cad"]["source_files"] = ["src/rover.scad"]
     data["assembly"] = {
         "frame": "assembled",
@@ -796,6 +797,8 @@ def test_reverse_block_optional_on_existing_examples():
 
 def test_reverse_block_requires_occ_backend():
     data = valid_spec()
+    data["cad"]["backend"] = "openscad"
+    data["cad"]["source_files"] = ["src/bracket.scad"]
     data["reverse"] = {
         "input_stl": "source/original.stl",
         "ir": "reverse/bracket.ir.json",
@@ -895,8 +898,8 @@ def test_named_three_mf_must_exist_when_check_files(tmp_path):
     (tmp_path / "src").mkdir()
     (tmp_path / "stl").mkdir()
     (tmp_path / "fit").mkdir()
-    (tmp_path / "src/example-bracket.scad").write_text(
-        "device_width_mm = 40;\nmounting_hole_diameter_mm = 3.4;\n"
+    (tmp_path / data["cad"]["source_files"][0]).write_text(
+        "device_width_mm = 40\nmounting_hole_diameter_mm = 3.4\n"
     )
     (tmp_path / "stl/example-bracket.stl").write_bytes(b"solid")
     (tmp_path / "fit/example-bracket-fit-coupon.stl").write_bytes(b"coupon")

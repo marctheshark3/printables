@@ -1,5 +1,7 @@
 # Goal: reverse-engineer STL → editable STEP → gated STL
 
+Archived implementation plan. See [current status](../status.md) and the [existing-parts guide](../guides/existing-parts.md) for present behavior. [Documentation index](../README.md#archive).
+
 **Status:** implemented in `3d-print-reverse`. This file is the method record. Do not rebuild the skill.
 **Handoff:** do not execute this file as new work.
 **Method:** [STL to STEP — the proper way](https://www.youtube.com/watch?v=wEN89D1w4JA&t=61s) (Kanrog Creations). Reconstruction from a reference mesh, not triangle conversion.
@@ -8,7 +10,7 @@
 
 Paste for the next agent:
 
-> `docs/GOAL-stl-to-step.md` is already implemented as `3d-print-reverse` / `preverse`. Do not rebuild it. Read the file only to check a reverse run against the method. Triangle-wrapped STEP stays HARD.
+> `docs/archive/stl-to-step.md` is already implemented as `3d-print-reverse` / `preverse`. Do not rebuild it. Read the file only to check a reverse run against the method. Triangle-wrapped STEP stays HARD.
 
 ---
 
@@ -271,7 +273,7 @@ Each step leaves tests green. Do not start at STEP export.
 
 ---
 
-## STATUS.md limits to record
+## Status limits to record
 
 - Reverse needs OCC. OpenSCAD/Blender cannot satisfy STEP.
 - 10-X-eng/vibecad `mesh.to_shape` is faceted, not parametric. Fork the reconstruction pack.

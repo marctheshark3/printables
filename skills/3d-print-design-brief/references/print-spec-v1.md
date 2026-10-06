@@ -20,13 +20,13 @@ An assembly is multiple independently manufactured bodies: one `geometry.stl_fil
 
 | Need | `cad.backend` |
 |---|---|
-| dimensional mechanical part, exact fits, brackets, stands, enclosures | `openscad` |
+| dimensional mechanical part, exact fits, brackets, stands, enclosures | `vibecad` |
+| CI sample export, a request naming OpenSCAD, or a host where VibeCAD cannot run | `openscad` |
 | organic skin, lattice, sculpted surface | `blender` |
 | separate declared dimensional and organic bodies | `hybrid` |
-| human is already in 10-X-eng/vibecad, or an explicit remake of a PRINT_SPEC part there | `vibecad` |
 | reverse-engineered analytic STEP via CadQuery Docker (OCC) | `cadquery` |
 
-If more than one row seems plausible, choose `openscad`. `vibecad` is an optional third backend, not the default for a new bracket, and not the PyPI package named vibecad. `cadquery` is the same bar as `vibecad`: parametric Python source, millimetres, named parameters. `hybrid` still means separate bodies, not two kernels editing one body. VibeCAD chat, `.FCStd`, MJCF, and `DESIGN.md` cannot override this file.
+VibeCAD is the dimensional kernel (10-X-eng/vibecad, not the PyPI package or upstream FreeCAD). OpenSCAD is the portable and CI path, also used when explicitly requested or when VibeCAD cannot run. `cadquery` is the same bar as `vibecad`: parametric Python source, millimetres, named parameters. `hybrid` still means separate bodies, not two kernels editing one body. VibeCAD chat, `.FCStd`, MJCF, and `DESIGN.md` cannot override this file.
 
 ## Optional `pack`, `slice`, and `fit.measured_mm`
 

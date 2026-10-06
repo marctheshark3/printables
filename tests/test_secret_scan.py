@@ -24,13 +24,17 @@ PY_SECRET_PATTERN = re.compile(
     re.I | re.M,
 )
 
-# Same roots as the CI grep, plus public prose. Goal docs may quote needles.
+# Same roots as the CI grep, plus public prose. Archived plans may quote needles.
 SCAN_ROOTS = (
     ROOT / "skills",
     ROOT / "examples",
     ROOT / "install.sh",
     ROOT / "README.md",
-    ROOT / "STATUS.md",
+    ROOT / "docs" / "README.md",
+    ROOT / "docs" / "getting-started.md",
+    ROOT / "docs" / "guides",
+    ROOT / "docs" / "status.md",
+    ROOT / "tests" / "README.md",
     ROOT / "CONTRIBUTING.md",
     ROOT / "SECURITY.md",
     ROOT / "skill-bundles",

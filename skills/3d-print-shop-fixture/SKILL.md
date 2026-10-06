@@ -8,14 +8,14 @@ platforms: [linux]
 metadata:
   hermes:
     tags: [3d-print, shop, bun-pan, husky, dfm, buy-vs-print]
-    related_skills: [3d-print-design-brief, 3d-print-openscad, 3d-print-validate]
+    related_skills: [3d-print-design-brief, 3d-print-vibecad, 3d-print-openscad, 3d-print-validate]
 ---
 
 # Print vs buy — shop fixtures
 
 Class skill for **storage/work fixtures** (under-desk trays, wall slides, carts). Not one-off enclosure CAD.
 
-Pair with `3d-print-design-brief` for a validated `PRINT_SPEC.yaml`; route printable clips through `3d-print-openscad` and `3d-print-validate`.
+Pair with `3d-print-design-brief` for a validated `PRINT_SPEC.yaml`; route printable clips through its selected dimensional backend and `3d-print-validate`.
 
 ## When to use
 
@@ -51,4 +51,4 @@ Crank **moves the top**. Do not screw hangers into moving steel, the drawer pack
 
 ## Handoff
 
-Clips: `3d-print-design-brief` → PRINT_SPEC.yaml `part.product_class: bracket`, one STL entry per clip (`expected_shells: 1`) → `3d-print-openscad`. Buy: stop. No PRINT_SPEC.yaml required.
+Clips: `3d-print-design-brief` → PRINT_SPEC.yaml `part.product_class: bracket`, one STL entry per clip (`expected_shells: 1`) → selected dimensional backend → `3d-print-validate`. Buy: stop. No PRINT_SPEC.yaml required.

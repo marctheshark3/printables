@@ -8,12 +8,12 @@ platforms: [linux]
 metadata:
   hermes:
     tags: [3d-print, robotics, robot, module, kit, rover, mcu, servo, numbered, chassis, wiring, hardware, openscad, fdm]
-    related_skills: [3d-print-design-brief, 3d-print-openscad, 3d-print-validate, 3d-print-sim]
+    related_skills: [3d-print-design-brief, 3d-print-vibecad, 3d-print-openscad, 3d-print-validate, 3d-print-sim]
 ---
 
 # 3D Print Robotics
 
-Class skill for **numbered micro-robotics kit modules** (01 two-wheel rover, 02 servo gripper, 03 gimbal). CAD backend default = **OpenSCAD**. Not a firmware repo, not ROS, not custom PCB layout.
+Class skill for **numbered micro-robotics kit modules** (01 two-wheel rover, 02 servo gripper, 03 gimbal). Use VibeCAD for dimensional bodies; OpenSCAD when explicitly requested, for CI samples, or when VibeCAD cannot run. Not a firmware repo, not ROS, not custom PCB layout.
 
 ## When to use
 
@@ -28,7 +28,7 @@ Class skill for **numbered micro-robotics kit modules** (01 two-wheel rover, 02 
 
 1. **3d-print-design-brief** → `docs/PRINT_SPEC.yaml` (`product_class: robot-module`)
 2. **hardware/wiring contract** — non-empty `hardware.components` BOM; `wiring` voltage_domains, pin_map or nets, connector keepouts, named cable-path keepouts mapped to CAD parameters
-3. **OpenSCAD bodies** from `lib/robot_kit.scad` (MCU pocket, servo/motor pockets, M2/M3, wheel hub)
+3. **Dimensional bodies** in the selected backend (MCU pocket, servo/motor pockets, M2/M3, wheel hub); the OpenSCAD path uses `lib/robot_kit.scad`
 4. **export** one STL per independently manufactured printed body
 5. **`validate_project.py`** — HARD fail means redesign, not a relaxed gate
 6. **`validate_assembly.py`** when `assembly` is present — occupancy, joint sweep, required loads; a render is not proof
@@ -42,11 +42,11 @@ Class skill for **numbered micro-robotics kit modules** (01 two-wheel rover, 02 
 | Fastener bosses | Shared M2/M3 through-hole and boss library so 01/02/03 share one board family |
 | Cable channels | Named keepouts from `wiring.cable_path_keepouts` become CAD parameters |
 | One body / STL | No overlapping exported bodies; `overlapping_solids_allowed: false` |
-| OpenSCAD default | Dimensional kit bodies in OpenSCAD; Blender only for an organic skin |
+| Backend | Dimensional kit bodies in VibeCAD, or OpenSCAD under the brief's selection policy; Blender only for an organic skin |
 
 ## Numbered-kit rule
 
-Modules **01 / 02 / 03** share one MCU-pocket family and the M2/M3 fastener library in `lib/robot_kit.scad`. Copy that file into each project `src/lib/` for hermetic Docker export. USB window sizes live in `3d-print-openscad/references/connector-keepouts-fdm.md` — do not duplicate that table.
+Modules **01 / 02 / 03** share one MCU-pocket family and M2/M3 fastener dimensions. For OpenSCAD, copy `lib/robot_kit.scad` into each project `src/lib/` for hermetic Docker export. In VibeCAD, model those interfaces with named parameters from PRINT_SPEC. USB window sizes live in `3d-print-openscad/references/connector-keepouts-fdm.md` — do not duplicate that table.
 
 ## Buy vs print
 

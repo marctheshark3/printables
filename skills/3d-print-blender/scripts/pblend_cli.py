@@ -140,7 +140,7 @@ def cmd_doctor(args: argparse.Namespace) -> int:
 
     print("craft: cleanup_fdm default=light (never voxel+fatten mechanical shells)")
     print("craft: preview defaults to separate STL stills; vision-check before ship")
-    print("craft: OpenSCAD = dimensional default; Blender = organic/lattice only")
+    print("craft: VibeCAD = dimensional default; Blender = organic/lattice only")
     mcp_skill = Path.home() / ".hermes/hermes-agent/optional-skills/creative/blender-mcp/SKILL.md"
     print(f"optional_mcp_skill={mcp_skill} exists={mcp_skill.is_file()}")
     print("optional_mcp: hermes mcp install blender + GUI/xvfb addon (explore only; ship via pblend)")

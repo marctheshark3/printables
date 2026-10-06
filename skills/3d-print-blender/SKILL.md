@@ -8,7 +8,7 @@ platforms: [linux]
 metadata:
   hermes:
     tags: [3d-print, fdm, blender, bpy, lattice, organic]
-    related_skills: [3d-print-design-brief, 3d-print-validate, 3d-print-openscad]
+    related_skills: [3d-print-design-brief, 3d-print-validate, 3d-print-vibecad, 3d-print-openscad]
 ---
 
 # 3D Print Blender
@@ -19,7 +19,7 @@ Build organic, sculpted, or lattice FDM bodies using parameterized `bpy` scripts
 
 Use only when `cad.backend: blender`, or for the Blender-owned body of `cad.backend: hybrid`.
 
-Use OpenSCAD for precise brackets, ports, bosses, stands, and mating shells.
+Use VibeCAD for precise brackets, ports, bosses, stands, and mating shells. Use OpenSCAD when explicitly requested or when VibeCAD cannot run.
 
 ## Source Contract
 
@@ -34,7 +34,7 @@ Use OpenSCAD for precise brackets, ports, bosses, stands, and mating shells.
 ## Procedure
 
 1. Validate `docs/PRINT_SPEC.yaml`.
-2. Confirm the requested body is organic or lattice; otherwise hand off to `3d-print-openscad`.
+2. Confirm the requested body is organic or lattice; otherwise hand off to the dimensional backend selected by `3d-print-design-brief`.
 3. Use `scripts/pblend new` for the project scaffold.
 4. Implement the body in `src/build.py` using named parameters.
 5. Run:
