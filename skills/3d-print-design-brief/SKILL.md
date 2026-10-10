@@ -55,6 +55,23 @@ python3 scripts/validate_print_spec.py <project>/docs/PRINT_SPEC.yaml
 
 Proceed to CAD only when it exits zero.
 
+## After a printed coupon
+
+When `fit.required` is true, generate the coupon before it is printed:
+
+```bash
+python3 scripts/generate_coupon.py <project>
+```
+
+After that coupon is printed, write the caliper reading the user measured. Missing `--measured-mm` exits without changing the file.
+
+```bash
+python3 scripts/record_fit.py <project> --parameter <name> --measured-mm <caliper>
+python3 scripts/validate_print_spec.py <project>/docs/PRINT_SPEC.yaml
+```
+
+The write sets that dimension's `source` to `fit-tested` and stores the reading on `fit.measured_mm`. Pass `--keep-nominal` only when the nominal must stay. Field rules stay in `references/print-spec-v1.md`.
+
 ## Hard Rules
 
 - `cad.parametric: true`

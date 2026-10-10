@@ -21,6 +21,8 @@ expect:
       - validate
     3d-print-design-brief:
       - cad.parametric
+      - record_fit.py
+      - generate_coupon.py
 run:
   - kind: validate_spec
     path: examples/bracket-coupon/docs/PRINT_SPEC.yaml

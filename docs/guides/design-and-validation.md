@@ -28,7 +28,7 @@ python3 skills/3d-print-design-brief/scripts/validate_print_spec.py \
   "$PROJECT/docs/PRINT_SPEC.yaml"
 ```
 
-The validator must exit 0. An assembly has several `geometry.stl_files` entries. `docs/DESIGN.md` is narrative only and is never parsed. Assumed critical fits cannot ship.
+The validator must exit 0. An assembly has several `geometry.stl_files` entries. `docs/DESIGN.md` is narrative only and is never parsed. Assumed critical fits cannot ship. After a required fit coupon is printed, [the design brief](../../skills/3d-print-design-brief/SKILL.md) records the caliper value with `record_fit.py`.
 
 ## Choose CAD
 
@@ -81,7 +81,7 @@ python3 skills/3d-print-validate/scripts/validate_assembly.py "$PROJECT"
 
 It must report `HARD=0` for assembled occupancy, joint self-collision, and required load evidence. A render or simulator window is not proof.
 
-The [rover examples](../../examples/README.md) are the numbered-01 kit family: the base chassis, v2 with sensors, and the kid hull. Print the chassis, wheels, and brackets; buy motors, boards, batteries, and servos. Modules 02 and 03 are described by the robotics skill but are not included as examples.
+The [rover examples](../../examples/README.md) are the numbered-01 kit family: the base chassis, v2 with sensors, and the kid hull. Print the chassis, wheels, and brackets; buy motors, boards, batteries, and servos.
 
 ```bash
 python3 skills/3d-print-validate/scripts/validate_project.py \
