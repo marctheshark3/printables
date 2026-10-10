@@ -187,6 +187,13 @@ def main() -> int:
     assert "record_fit.py" in brief
     assert "generate_coupon.py" in brief
     assert "--measured-mm" in brief
+    assert "--keep-nominal" in brief
+    assert "fit/mcu-pocket-coupon.scad" in brief
+    robotics_meta = yaml.safe_load(robotics.split("---", 2)[1])
+    robotics_tags = robotics_meta["metadata"]["hermes"]["tags"]
+    assert robotics_meta["description"] == "Design the numbered 01 FDM rover family."
+    assert "module" not in robotics_tags
+    assert "servo" not in robotics_tags
 
     photo = (SKILLS / "3d-print-photo-cad" / "SKILL.md").read_text(encoding="utf-8")
     for needle in (

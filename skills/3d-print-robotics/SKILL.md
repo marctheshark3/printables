@@ -1,23 +1,23 @@
 ---
 name: 3d-print-robotics
-description: Design numbered FDM micro-robotics kit modules.
+description: Design the numbered 01 FDM rover family.
 version: 1.0.0
 author: Marc Mailloux, Hermes Agent
 license: MIT
 platforms: [linux]
 metadata:
   hermes:
-    tags: [3d-print, robotics, robot, module, kit, rover, mcu, servo, numbered, chassis, wiring, hardware, openscad, fdm]
+    tags: [3d-print, robotics, robot, kit, rover, mcu, chassis, wiring, hardware, openscad, fdm]
     related_skills: [3d-print-design-brief, 3d-print-vibecad, 3d-print-openscad, 3d-print-validate, 3d-print-sim]
 ---
 
 # 3D Print Robotics
 
-Class skill for **numbered micro-robotics kit modules**. Shipped work is the 01 two-wheel rover family. Use VibeCAD for dimensional bodies; OpenSCAD when explicitly requested, for CI samples, or when VibeCAD cannot run. Not a firmware repo, not ROS, not custom PCB layout.
+Class skill for the **01 two-wheel rover family**. Use VibeCAD for dimensional bodies; OpenSCAD when explicitly requested, for CI samples, or when VibeCAD cannot run. Not a firmware repo, not ROS, not custom PCB layout.
 
 ## When to use
 
-- Numbered kit module with a shared MCU family
+- 01 two-wheel rover with the shared Super Mini MCU pocket
 - Two-wheel rover chassis in the 01 family: open deck, sensor brackets, or enclosed hull
 - MCU pocket, motor/servo pockets, fastener bosses, cable-path keepouts
 - PRINT_SPEC `product_class: robot-module` with hardware BOM and wiring pin map

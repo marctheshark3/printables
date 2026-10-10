@@ -57,20 +57,22 @@ Proceed to CAD only when it exits zero.
 
 ## After a printed coupon
 
-When `fit.required` is true, generate the coupon before it is printed:
+`generate_coupon.py` builds one square plate with one circular bore. Run it only when `fit.required` is true, a dimension name or parameter contains `hole`, ends in `_d`, or contains `diameter`, and `fit.coupon` is empty or already ends in `.stl`:
 
 ```bash
 python3 scripts/generate_coupon.py <project>
 ```
 
-After that coupon is printed, write the caliper reading the user measured. Missing `--measured-mm` exits without changing the file.
+When `fit.coupon` names another file, print that file. The 01 rover pocket coupon is `fit/mcu-pocket-coupon.scad`.
+
+After that coupon is printed, store the caliper reading and leave the design nominal in place. A missing `--measured-mm` exits without changing the file.
 
 ```bash
-python3 scripts/record_fit.py <project> --parameter <name> --measured-mm <caliper>
+python3 scripts/record_fit.py <project> --parameter <name> --measured-mm <caliper> --keep-nominal
 python3 scripts/validate_print_spec.py <project>/docs/PRINT_SPEC.yaml
 ```
 
-The write sets that dimension's `source` to `fit-tested` and stores the reading on `fit.measured_mm`. Pass `--keep-nominal` only when the nominal must stay. Field rules stay in `references/print-spec-v1.md`.
+The write sets that dimension's `source` to `fit-tested` and stores the reading on `fit.measured_mm`. Drop `--keep-nominal` only when the user says this measurement replaces the design nominal. The generated bore is the nominal plus two clearances, so writing that bore back as `value_mm` applies clearance again. Field rules stay in `references/print-spec-v1.md`.
 
 ## Hard Rules
 
