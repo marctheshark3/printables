@@ -1,24 +1,24 @@
 ---
 name: 3d-print-robotics
-description: Design numbered FDM micro-robotics kit modules.
+description: Design the numbered 01 FDM rover family.
 version: 1.0.0
 author: Marc Mailloux, Hermes Agent
 license: MIT
 platforms: [linux]
 metadata:
   hermes:
-    tags: [3d-print, robotics, robot, module, kit, rover, mcu, servo, numbered, chassis, wiring, hardware, openscad, fdm]
+    tags: [3d-print, robotics, robot, kit, rover, mcu, chassis, wiring, hardware, openscad, fdm]
     related_skills: [3d-print-design-brief, 3d-print-vibecad, 3d-print-openscad, 3d-print-validate, 3d-print-sim]
 ---
 
 # 3D Print Robotics
 
-Class skill for **numbered micro-robotics kit modules** (01 two-wheel rover, 02 servo gripper, 03 gimbal). Use VibeCAD for dimensional bodies; OpenSCAD when explicitly requested, for CI samples, or when VibeCAD cannot run. Not a firmware repo, not ROS, not custom PCB layout.
+Class skill for the **01 two-wheel rover family**. Use VibeCAD for dimensional bodies; OpenSCAD when explicitly requested, for CI samples, or when VibeCAD cannot run. Not a firmware repo, not ROS, not custom PCB layout.
 
 ## When to use
 
-- Numbered kit module with a shared MCU family
-- Two-wheel rover chassis, servo gripper arm, or gimbal joystick body
+- 01 two-wheel rover with the shared Super Mini MCU pocket
+- Two-wheel rover chassis in the 01 family: open deck, sensor brackets, or enclosed hull
 - MCU pocket, motor/servo pockets, fastener bosses, cable-path keepouts
 - PRINT_SPEC `product_class: robot-module` with hardware BOM and wiring pin map
 
@@ -39,14 +39,14 @@ Class skill for **numbered micro-robotics kit modules** (01 two-wheel rover, 02 
 |-----|--------|
 | MCU pocket | Super Mini class pocket + USB keepout; datasheet or measured; never `assumed` |
 | Servo/motor pockets | SG90/9g or N20-class wells with named clearance; horn/shaft swing kept clear |
-| Fastener bosses | Shared M2/M3 through-hole and boss library so 01/02/03 share one board family |
+| Fastener bosses | Shared M2/M3 through-hole and boss library so numbered 01 bodies share one board family |
 | Cable channels | Named keepouts from `wiring.cable_path_keepouts` become CAD parameters |
 | One body / STL | No overlapping exported bodies; `overlapping_solids_allowed: false` |
 | Backend | Dimensional kit bodies in VibeCAD, or OpenSCAD under the brief's selection policy; Blender only for an organic skin |
 
 ## Numbered-kit rule
 
-Modules **01 / 02 / 03** share one MCU-pocket family and M2/M3 fastener dimensions. For OpenSCAD, copy `lib/robot_kit.scad` into each project `src/lib/` for hermetic Docker export. In VibeCAD, model those interfaces with named parameters from PRINT_SPEC. USB window sizes live in `3d-print-openscad/references/connector-keepouts-fdm.md` — do not duplicate that table.
+Numbered 01 bodies share one MCU-pocket family and M2/M3 fastener dimensions. For OpenSCAD, copy `lib/robot_kit.scad` into each project `src/lib/` for hermetic Docker export. In VibeCAD, model those interfaces with named parameters from PRINT_SPEC. USB window sizes live in `3d-print-openscad/references/connector-keepouts-fdm.md` — do not duplicate that table.
 
 ## Buy vs print
 

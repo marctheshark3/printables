@@ -21,6 +21,22 @@ def test_prompt_routes_to_the_right_skill(scenario):
         assert scores[primary] > scores[other]
 
 
+def test_unshipped_gripper_and_gimbal_do_not_rank_robotics_first():
+    from prompt_harness import rank_skills
+
+    for prompt in (
+        "Design module 02 servo gripper arm for the kit",
+        "Design module 03 gimbal joystick body",
+    ):
+        ranked = rank_skills(prompt, CATALOG)
+        assert ranked[0][0] != "3d-print-robotics"
+    rover = rank_skills(
+        "Design a numbered 01 two-wheel differential rover as micro-robotics kit modules",
+        CATALOG,
+    )
+    assert rover[0][0] == "3d-print-robotics"
+
+
 def test_p1s_start_print_does_not_rank_pack_or_slice_primary():
     from prompt_harness import rank_skills
 

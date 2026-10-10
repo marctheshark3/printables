@@ -19,7 +19,7 @@ These five skills are loaded by the [`/3d-print` bundle](../skill-bundles/3d-pri
 | Skill | Job |
 |---|---|
 | [3d-print-display-enclosure](3d-print-display-enclosure/SKILL.md) | Design a small two-piece display enclosure. |
-| [3d-print-robotics](3d-print-robotics/SKILL.md) | Design numbered FDM micro-robotics modules around bought hardware. |
+| [3d-print-robotics](3d-print-robotics/SKILL.md) | Design the numbered 01 FDM rover family around bought hardware. |
 | [3d-print-shop-fixture](3d-print-shop-fixture/SKILL.md) | Decide whether to print or buy a shop fixture. |
 | [3d-print-image-silhouette](3d-print-image-silhouette/SKILL.md) | Turn an image outline into a stencil or silhouette. |
 | [3d-print-photo-cad](3d-print-photo-cad/SKILL.md) | Recover a ChArUco board's scale from a photo; part dimensions still need evidence. |
