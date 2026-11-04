@@ -66,6 +66,7 @@ The OpenSCAD coupon requires export before project validation; see [examples](..
 ```bash
 python3 -m py_compile \
   skills/3d-print-design-brief/scripts/*.py \
+  skills/3d-print-multi-material/scripts/*.py \
   skills/3d-print-validate/scripts/*.py \
   skills/3d-print-sim/scripts/*.py \
   skills/3d-print-blender/scripts/pblend_cli.py \

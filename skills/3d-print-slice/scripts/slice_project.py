@@ -18,8 +18,8 @@ from print_spec import load_spec  # noqa: E402
 SLICER_ENV = ("ORCA_SLICER", "BAMBU_STUDIO", "PRUSA_SLICER")
 
 
-def find_slicer() -> Path | None:
-    for name in SLICER_ENV:
+def find_slicer(names=SLICER_ENV) -> Path | None:
+    for name in names:
         value = os.environ.get(name)
         if not value:
             continue
@@ -79,6 +79,12 @@ def try_write_3mf(slicer: Path, stl: Path, out_3mf: Path) -> bool:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Emit process cards and optional 3MF")
     parser.add_argument("project", type=Path)
+    parser.add_argument("--machine", type=Path)
+    parser.add_argument("--process", type=Path)
+    parser.add_argument("--filament", action="append", default=[], metavar="ID=PROFILE.json")
+    parser.add_argument("--plate-type")
+    parser.add_argument("--profile-root", type=Path)
+    parser.add_argument("--slice", action="store_true", help="explicitly emit sliced multi-material G-code 3MF")
     args = parser.parse_args()
     project = args.project.resolve()
     spec, errors = load_spec(project / "docs" / "PRINT_SPEC.yaml", project=project)
@@ -87,6 +93,11 @@ def main() -> int:
             print(f"HARD: {error}")
         return 1
 
+    if spec.multi_material is not None:
+        return slice_materials(project, spec, args)
+    if args.slice or args.filament or args.machine or args.process:
+        print("HARD: explicit Studio profile arguments require a multi_material plan")
+        return 1
     slicer = find_slicer()
     wrote_3mf = False
     for body in spec.stl_files:
@@ -109,6 +120,55 @@ def main() -> int:
     elif not wrote_3mf:
         print("SKIP: no slicer CLI")
     return 0
+
+
+def slice_materials(project: Path, spec, args) -> int:
+    sys.path.insert(0, str(BRIEF.parent.parent / "3d-print-multi-material/scripts"))
+    from material_project import write_material_project, slice_estimates
+    from studio_export import export_material_project
+
+    validate = BRIEF.parent.parent / "3d-print-validate/scripts/validate_project.py"
+    result = subprocess.run([sys.executable, str(validate), str(project)], capture_output=True, text=True)
+    if result.returncode:
+        print(result.stdout + result.stderr)
+        return 1
+    out = project / "slice"
+    manifest = write_material_project(project, spec, out)
+    card = {"printer": spec.printer, "nozzle_mm": spec.nozzle_mm,
+            "layer_height_mm": spec.layer_height_mm, "bed_face": spec.bed_face,
+            "supports": spec.supports, "multi_material": manifest}
+    (out / "project.process.json").write_text(json.dumps(card, indent=2) + "\n")
+    print("PROCESS_CARD: slice/project.process.json")
+    print("MATERIAL_PLAN: slice/material-plan.json")
+    slicer = find_slicer(("BAMBU_STUDIO",))
+    requested = args.machine or args.process or args.filament or args.plate_type or args.slice
+    if not requested:
+        print("SKIP: no explicit Studio profiles; material assignments retained in plan")
+        return 0
+    if not slicer or not args.machine or not args.process or not args.filament or not args.plate_type:
+        print("HARD: multi-material export needs BAMBU_STUDIO, --machine, --process, --filament ID=PROFILE.json and --plate-type")
+        return 1
+    try:
+        filaments = {}
+        for value in args.filament:
+            identity, path = value.split("=", 1)
+            if identity in filaments:
+                raise ValueError(f"duplicate filament profile: {identity}")
+            filaments[identity] = Path(path).expanduser().resolve()
+        output = export_material_project(slicer, project, spec, out, manifest,
+                                         args.machine, args.process, filaments, args.plate_type,
+                                         profile_root=args.profile_root, sliced=args.slice)
+        if args.slice:
+            manifest["estimates"] = slice_estimates(output)
+            (out / "material-plan.json").write_text(json.dumps(manifest, indent=2) + "\n")
+            (out / "project.process.json").write_text(json.dumps(card, indent=2) + "\n")
+            for warning in manifest["estimates"]["warnings"]:
+                print(f"WARN: slicer {warning.get('msg', warning)}")
+        print(f"THREE_MF: {output.relative_to(project)}")
+        return 0
+    except (ValueError, OSError, KeyError) as error:
+        print(f"HARD: {error}")
+        return 1
 
 
 if __name__ == "__main__":

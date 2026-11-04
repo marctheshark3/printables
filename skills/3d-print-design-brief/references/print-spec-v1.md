@@ -99,3 +99,14 @@ The contract describes intent. It does not prove geometry. After export, `valida
 When `assembly` is present, `validate_assembly.py` then places printed STLs and hardware envelopes at the declared poses and fail-closes on illegal occupancy, joint self-collision, and missing or assumed required loads. A render or simulator window is not proof.
 
 A preview is not proof. An STL that opens is not proof. `HARD=0` is necessary; visual inspection and fit evidence are still required.
+
+## Optional multi-material block
+
+Existing single-material specifications are unchanged. For two to four logical
+filaments, use `3d-print-multi-material` and its
+[material contract](../../3d-print-multi-material/references/material-contract.md).
+The composite remains one `geometry.stl_files[]` entry per independently printed
+body. Additional region STLs partition that body in the same CAD frame; they
+are not independent components. A body without regions may declare `material`
+as a logical id, otherwise the plan's primary applies. Physical AMS slots stay
+in job setup. The project validator also checks the region partition.

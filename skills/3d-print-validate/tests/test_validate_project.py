@@ -123,6 +123,49 @@ def run(project: Path):
     )
 
 
+def material_project(tmp_path, mark_z=6.0):
+    def update(spec):
+        spec["manufacturing"].update(printer="bambu-lab-p1s", material="PLA")
+        spec["multi_material"] = {
+            "mode": "color", "reason": "Contrasting label", "feeder": "ams-2-pro",
+            "primary": "base", "bed_temperature_c": 55,
+            "materials": [
+                {"id": identity, "type": "PLA", "profile": "Generic PLA", "color": color,
+                 "nozzle_temperature_c": [190, 230], "bed_temperature_c": [35, 65]}
+                for identity, color in [("base", "#202020"), ("mark", "#FFFFFF")]
+            ],
+            "regions": [
+                {"id": name, "body": "part", "path": f"stl/{name}.stl",
+                 "material": name, "expected_shells": 1}
+                for name in ("base", "mark")
+            ],
+        }
+    make_project(tmp_path, cube_triangles(), spec_update=update)
+    write_binary_stl(tmp_path / "stl/base.stl", box_triangles(sz=6))
+    write_binary_stl(tmp_path / "stl/mark.stl", box_triangles(sz=4, origin=(0, 0, mark_z)))
+
+
+def test_material_regions_share_boundary_as_one_printed_body(tmp_path):
+    material_project(tmp_path)
+    result = run(tmp_path)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "material regions" in result.stdout
+
+
+def test_material_overlap_is_rejected_even_with_correct_total_volume(tmp_path):
+    material_project(tmp_path, mark_z=5.0)
+    result = run(tmp_path)
+    assert result.returncode == 1
+    assert "material" in result.stdout and ("overlap" in result.stdout or "uncovered" in result.stdout)
+
+
+def test_material_gap_and_outside_region_is_rejected(tmp_path):
+    material_project(tmp_path, mark_z=7.0)
+    result = run(tmp_path)
+    assert result.returncode == 1
+    assert "material" in result.stdout and ("outside" in result.stdout or "uncovered" in result.stdout)
+
+
 def test_valid_project_passes(tmp_path):
     make_project(tmp_path, cube_triangles())
     result = run(tmp_path)

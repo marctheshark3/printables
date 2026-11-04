@@ -325,6 +325,9 @@ def l3_loads(spec: PrintSpec) -> list[str]:
             hard.append(f"L3 load {load.id} source cannot be assumed")
         if load.kind != "moment":
             continue
+        if spec.multi_material is not None and spec.multi_material.mode == "functional":
+            hard.append(f"L3 load {load.id}: mixed-polymer sections require an independent material/joint analysis")
+            continue
         if allowable is None:
             hard.append(f"L3 no conservative allowable for material {spec.material}")
             continue

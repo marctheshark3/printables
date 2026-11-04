@@ -14,6 +14,12 @@ These five skills are loaded by the [`/3d-print` bundle](../skill-bundles/3d-pri
 | [3d-print-blender](3d-print-blender/SKILL.md) | Build organic or lattice geometry. |
 | [3d-print-validate](3d-print-validate/SKILL.md) | Check the contract, exported STLs, and assemblies. |
 
+## Optional material design
+
+[3d-print-multi-material](3d-print-multi-material/SKILL.md) adds AMS colors,
+inlays, dedicated support interfaces and evidence-backed functional material
+pairs. It extends the shared contract; ordinary parts keep one material.
+
 ## Parts and input methods
 
 | Skill | Job |

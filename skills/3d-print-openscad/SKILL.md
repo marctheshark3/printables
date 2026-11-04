@@ -1,7 +1,7 @@
 ---
 name: 3d-print-openscad
 description: Build parametric dimensional FDM parts in OpenSCAD.
-version: 1.0.0
+version: 1.1.0
 author: Marc Mailloux, Hermes Agent
 license: MIT
 platforms: [linux]
@@ -74,3 +74,11 @@ docker run --rm -v "$PROJECT:/work" -w /work \
 - [ ] backend validator reports valid final solid count
 - [ ] `3d-print-validate` reports HARD=0
 - [ ] print-orientation renders look intentional
+
+## Optional material regions
+
+When `PRINT_SPEC.multi_material` is present, follow `3d-print-multi-material`.
+Export the existing composite body for whole-part validation and closed region
+STLs in its original CAD coordinate frame. Preserve named domains and shared
+boundaries; do not center, lower to the bed, rotate, or union regions separately.
+Validate the composite and its material partition after every export.

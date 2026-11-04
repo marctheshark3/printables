@@ -7,6 +7,7 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1]
 SKILLS = ROOT / "skills"
 EXPECTED = {
+    "3d-print-multi-material",
     "3d-print-design-brief",
     "3d-print-openscad",
     "3d-print-blender",

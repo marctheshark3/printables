@@ -106,3 +106,15 @@ python3 examples/robot-kit-01-rover-kid/scripts/render_assembly.py
 ## Inspector sample
 
 Inspector and instruction stills are in the [inspection guide](../docs/guides/inspection-and-instructions.md#example-butterfly-habitat). The geometry is the public [butterfly habitat](https://github.com/marctheshark3/butterfly-habitat) kit. It is not copied into `examples/`.
+
+## Optional AMS specimens
+
+- `two-color-enclosure-lid`: a pebble-shaped lid specimen with an inlaid
+  direction arrow, two PLA filaments and aligned region exports.
+- `support-interface-coupon`: an accessible bridge underside using PLA for the
+  model/support base and dedicated Support for PLA/PETG for the interface.
+
+Both use invented, non-production dimensions and committed binary STLs. Run
+`validate_project.py` then `slice_project.py` on a copy. They demonstrate
+software geometry and assignments, not physical fit, strength or removability.
+The existing bracket examples exercise the unchanged one-material path.

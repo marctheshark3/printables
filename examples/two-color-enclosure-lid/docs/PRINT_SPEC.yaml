@@ -1,0 +1,102 @@
+schema_version: 1
+part:
+  name: two-color-enclosure-lid
+  revision: 0.1.0
+  product_class: other
+  purpose: Non-production CI specimen for optional AMS material assignments.
+manufacturing:
+  process: fdm
+  printer: bambu-lab-p1s
+  build_volume_mm:
+  - 256
+  - 256
+  - 256
+  material: PLA
+  nozzle_mm: 0.4
+  layer_height_mm: 0.2
+cad:
+  backend: openscad
+  parametric: true
+  units: mm
+  source_files:
+  - src/lid.scad
+geometry:
+  min_wall_mm: 1.6
+  min_feature_mm: 1.6
+  overlapping_solids_allowed: false
+  stl_files:
+  - path: stl/composite.stl
+    body: lid
+    expected_shells: 1
+fit:
+  required: false
+  clearance_per_side_mm: 0
+  evidence: none
+dimensions:
+- name: length_mm
+  parameter: length_mm
+  value_mm: 50
+  tolerance_mm: 0.2
+  source: assumed
+- name: width_mm
+  parameter: width_mm
+  value_mm: 34
+  tolerance_mm: 0.2
+  source: assumed
+- name: thickness_mm
+  parameter: thickness_mm
+  value_mm: 4
+  tolerance_mm: 0.2
+  source: assumed
+- name: inlay_depth_mm
+  parameter: inlay_depth_mm
+  value_mm: 1.2
+  tolerance_mm: 0.2
+  source: assumed
+print:
+  orientation: base-on-bed
+  bed_face: bottom
+  up_axis: Z
+  supports: none
+  max_overhang_deg: 45
+service:
+  environment: dry
+  drainage: not-applicable
+multi_material:
+  mode: color
+  reason: Readable direction arrow
+  feeder: ams-2-pro
+  primary: shell
+  bed_temperature_c: 55
+  materials:
+  - id: shell
+    type: PLA
+    profile: Bambu PLA Basic @BBL P1S 0.4 nozzle
+    color: '#264C43'
+    nozzle_temperature_c:
+    - 190
+    - 240
+    bed_temperature_c:
+    - 35
+    - 65
+  - id: mark
+    type: PLA
+    profile: Bambu PLA Basic @BBL P1S 0.4 nozzle
+    color: '#F2DDB4'
+    nozzle_temperature_c:
+    - 190
+    - 240
+    bed_temperature_c:
+    - 35
+    - 65
+  regions:
+  - id: shell
+    body: lid
+    path: stl/shell.stl
+    material: shell
+    expected_shells: 1
+  - id: mark
+    body: lid
+    path: stl/mark.stl
+    material: mark
+    expected_shells: 1

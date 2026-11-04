@@ -1,7 +1,7 @@
 ---
 name: 3d-print-design-brief
 description: Define a validated FDM part contract before CAD.
-version: 1.0.0
+version: 1.1.0
 author: Marc Mailloux, Hermes Agent
 license: MIT
 platforms: [linux, macos, windows]
@@ -46,8 +46,9 @@ VibeCAD is the dimensional kernel. Honor an explicit OpenSCAD request. Blender r
    - provenance: `measured`, `from-user`, `datasheet`, `fit-tested`, or `assumed`
 4. Express clearance as `clearance_per_side_mm`, never total clearance.
 5. Declare one output entry per independently manufactured body and its `expected_shells`. An assembly is several entries.
-6. Lock bed face, Z-up orientation, support policy, material, nozzle, minimum wall, and minimum feature.
-7. Run through `terminal`:
+6. Keep one material by default. When a label, support interface or functional material pair has a clear benefit, use `3d-print-multi-material` and its optional contract before CAD.
+7. Lock bed face, Z-up orientation, support policy, material, nozzle, minimum wall, and minimum feature.
+8. Run through `terminal`:
 
 ```bash
 python3 scripts/validate_print_spec.py <project>/docs/PRINT_SPEC.yaml

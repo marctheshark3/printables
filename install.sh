@@ -20,6 +20,7 @@ done
 
 SKILLS=(
   3d-print-design-brief
+  3d-print-multi-material
   3d-print-openscad
   3d-print-blender
   3d-print-vibecad

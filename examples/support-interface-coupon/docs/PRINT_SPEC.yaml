@@ -1,0 +1,93 @@
+schema_version: 1
+part:
+  name: support-interface-coupon
+  revision: 0.1.0
+  product_class: other
+  purpose: Non-production CI specimen for optional AMS material assignments.
+manufacturing:
+  process: fdm
+  printer: bambu-lab-p1s
+  build_volume_mm:
+  - 256
+  - 256
+  - 256
+  material: PLA
+  nozzle_mm: 0.4
+  layer_height_mm: 0.2
+cad:
+  backend: openscad
+  parametric: true
+  units: mm
+  source_files:
+  - src/bridge.scad
+geometry:
+  min_wall_mm: 1.6
+  min_feature_mm: 1.6
+  overlapping_solids_allowed: false
+  stl_files:
+  - path: stl/composite.stl
+    body: bridge
+    expected_shells: 1
+fit:
+  required: false
+  clearance_per_side_mm: 0
+  evidence: none
+dimensions:
+- name: span_mm
+  parameter: span_mm
+  value_mm: 24
+  tolerance_mm: 0.2
+  source: assumed
+- name: width_mm
+  parameter: width_mm
+  value_mm: 12
+  tolerance_mm: 0.2
+  source: assumed
+- name: height_mm
+  parameter: height_mm
+  value_mm: 14
+  tolerance_mm: 0.2
+  source: assumed
+- name: wall_mm
+  parameter: wall_mm
+  value_mm: 3
+  tolerance_mm: 0.2
+  source: assumed
+print:
+  orientation: base-on-bed
+  bed_face: bottom
+  up_axis: Z
+  supports: build-plate-only
+  max_overhang_deg: 45
+service:
+  environment: dry
+  drainage: not-applicable
+multi_material:
+  mode: support-interface
+  reason: Removable support contact beneath the bridge
+  feeder: ams-2-pro
+  primary: shell
+  bed_temperature_c: 55
+  materials:
+  - id: shell
+    type: PLA
+    profile: Bambu PLA Basic @BBL P1S 0.4 nozzle
+    color: '#264C43'
+    nozzle_temperature_c:
+    - 190
+    - 240
+    bed_temperature_c:
+    - 35
+    - 65
+  - id: interface
+    type: Support for PLA/PETG
+    profile: Bambu Support For PLA/PETG @BBL P1P
+    color: '#F2DDB4'
+    nozzle_temperature_c:
+    - 190
+    - 230
+    bed_temperature_c:
+    - 35
+    - 60
+  regions: []
+  interface_material: interface
