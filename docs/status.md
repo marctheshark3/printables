@@ -83,3 +83,7 @@ The existing L3 handbook section calculation cannot certify a joined
 mixed-polymer section; functional material plans fail that check and require
 independent material/joint analysis. A bond-report file alone does not extend
 the structural calculation.
+
+The design/validation/slice/pack path preserves the logical skill directory when
+packages are installed as directory links. Cross-package helpers remain adjacent
+at that discovery root; independent version storage does not break their lookup.

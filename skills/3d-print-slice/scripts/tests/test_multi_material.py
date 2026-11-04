@@ -97,6 +97,7 @@ def native_fixture(path, project, plan, *, drop_mark=False, wrong_filament=False
             "printer_model": "Bambu Lab P1S", "nozzle_diameter": [str(plan["nozzle_mm"])],
             "layer_height": str(plan["layer_height_mm"]), "curr_bed_type": "Textured PEI Plate",
             "textured_plate_temp": [str(plan["bed_temperature_c"])] * len(plan["materials"]),
+            "textured_plate_temp_initial_layer": [str(plan["bed_temperature_c"])] * len(plan["materials"]),
             "filament_type": ["PLA"] * len(plan["materials"]),
             "filament_settings_id": [m["profile"] for m in plan["materials"]],
             "filament_is_support": ["0"] * len(plan["materials"]),
@@ -190,6 +191,7 @@ def test_color_regions_keep_the_support_policy_on_the_assembled_body(tmp_path, p
     ({"filament_settings_id": ["wrong preset", "wrong preset"]}, "preset"),
     ({"nozzle_temperature": ["220", "300"]}, "nozzle temperature"),
     ({"nozzle_temperature_initial_layer": ["300", "220"]}, "nozzle temperature"),
+    ({"textured_plate_temp_initial_layer": ["100", "100"]}, "bed temperature"),
 ])
 def test_native_export_and_pack_reject_changed_filament_settings(tmp_path, settings, message):
     project = project_copy(tmp_path)

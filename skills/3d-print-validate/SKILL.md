@@ -96,3 +96,5 @@ The project gate audits region meshes, compares total volume with each composite
 and samples exclusive interior coverage. Shared interfaces may touch. Gaps,
 overlapping interiors, outlying regions and wrong shell counts fail. This is
 sampled occupancy, not an exact-kernel partition proof or a physical bond test.
+Overhangs are checked on the composite; neighbouring materials support internal
+region boundaries, which are not audited as independent print overhangs.

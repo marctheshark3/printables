@@ -10,7 +10,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-BRIEF = Path(__file__).resolve().parent.parent.parent / "3d-print-design-brief" / "scripts"
+BRIEF = Path(__file__).absolute().parent.parent.parent / "3d-print-design-brief" / "scripts"
 sys.path.insert(0, str(BRIEF))
 
 from print_spec import load_spec  # noqa: E402

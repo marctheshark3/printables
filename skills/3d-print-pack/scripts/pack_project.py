@@ -11,7 +11,7 @@ import zipfile
 import tempfile
 from pathlib import Path
 
-SCRIPTS = Path(__file__).resolve().parent
+SCRIPTS = Path(__file__).absolute().parent
 VALIDATE = (
     SCRIPTS.parent.parent / "3d-print-validate" / "scripts" / "validate_project.py"
 )

@@ -11,7 +11,8 @@ import sys
 from xml.etree import ElementTree as ET
 import zipfile
 
-SKILLS = Path(__file__).resolve().parents[2]
+# Keep sibling lookup at the logical discovery root when packages are directory links.
+SKILLS = Path(__file__).absolute().parents[2]
 sys.path.insert(0, str(SKILLS / "3d-print-design-brief/scripts"))
 sys.path.insert(0, str(SKILLS / "3d-print-validate/scripts"))
 from print_spec import load_spec
@@ -177,9 +178,10 @@ def check_material_3mf(path: Path, manifest: dict, *, sliced: bool = False) -> d
         if float(settings.get("layer_height", -1)) != manifest["layer_height_mm"]:
             raise ValueError("3MF layer height differs from material plan")
         bed_key = PLATES.get(settings.get("curr_bed_type"))
-        temperatures = settings.get(bed_key, []) if bed_key else []
-        if not temperatures or any(float(t) != manifest["bed_temperature_c"] for t in temperatures):
-            raise ValueError("3MF bed temperature differs from material plan")
+        for key in (bed_key, bed_key + "_initial_layer" if bed_key else None):
+            temperatures = settings.get(key, []) if key else []
+            if not temperatures or any(float(t) != manifest["bed_temperature_c"] for t in temperatures):
+                raise ValueError("3MF bed temperature differs from material plan")
         colors = settings.get("filament_colour", [])
         if [c.upper()[:7] for c in colors] != [m["color"].upper() for m in manifest["materials"]]:
             raise ValueError("3MF filament colors differ from material plan")

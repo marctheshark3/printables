@@ -64,6 +64,8 @@ def audit_material_regions(project: Path, spec) -> list[str]:
                 orientation=spec.orientation, up_axis=spec.up_axis,
                 min_feature_mm=spec.nozzle_mm * 2, min_wall_mm=region.min_wall_mm,
                 max_overhang_deg=spec.max_overhang_deg,
+                # Neighbouring material supports internal boundaries; the composite owns overhangs.
+                skip_overhang=True,
             )
             report(hard, warn, info)
             if hard:

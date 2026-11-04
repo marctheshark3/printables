@@ -152,6 +152,28 @@ def test_material_regions_share_boundary_as_one_printed_body(tmp_path):
     assert "material regions" in result.stdout
 
 
+def test_sloped_material_boundary_uses_neighbouring_region_support(tmp_path):
+    material_project(tmp_path)
+    composite = box_triangles(sx=100, sy=100, sz=20)
+    lower = [tuple((x, y, 5 + x / 10 if z == 20 else z) for x, y, z in tri) for tri in composite]
+    upper = [tuple((x, y, 5 + x / 10 if z == 0 else z) for x, y, z in tri) for tri in composite]
+    write_binary_stl(tmp_path / "stl/part.stl", composite)
+    write_binary_stl(tmp_path / "stl/base.stl", lower)
+    write_binary_stl(tmp_path / "stl/mark.stl", upper)
+    result = run(tmp_path)
+    assert result.returncode == 0, result.stdout + result.stderr
+
+    # The composite still owns the real external overhang check.
+    path = tmp_path / "docs/PRINT_SPEC.yaml"
+    data = yaml.safe_load(path.read_text())
+    del data["multi_material"]
+    path.write_text(yaml.safe_dump(data))
+    write_binary_stl(tmp_path / "stl/part.stl", upper)
+    result = run(tmp_path)
+    assert result.returncode == 1
+    assert "G-overhang" in result.stdout
+
+
 def test_material_overlap_is_rejected_even_with_correct_total_volume(tmp_path):
     material_project(tmp_path, mark_z=5.0)
     result = run(tmp_path)

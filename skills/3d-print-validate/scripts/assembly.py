@@ -11,7 +11,7 @@ import sys
 from pathlib import Path
 from typing import Iterable
 
-BRIEF_SCRIPTS = Path(__file__).resolve().parent.parent.parent / "3d-print-design-brief" / "scripts"
+BRIEF_SCRIPTS = Path(__file__).absolute().parent.parent.parent / "3d-print-design-brief" / "scripts"
 if str(BRIEF_SCRIPTS) not in sys.path:
     sys.path.insert(0, str(BRIEF_SCRIPTS))
 

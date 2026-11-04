@@ -6,7 +6,7 @@ import argparse
 import sys
 from pathlib import Path
 
-SCRIPTS = Path(__file__).resolve().parent
+SCRIPTS = Path(__file__).absolute().parent
 BRIEF_SCRIPTS = SCRIPTS.parent.parent / "3d-print-design-brief" / "scripts"
 for path in (str(SCRIPTS), str(BRIEF_SCRIPTS)):
     if path not in sys.path:
