@@ -1,7 +1,7 @@
 ---
 name: 3d-print-blender
 description: Build organic or lattice FDM parts in Blender.
-version: 1.0.0
+version: 1.1.0
 author: Marc Mailloux, Hermes Agent
 license: MIT
 platforms: [linux]
@@ -66,3 +66,11 @@ scripts/pblend gate --project "$PROJECT"
 - [ ] each STL matches its declared shell count
 - [ ] separate stills pass visual inspection
 - [ ] `3d-print-validate` reports HARD=0
+
+## Optional material regions
+
+When `PRINT_SPEC.multi_material` is present, follow `3d-print-multi-material`.
+Export the existing composite body for whole-part validation and closed region
+STLs in its original CAD coordinate frame. Preserve named domains and shared
+boundaries; do not center, lower to the bed, rotate, or union regions separately.
+Validate the composite and its material partition after every export.

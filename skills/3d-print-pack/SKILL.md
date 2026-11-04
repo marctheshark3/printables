@@ -1,7 +1,7 @@
 ---
 name: 3d-print-pack
 description: Zip a gated project into a deliverable pack.
-version: 1.0.0
+version: 1.1.0
 author: Marc Mailloux, Hermes Agent
 license: MIT
 platforms: [linux, macos, windows]
@@ -56,3 +56,11 @@ pblend’s zip stays; this is the backend-neutral pack.
 - [ ] zip contains spec, source, STLs, PRINT_NOTES, manifest
 - [ ] member names are project-relative
 - [ ] SHA-256 manifest matches member bytes
+
+## Optional multi-material pack
+
+Include the declared material region STLs, any real bond-test report, material
+notes, and generated `slice/material-plan.json`, `slice/project.process.json`
+and project 3MFs when present. Keep logical material ids and the common CAD
+frame. Local absolute-path assemble lists and copied system profiles are not
+portable pack members. Material artifacts must match the current spec.

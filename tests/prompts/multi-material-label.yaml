@@ -1,0 +1,21 @@
+id: multi-material-label
+prompt: |
+  Design an optional multicolor AMS inlay with named material regions.
+  Keep the shell and direction marking in two colors of PLA.
+expect:
+  primary: 3d-print-multi-material
+  skills:
+    - 3d-print-multi-material
+    - 3d-print-design-brief
+  outrank:
+    - 3d-print-slice
+    - 3d-print-pack
+    - 3d-print-blender
+  skill_contains:
+    3d-print-multi-material:
+      - Single-material remains the default
+      - same CAD
+      - support-interface
+run:
+  - kind: validate_project
+    path: examples/two-color-enclosure-lid

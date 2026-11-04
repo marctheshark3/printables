@@ -1,14 +1,14 @@
 ---
 name: 3d-print-slice
 description: Emit a slicer process card and optional 3MF.
-version: 1.0.0
+version: 1.1.0
 author: Marc Mailloux, Hermes Agent
 license: MIT
 platforms: [linux, macos, windows]
 metadata:
   hermes:
     tags: [3d-print, fdm, slice, slicer, 3mf, process-card]
-    related_skills: [3d-print-design-brief, 3d-print-validate]
+    related_skills: [3d-print-design-brief, 3d-print-validate, 3d-print-multi-material]
 ---
 
 # 3D Print Slice
@@ -66,3 +66,34 @@ Missing bambu-mcp or missing env → skip, exit 0 on the printables side.
 - [ ] no `.3mf` when slicer env is unset
 - [ ] stdout contains `SKIP: no slicer CLI` without a slicer
 - [ ] split of a 300 mm bar yields two bodies inside 256³
+
+## Optional multi-material Studio path
+
+When `multi_material` is present, validate all geometry first and emit
+`slice/project.process.json`, `slice/material-plan.json`, and the native
+`slice/assemble-list.json`. One plate contains each independently printed body;
+its material regions stay aligned as native parts of that object. No profiles
+means a usable material plan and an explicit skip, with no invented 3MF or
+estimates. Regeneration removes this path's older exports to prevent stale files.
+
+Provide the installed presets for an actual export (paths are examples):
+
+```bash
+BAMBU_STUDIO=/path/to/bambu-studio python3 skills/3d-print-slice/scripts/slice_project.py "$PROJECT" \
+  --machine /profiles/machine.json --process /profiles/process.json \
+  --filament shell=/profiles/pla.json --filament mark=/profiles/pla.json \
+  --plate-type 'Textured PEI Plate'
+```
+
+Use logical material ids from the spec, not physical AMS slot numbers. Filament
+preset names must match the spec. Inherited installed presets are resolved into
+temporary files; `--profile-root` selects their vendor profile tree when it
+cannot be inferred. Do not commit copied system presets. The adapter verifies
+the printer/nozzle, applies the declared shared bed temperature, and checks the
+export's bodies, region geometry, colors and filament assignments. Other slicer
+environment variables do not enable this Studio-specific path.
+
+The default export is an unsliced `slice/project.3mf`. Add `--slice` only for an
+explicit request to slice; that produces `slice/project.gcode.3mf`. This still
+does not upload or start a print. Estimates are taken from real slice metadata
+when present; unavailable fields remain null. Do not infer costs from a render.

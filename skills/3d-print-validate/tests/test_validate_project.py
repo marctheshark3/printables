@@ -123,6 +123,71 @@ def run(project: Path):
     )
 
 
+def material_project(tmp_path, mark_z=6.0):
+    def update(spec):
+        spec["manufacturing"].update(printer="bambu-lab-p1s", material="PLA")
+        spec["multi_material"] = {
+            "mode": "color", "reason": "Contrasting label", "feeder": "ams-2-pro",
+            "primary": "base", "bed_temperature_c": 55,
+            "materials": [
+                {"id": identity, "type": "PLA", "profile": "Generic PLA", "color": color,
+                 "nozzle_temperature_c": [190, 230], "bed_temperature_c": [35, 65]}
+                for identity, color in [("base", "#202020"), ("mark", "#FFFFFF")]
+            ],
+            "regions": [
+                {"id": name, "body": "part", "path": f"stl/{name}.stl",
+                 "material": name, "expected_shells": 1}
+                for name in ("base", "mark")
+            ],
+        }
+    make_project(tmp_path, cube_triangles(), spec_update=update)
+    write_binary_stl(tmp_path / "stl/base.stl", box_triangles(sz=6))
+    write_binary_stl(tmp_path / "stl/mark.stl", box_triangles(sz=4, origin=(0, 0, mark_z)))
+
+
+def test_material_regions_share_boundary_as_one_printed_body(tmp_path):
+    material_project(tmp_path)
+    result = run(tmp_path)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "material regions" in result.stdout
+
+
+def test_sloped_material_boundary_uses_neighbouring_region_support(tmp_path):
+    material_project(tmp_path)
+    composite = box_triangles(sx=100, sy=100, sz=20)
+    lower = [tuple((x, y, 5 + x / 10 if z == 20 else z) for x, y, z in tri) for tri in composite]
+    upper = [tuple((x, y, 5 + x / 10 if z == 0 else z) for x, y, z in tri) for tri in composite]
+    write_binary_stl(tmp_path / "stl/part.stl", composite)
+    write_binary_stl(tmp_path / "stl/base.stl", lower)
+    write_binary_stl(tmp_path / "stl/mark.stl", upper)
+    result = run(tmp_path)
+    assert result.returncode == 0, result.stdout + result.stderr
+
+    # The composite still owns the real external overhang check.
+    path = tmp_path / "docs/PRINT_SPEC.yaml"
+    data = yaml.safe_load(path.read_text())
+    del data["multi_material"]
+    path.write_text(yaml.safe_dump(data))
+    write_binary_stl(tmp_path / "stl/part.stl", upper)
+    result = run(tmp_path)
+    assert result.returncode == 1
+    assert "G-overhang" in result.stdout
+
+
+def test_material_overlap_is_rejected_even_with_correct_total_volume(tmp_path):
+    material_project(tmp_path, mark_z=5.0)
+    result = run(tmp_path)
+    assert result.returncode == 1
+    assert "material" in result.stdout and ("overlap" in result.stdout or "uncovered" in result.stdout)
+
+
+def test_material_gap_and_outside_region_is_rejected(tmp_path):
+    material_project(tmp_path, mark_z=7.0)
+    result = run(tmp_path)
+    assert result.returncode == 1
+    assert "material" in result.stdout and ("outside" in result.stdout or "uncovered" in result.stdout)
+
+
 def test_valid_project_passes(tmp_path):
     make_project(tmp_path, cube_triangles())
     result = run(tmp_path)

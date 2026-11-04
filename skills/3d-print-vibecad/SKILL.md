@@ -1,7 +1,7 @@
 ---
 name: 3d-print-vibecad
 description: Build parametric dimensional FDM parts in VibeCAD.
-version: 1.0.0
+version: 1.1.0
 author: Marc Mailloux, Hermes Agent
 license: MIT
 platforms: [linux]
@@ -102,3 +102,11 @@ python3 3d-print-validate/scripts/validate_project.py "$PROJECT"
 - [ ] binary STL exported inside VibeCAD
 - [ ] `validate_project.py` reports HARD=0
 - [ ] `validate_assembly.py` if assembly is present
+
+## Optional material regions
+
+When `PRINT_SPEC.multi_material` is present, follow `3d-print-multi-material`.
+Export the existing composite body for whole-part validation and closed region
+STLs in its original CAD coordinate frame. Preserve named domains and shared
+boundaries; do not center, lower to the bed, rotate, or union regions separately.
+Validate the composite and its material partition after every export.

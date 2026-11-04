@@ -4,12 +4,14 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import json
 import subprocess
 import sys
 import zipfile
+import tempfile
 from pathlib import Path
 
-SCRIPTS = Path(__file__).resolve().parent
+SCRIPTS = Path(__file__).absolute().parent
 VALIDATE = (
     SCRIPTS.parent.parent / "3d-print-validate" / "scripts" / "validate_project.py"
 )
@@ -39,6 +41,17 @@ def print_notes(spec) -> str:
         f"- layer_height_mm: {spec.layer_height_mm}",
         "",
     ]
+    if spec.multi_material:
+        plan = spec.multi_material
+        lines += [f"- material mode: {plan.mode}", f"- benefit: {plan.reason}",
+                  f"- shared bed temperature C: {plan.bed_temperature_c}"]
+        lines += [f"- filament {i}: {m.id}, {m.type}, {m.color}, profile {m.profile}"
+                  for i, m in enumerate(plan.materials, 1)]
+        lines += [f"- region {r.id}: body {r.body}, material {r.material}, {r.path}" for r in plan.regions]
+        if plan.interface_material:
+            lines += [f"- support interface material: {plan.interface_material}"]
+        lines += ["- Assign logical filaments to the loaded AMS slots at job setup.",
+                  "- See slice/material-plan.json; unsliced estimates remain unavailable.", ""]
     return "\n".join(lines)
 
 
@@ -62,6 +75,13 @@ def collect_members(project: Path, spec) -> list[tuple[str, Path]]:
         add(rel)
     for body in spec.stl_files:
         add(body.path)
+    if spec.multi_material:
+        for region in spec.multi_material.regions:
+            add(region.path)
+        if spec.multi_material.bond_report:
+            add(spec.multi_material.bond_report)
+        for rel in ("slice/material-plan.json", "slice/project.process.json", "slice/project.3mf", "slice/project.gcode.3mf"):
+            add(rel)
     step = project / "step"
     if step.is_dir():
         for path in sorted(step.rglob("*")):
@@ -95,6 +115,8 @@ def pack(project: Path, zip_path: Path | None = None) -> Path:
     spec, errors = load_spec(project / "docs" / "PRINT_SPEC.yaml", project=project)
     if spec is None or errors:
         raise SystemExit("HARD: cannot load PRINT_SPEC.yaml")
+    if spec.multi_material:
+        validate_material_artifacts(project, spec)
     notes_path = project / "docs" / "PRINT_NOTES.md"
     notes_path.parent.mkdir(parents=True, exist_ok=True)
     notes_path.write_text(print_notes(spec), encoding="utf-8")
@@ -121,6 +143,31 @@ def pack(project: Path, zip_path: Path | None = None) -> Path:
                 raise SystemExit(f"HARD: refused non-relative zip member {rel}")
             zf.writestr(rel, data)
     return zip_path
+
+
+def validate_material_artifacts(project: Path, spec) -> None:
+    sys.path.insert(0, str(BRIEF.parent.parent / "3d-print-multi-material/scripts"))
+    from material_project import write_material_project, check_material_3mf
+
+    manifest_path = project / "slice/material-plan.json"
+    outputs = [(project / "slice" / name, sliced) for name, sliced in
+               (("project.3mf", False), ("project.gcode.3mf", True))]
+    if not manifest_path.is_file():
+        if any(path.exists() for path, _sliced in outputs):
+            raise SystemExit("HARD: material 3MF requires its material-plan.json")
+        return
+    try:
+        stored = json.loads(manifest_path.read_text())
+        with tempfile.TemporaryDirectory(prefix="material-pack-check-") as temp:
+            expected = write_material_project(project, spec, Path(temp))
+        expected = json.loads(json.dumps(expected))
+        if {k: v for k, v in stored.items() if k != "estimates"} != {k: v for k, v in expected.items() if k != "estimates"}:
+            raise ValueError("material plan differs from current PRINT_SPEC; regenerate it")
+        for path, sliced in outputs:
+            if path.is_file():
+                check_material_3mf(path, expected, sliced=sliced)
+    except (ValueError, OSError, KeyError) as error:
+        raise SystemExit(f"HARD: {error}") from error
 
 
 def main() -> int:

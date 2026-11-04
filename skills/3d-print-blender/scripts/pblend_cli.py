@@ -14,7 +14,7 @@ from typing import Iterable, List, Optional, Sequence
 VERSION = "0.2.0"
 
 # skill root = parent of scripts/
-SCRIPT_DIR = Path(__file__).resolve().parent
+SCRIPT_DIR = Path(__file__).absolute().parent
 SKILL_ROOT = SCRIPT_DIR.parent
 BPY_LIB = SCRIPT_DIR / "bpy_lib"
 TEMPLATES = SCRIPT_DIR / "templates"

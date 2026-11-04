@@ -2,7 +2,7 @@
 
 [Documentation](README.md) · [Design and validation](guides/design-and-validation.md)
 
-Last reviewed 2026-10-06.
+Last reviewed 2026-11-04.
 
 ## Supported path
 
@@ -63,3 +63,27 @@ Last reviewed 2026-10-06.
 - Private project notes, machine-specific paths, and unused house regression prose were removed from the public skill tree.
 
 There is no compatibility promise for code that does not satisfy the current contract. Working artifacts stay; broken artifacts become negative regression fixtures or leave the pack.
+
+## Optional AMS material workflow
+
+`3d-print-multi-material` adds a backward-compatible optional contract for one
+P1S with one AMS 2 Pro. CAD keeps composite and aligned material region exports.
+Validation audits each region and samples partition coverage/overlap; this is
+not an exact-kernel or physical bond proof. Dedicated support-interface plans
+and same-polymer colors do not require a fabricated calibration claim. Joined
+functional pairs need an actual measured/fit-tested report.
+
+The Studio adapter resolves installed presets and verifies native 3MF geometry,
+filament assignments, colors and support-interface settings. Explicit `--slice`
+emits G-code; no profile selection means plan-only output. No live printer, AMS
+slot inventory, drying cycle or firmware change is implied. Estimates absent
+from real slice metadata remain unavailable.
+
+The existing L3 handbook section calculation cannot certify a joined
+mixed-polymer section; functional material plans fail that check and require
+independent material/joint analysis. A bond-report file alone does not extend
+the structural calculation.
+
+The design/validation/slice/pack path preserves the logical skill directory when
+packages are installed as directory links. Cross-package helpers remain adjacent
+at that discovery root; independent version storage does not break their lookup.

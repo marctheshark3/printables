@@ -1,7 +1,7 @@
 ---
 name: 3d-print-validate
 description: Fail closed on printable-part specs and STL geometry.
-version: 1.0.0
+version: 1.1.0
 author: Marc Mailloux, Hermes Agent
 license: MIT
 platforms: [linux, macos, windows]
@@ -87,3 +87,14 @@ Only the user may waive a named check. Record the exact check, reason, and scope
 - [ ] every STL is watertight and has the expected shell count
 - [ ] backend solid validity was checked before export
 - [ ] HARD=0 or each named override is user-approved and recorded
+
+## Optional material validation
+
+With `multi_material`, the contract also checks the P1S/AMS feeder limits,
+logical assignments, shared bed temperature and functional bond-report evidence.
+The project gate audits region meshes, compares total volume with each composite,
+and samples exclusive interior coverage. Shared interfaces may touch. Gaps,
+overlapping interiors, outlying regions and wrong shell counts fail. This is
+sampled occupancy, not an exact-kernel partition proof or a physical bond test.
+Overhangs are checked on the composite; neighbouring materials support internal
+region boundaries, which are not audited as independent print overhangs.

@@ -11,7 +11,7 @@ import sys
 from pathlib import Path
 from typing import Iterable
 
-BRIEF_SCRIPTS = Path(__file__).resolve().parent.parent.parent / "3d-print-design-brief" / "scripts"
+BRIEF_SCRIPTS = Path(__file__).absolute().parent.parent.parent / "3d-print-design-brief" / "scripts"
 if str(BRIEF_SCRIPTS) not in sys.path:
     sys.path.insert(0, str(BRIEF_SCRIPTS))
 
@@ -324,6 +324,9 @@ def l3_loads(spec: PrintSpec) -> list[str]:
         if load.source == "assumed":
             hard.append(f"L3 load {load.id} source cannot be assumed")
         if load.kind != "moment":
+            continue
+        if spec.multi_material is not None and spec.multi_material.mode == "functional":
+            hard.append(f"L3 load {load.id}: mixed-polymer sections require an independent material/joint analysis")
             continue
         if allowable is None:
             hard.append(f"L3 no conservative allowable for material {spec.material}")

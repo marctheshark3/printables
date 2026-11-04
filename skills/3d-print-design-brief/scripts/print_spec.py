@@ -8,6 +8,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from material_plan import MaterialPlan, parse_material_plan, validate_material_plan
+
 try:
     import yaml
 except ImportError as exc:
@@ -70,6 +72,7 @@ class StlBody:
     path: str
     body: str
     expected_shells: int
+    material: str | None = None
 
 
 @dataclass(frozen=True)
@@ -206,6 +209,7 @@ class PrintSpec:
     slice_process_card: str | None = None
     slice_three_mf: str | None = None
     fit_measured_mm: tuple[tuple[str, float], ...] = ()
+    multi_material: MaterialPlan | None = None
 
 
 @dataclass(frozen=True)
@@ -858,6 +862,8 @@ def validate(data: Any, project: Path | None = None, check_files: bool = False) 
     validate_pack_slice(data, errors)
     validate_fit_measured(data, errors)
     validate_insert_od(data, errors)
+    if not errors:
+        errors.extend(validate_material_plan(data, project=project, check_files=check_files))
 
     if nested(data, "service.environment") == "wet":
         if nested(data, "service.drainage") not in POSITIVE_DRAINAGE:
@@ -903,7 +909,7 @@ def parse_spec(data: dict[str, Any]) -> PrintSpec:
     bx, by, bz = nested(data, "manufacturing.build_volume_mm")
     coupon = data.get("fit", {}).get("coupon")
     bodies = tuple(
-        StlBody(path=item["path"], body=item["body"], expected_shells=item["expected_shells"])
+        StlBody(path=item["path"], body=item["body"], expected_shells=item["expected_shells"], material=item.get("material"))
         for item in nested(data, "geometry.stl_files")
     )
     dimensions = tuple(
@@ -974,6 +980,7 @@ def parse_spec(data: dict[str, Any]) -> PrintSpec:
         if isinstance(slice_block.get("three_mf"), str)
         else None,
         fit_measured_mm=measured,
+        multi_material=parse_material_plan(data),
     )
 
 

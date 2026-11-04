@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+from dataclasses import replace
 import struct
 import subprocess
 import sys
@@ -289,6 +290,15 @@ def test_l3_section_check_uses_declared_numbers():
     assert fail is not None
     assert fail * 2.0 > ALLOWABLE_SHEAR_MPA["PETG"]
     assert abs(moment_to_n_m(1000.0, "N_mm") - 1.0) < 1e-9
+
+
+def test_l3_cannot_certify_mixed_polymer_section_as_primary_material(tmp_path):
+    spec = parse_spec(make_kit(tmp_path, (30, 0, 0)))
+    example = ROOT.parents[1] / "examples/two-color-enclosure-lid/docs/PRINT_SPEC.yaml"
+    plan = parse_spec(yaml.safe_load(example.read_text())).multi_material
+    plan = replace(plan, mode="functional", materials=(plan.materials[0], replace(plan.materials[1], type="PETG")))
+    hard = l3_loads(replace(spec, multi_material=plan))
+    assert any("mixed-polymer sections" in item for item in hard)
 
 
 def test_hub_section_treats_od_and_bore_as_diameters():

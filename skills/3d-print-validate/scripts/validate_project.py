@@ -6,7 +6,7 @@ import argparse
 import sys
 from pathlib import Path
 
-SCRIPTS = Path(__file__).resolve().parent
+SCRIPTS = Path(__file__).absolute().parent
 BRIEF_SCRIPTS = SCRIPTS.parent.parent / "3d-print-design-brief" / "scripts"
 for path in (str(SCRIPTS), str(BRIEF_SCRIPTS)):
     if path not in sys.path:
@@ -14,6 +14,7 @@ for path in (str(SCRIPTS), str(BRIEF_SCRIPTS)):
 
 from print_spec import load_spec, parameters_in_sources  # noqa: E402
 from validate_stl import audit_mesh, report  # noqa: E402
+from material_regions import audit_material_regions  # noqa: E402
 
 
 def main() -> int:
@@ -51,6 +52,11 @@ def main() -> int:
         if hard:
             failures += 1
 
+    if not failures:
+        material_errors = audit_material_regions(project, spec)
+        for error in material_errors:
+            print(f"HARD: {error}")
+        failures += len(material_errors)
     if failures:
         print(f"RESULT: FAIL ({failures} STL files failed)")
         return 1
